@@ -1,14 +1,6 @@
-export default function StudentDashboard() {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8">
-            👨‍🎓 Student Dashboard
-          </h1>
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <p className="text-xl text-gray-600">Welcome to your ClassLogger student dashboard!</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+// app/dashboard/student/page.tsx
+import UnifiedDashboard from '@/app/dashboard/UnifiedDashboard'
+
+export default function StudentDashboardPage() {
+  return <UnifiedDashboard />
+}
