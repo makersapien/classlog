@@ -1,7 +1,6 @@
-// src/app/dashboard/page.tsx
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,63 +8,80 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [status, setStatus] = useState('Checking authentication...')
 
   useEffect(() => {
     const redirectToRoleDashboard = async () => {
       try {
+        setStatus('🔄 Checking authentication...')
+        
         // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
           console.error('Session error:', sessionError)
-          router.push('/')
+          setStatus('❌ Session error - redirecting to login')
+          setTimeout(() => router.push('/'), 1000)
           return
         }
 
         if (!session) {
           console.log('No session found')
-          router.push('/')
+          setStatus('🔐 No session found - redirecting to login')
+          setTimeout(() => router.push('/'), 1000)
           return
         }
+
+        setStatus('👤 Loading user profile...')
+        console.log('✅ Session found for user:', session.user.id)
 
         // Get user profile from database
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name')
           .eq('id', session.user.id)
           .single()
 
         if (profileError) {
           console.error('Profile error:', profileError)
-          router.push('/')
+          setStatus('❌ Profile error - redirecting to login')
+          setTimeout(() => router.push('/'), 1000)
           return
         }
 
         if (!profile) {
           console.log('No profile found')
-          router.push('/')
+          setStatus('❌ No profile found - redirecting to login')
+          setTimeout(() => router.push('/'), 1000)
           return
         }
 
-        // Redirect to the appropriate role-based dashboard
-        switch (profile.role) {
-          case 'teacher':
-            router.push('/dashboard/teacher')
-            break
-          case 'parent':
-            router.push('/dashboard/parent')
-            break
-          case 'student':
-            router.push('/dashboard/student')
-            break
-          default:
-            console.error('Unknown role:', profile.role)
-            router.push('/')
-        }
+        console.log('✅ Profile found:', profile.role, profile.full_name)
+        setStatus(`🎯 Redirecting to ${profile.role} dashboard...`)
+
+        // Small delay to show the status, then redirect
+        setTimeout(() => {
+          switch (profile.role) {
+            case 'teacher':
+              router.push('/dashboard/teacher')
+              break
+            case 'parent':
+              router.push('/dashboard/parent')
+              break
+            case 'student':
+              router.push('/dashboard/student')
+              break
+            default:
+              console.error('Unknown role:', profile.role)
+              setStatus('❌ Unknown role - redirecting to login')
+              router.push('/')
+          }
+        }, 1000)
 
       } catch (err) {
         console.error('Unexpected error:', err)
-        router.push('/')
+        setStatus('💥 Unexpected error - redirecting to login')
+        setTimeout(() => router.push('/'), 1000)
       }
     }
 
@@ -133,7 +149,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="text-center">
-          <p className="text-gray-500">Redirecting to your dashboard...</p>
+          <p className="text-gray-500">{status}</p>
+          <div className="mt-2 text-xs text-gray-400">
+            This may take a few seconds...
+          </div>
         </div>
       </div>
     </div>

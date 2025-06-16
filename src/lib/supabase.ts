@@ -25,16 +25,31 @@ export interface Profile {
 
 // Auth helper functions
 export const signInWithGoogle = async (role: string) => {
+  console.log('🔄 Starting Google sign-in for role:', role)
+  
+  // Get the current origin for redirect URL
+  const redirectUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/auth/callback?role=${role}`
+    : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?role=${role}`
+  
+  console.log('🔗 Redirect URL:', redirectUrl)
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?role=${role}`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
       }
     }
   })
+  
+  if (error) {
+    console.error('❌ Google sign-in error:', error)
+  } else {
+    console.log('✅ Google sign-in initiated:', data)
+  }
   
   return { data, error }
 }

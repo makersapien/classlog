@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase-client'; // Use the browser-compatible client
 
 const ClassLoggerLanding = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -18,28 +19,37 @@ const ClassLoggerLanding = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      // Import Supabase client dynamically to avoid SSR issues
-      const { signInWithGoogle } = await import('@/lib/supabase');
-      const { error } = await signInWithGoogle(loginType);
+      console.log('🔄 Starting Google sign-in for role:', loginType);
+      
+      // Get the current origin for redirect URL
+      const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`;
+      console.log('🔗 Redirect URL:', redirectUrl);
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
       
       if (error) {
-        console.error('Google sign-in error:', error);
+        console.error('❌ Google sign-in error:', error);
         alert('Sign-in failed. Please try again.');
+      } else {
+        console.log('✅ Google sign-in initiated successfully');
+        // If successful, user will be redirected by the OAuth flow
       }
-      // If successful, user will be redirected by the OAuth flow
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      console.error('💥 Google sign-in error:', error);
       alert('Sign-in failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const LoginModal = () => (
     <div className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${isLoginOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}>
@@ -149,7 +159,9 @@ const ClassLoggerLanding = () => {
 
           <button 
             onClick={() => {
-              console.log('Login clicked for:', loginType);
+              console.log('Email login clicked for:', loginType);
+              // TODO: Implement email/password login
+              alert('Email login not implemented yet. Please use Google sign-in.');
             }}
             className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
           >
