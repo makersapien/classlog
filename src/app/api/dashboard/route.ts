@@ -6,37 +6,79 @@ import type { Database } from '@/types/database'
 type SupabaseClient = ReturnType<typeof createRouteHandlerClient<Database>>
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const role = searchParams.get('role')
-  
-  const supabase = createRouteHandlerClient<Database>({ cookies })
+  console.log('🔄 Dashboard API called')
   
   try {
+    const { searchParams } = new URL(request.url)
+    const role = searchParams.get('role')
+    
+    console.log('📝 Role requested:', role)
+    
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (authError) {
+      console.error('❌ Auth error:', authError)
+      return NextResponse.json({ error: 'Authentication failed', details: authError.message }, { status: 401 })
     }
 
-    if (role === 'teacher') {
-      return getTeacherDashboardData(supabase, user.id)
-    } else if (role === 'student') {
-      return getStudentDashboardData(supabase, user.id)
-    } else if (role === 'parent') {
-      return getParentDashboardData(supabase, user.id)
-    } else {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    if (!user) {
+      console.error('❌ No user found')
+      return NextResponse.json({ error: 'No authenticated user' }, { status: 401 })
+    }
+
+    console.log('✅ User authenticated:', user.id)
+
+    // Validate role parameter
+    if (!role || !['teacher', 'student', 'parent'].includes(role)) {
+      console.error('❌ Invalid role:', role)
+      return NextResponse.json({ error: 'Invalid or missing role parameter' }, { status: 400 })
+    }
+
+    // Route to appropriate dashboard function
+    switch (role) {
+      case 'teacher':
+        return await getTeacherDashboardData(supabase, user.id)
+      case 'student':
+        return await getStudentDashboardData(supabase, user.id)
+      case 'parent':
+        return await getParentDashboardData(supabase, user.id)
+      default:
+        return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
   } catch (error) {
-    console.error('Dashboard API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('💥 Dashboard API error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
 async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: string) {
   try {
-    // Get teacher's classes
+    console.log('🧑‍🏫 Fetching teacher dashboard data for:', teacherId)
+
+    // Initialize default response structure
+    const defaultResponse = {
+      stats: {
+        totalClasses: 0,
+        totalStudents: 0,
+        pendingPayments: 0,
+        totalRevenue: 0,
+        classesToday: 0,
+        attendanceToday: 0
+      },
+      classes: [],
+      todaySchedule: [],
+      recentMessages: [],
+      upcomingPayments: []
+    }
+
+    // Get teacher's classes with better error handling
+    console.log('📚 Fetching classes...')
     const { data: classes, error: classesError } = await supabase
       .from('classes')
       .select(`
@@ -52,12 +94,16 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       .eq('status', 'active')
 
     if (classesError) {
-      console.error('Classes error:', classesError)
-      throw classesError
+      console.error('❌ Classes query error:', classesError)
+      // Don't throw, just use empty array
     }
 
-    // Get today's class logs
+    console.log('✅ Classes fetched:', classes?.length || 0)
+
+    // Get today's class logs with better error handling
     const today = new Date().toISOString().split('T')[0]
+    console.log('📅 Fetching today\'s logs for date:', today)
+    
     const { data: todayLogs, error: logsError } = await supabase
       .from('class_logs')
       .select(`
@@ -68,23 +114,35 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       .eq('date', today)
 
     if (logsError) {
-      console.error('Logs error:', logsError)
-      throw logsError
+      console.error('❌ Logs query error:', logsError)
+      // Don't throw, just use empty array
     }
 
-    // Get payment statistics for teacher's classes
+    console.log('✅ Today\'s logs fetched:', todayLogs?.length || 0)
+
+    // Get payment statistics for teacher's classes with better error handling
     const classIds = classes?.map((c: any) => c.id) || []
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .in('class_id', classIds)
+    let payments: any[] = []
+    
+    if (classIds.length > 0) {
+      console.log('💰 Fetching payments for classes:', classIds.length)
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .in('class_id', classIds)
 
-    if (paymentsError) {
-      console.error('Payments error:', paymentsError)
-      throw paymentsError
+      if (paymentsError) {
+        console.error('❌ Payments query error:', paymentsError)
+        // Don't throw, just use empty array
+      } else {
+        payments = paymentsData || []
+      }
     }
 
-    // Get recent messages
+    console.log('✅ Payments fetched:', payments.length)
+
+    // Get recent messages with better error handling
+    console.log('💬 Fetching messages...')
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select(`
@@ -98,11 +156,13 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       .limit(5)
 
     if (messagesError) {
-      console.error('Messages error:', messagesError)
-      throw messagesError
+      console.error('❌ Messages query error:', messagesError)
+      // Don't throw, just use empty array
     }
 
-    // Calculate statistics
+    console.log('✅ Messages fetched:', messages?.length || 0)
+
+    // Calculate statistics safely
     const totalStudents = classes?.reduce((sum: number, cls: any) => {
       const activeEnrollments = cls.enrollments?.filter((e: any) => e.status === 'active') || []
       return sum + activeEnrollments.length
@@ -116,7 +176,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     const attendanceToday = todayLogs?.reduce((sum: number, log: any) => 
       sum + (log.attendance_count || 0), 0) || 0
 
-    return NextResponse.json({
+    const responseData = {
       stats: {
         totalClasses: classes?.length || 0,
         totalStudents,
@@ -129,15 +189,24 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       todaySchedule: todayLogs || [],
       recentMessages: messages || [],
       upcomingPayments: payments?.filter((p: any) => p.status === 'pending').slice(0, 5) || []
-    })
+    }
+
+    console.log('✅ Teacher dashboard data prepared successfully')
+    return NextResponse.json(responseData)
+
   } catch (error) {
-    console.error('Teacher dashboard error:', error)
-    return NextResponse.json({ error: 'Failed to fetch teacher data' }, { status: 500 })
+    console.error('💥 Teacher dashboard error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch teacher data', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
 async function getStudentDashboardData(supabase: SupabaseClient, studentId: string) {
   try {
+    console.log('🎓 Fetching student dashboard data for:', studentId)
+
     // Get student's enrollments with class details
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
@@ -151,21 +220,32 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
       .eq('student_id', studentId)
       .eq('status', 'active')
 
-    if (enrollmentsError) throw enrollmentsError
+    if (enrollmentsError) {
+      console.error('❌ Enrollments error:', enrollmentsError)
+      throw enrollmentsError
+    }
 
     // Get recent class logs for enrolled classes
     const classIds = enrollments?.map((e: any) => e.class_id) || []
-    const { data: recentLogs, error: logsError } = await supabase
-      .from('class_logs')
-      .select(`
-        *,
-        classes(name, subject)
-      `)
-      .in('class_id', classIds)
-      .order('date', { ascending: false })
-      .limit(10)
+    let recentLogs: any[] = []
+    
+    if (classIds.length > 0) {
+      const { data: logsData, error: logsError } = await supabase
+        .from('class_logs')
+        .select(`
+          *,
+          classes(name, subject)
+        `)
+        .in('class_id', classIds)
+        .order('date', { ascending: false })
+        .limit(10)
 
-    if (logsError) throw logsError
+      if (logsError) {
+        console.error('❌ Logs error:', logsError)
+      } else {
+        recentLogs = logsData || []
+      }
+    }
 
     // Get student's payments
     const { data: payments, error: paymentsError } = await supabase
@@ -177,7 +257,9 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
       .eq('student_id', studentId)
       .order('created_at', { ascending: false })
 
-    if (paymentsError) throw paymentsError
+    if (paymentsError) {
+      console.error('❌ Payments error:', paymentsError)
+    }
 
     // Get student's attendance
     const { data: attendance, error: attendanceError } = await supabase
@@ -193,7 +275,9 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
       .order('created_at', { ascending: false })
       .limit(20)
 
-    if (attendanceError) throw attendanceError
+    if (attendanceError) {
+      console.error('❌ Attendance error:', attendanceError)
+    }
 
     // Get messages
     const { data: messages, error: messagesError } = await supabase
@@ -207,7 +291,9 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
       .order('created_at', { ascending: false })
       .limit(10)
 
-    if (messagesError) throw messagesError
+    if (messagesError) {
+      console.error('❌ Messages error:', messagesError)
+    }
 
     // Calculate stats
     const totalClasses = enrollments?.length || 0
@@ -230,13 +316,18 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
       messages: messages || []
     })
   } catch (error) {
-    console.error('Student dashboard error:', error)
-    return NextResponse.json({ error: 'Failed to fetch student data' }, { status: 500 })
+    console.error('💥 Student dashboard error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch student data',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
 async function getParentDashboardData(supabase: SupabaseClient, parentId: string) {
   try {
+    console.log('👨‍👩‍👧‍👦 Fetching parent dashboard data for:', parentId)
+
     // Get parent's children
     const { data: children, error: childrenError } = await supabase
       .from('profiles')
@@ -244,7 +335,10 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
       .eq('parent_id', parentId)
       .eq('role', 'student')
 
-    if (childrenError) throw childrenError
+    if (childrenError) {
+      console.error('❌ Children error:', childrenError)
+      throw childrenError
+    }
 
     if (!children || children.length === 0) {
       return NextResponse.json({
@@ -268,7 +362,9 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
       .in('student_id', childIds)
       .eq('status', 'active')
 
-    if (enrollmentsError) throw enrollmentsError
+    if (enrollmentsError) {
+      console.error('❌ Enrollments error:', enrollmentsError)
+    }
 
     // Get payments for children
     const { data: payments, error: paymentsError } = await supabase
@@ -281,21 +377,31 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
       .in('student_id', childIds)
       .order('created_at', { ascending: false })
 
-    if (paymentsError) throw paymentsError
+    if (paymentsError) {
+      console.error('❌ Payments error:', paymentsError)
+    }
 
     // Get recent class logs for children's classes
     const classIds = enrollments?.map((e: any) => e.class_id) || []
-    const { data: recentLogs, error: logsError } = await supabase
-      .from('class_logs')
-      .select(`
-        *,
-        classes(name, subject)
-      `)
-      .in('class_id', classIds)
-      .order('date', { ascending: false })
-      .limit(10)
+    let recentLogs: any[] = []
+    
+    if (classIds.length > 0) {
+      const { data: logsData, error: logsError } = await supabase
+        .from('class_logs')
+        .select(`
+          *,
+          classes(name, subject)
+        `)
+        .in('class_id', classIds)
+        .order('date', { ascending: false })
+        .limit(10)
 
-    if (logsError) throw logsError
+      if (logsError) {
+        console.error('❌ Logs error:', logsError)
+      } else {
+        recentLogs = logsData || []
+      }
+    }
 
     // Calculate stats
     const totalClasses = enrollments?.length || 0
@@ -316,7 +422,10 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
       recentActivity: recentLogs || []
     })
   } catch (error) {
-    console.error('Parent dashboard error:', error)
-    return NextResponse.json({ error: 'Failed to fetch parent data' }, { status: 500 })
+    console.error('💥 Parent dashboard error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch parent data',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
