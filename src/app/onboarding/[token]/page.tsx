@@ -117,10 +117,10 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-400 via-emerald-500 to-teal-600 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading invitation...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-6"></div>
+          <p className="text-white text-xl font-semibold">Loading your boarding pass...</p>
         </div>
       </div>
     )
@@ -128,16 +128,16 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Invitation</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-red-400 via-orange-500 to-pink-600 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 text-center">
+          <div className="text-6xl mb-6">🚫</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-8 text-lg">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
           >
-            Go to Homepage
+            Return Home
           </button>
         </div>
       </div>
@@ -149,119 +149,166 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Header */}
-          <div className="bg-blue-600 text-white p-6">
-            <h1 className="text-2xl font-bold">Student Enrollment Invitation</h1>
-            <p className="text-blue-100 mt-2">Complete your enrollment process</p>
+    <div className="min-h-screen bg-gradient-to-br from-amber-400 via-emerald-500 to-teal-600 flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full">
+        {/* Boarding Pass Container */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden relative">
+          {/* Dotted Line for Tear-off Effect */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-px border-l-2 border-dashed border-gray-300 z-10"></div>
+          
+          {/* Left Side - Main Boarding Pass */}
+          <div className="grid lg:grid-cols-2">
+            {/* Left Section */}
+            <div className="p-8 lg:p-12 bg-gradient-to-br from-emerald-50 to-teal-50 relative">
+              {/* Boarding Pass Header */}
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                  BOARDING PASS
+                </h1>
+                <p className="text-gray-600 text-lg">Student Enrollment Invitation</p>
+              </div>
+
+              {/* Passenger (Student) Info */}
+              <div className="mb-8">
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Passenger</h3>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">{invitation.student_name}</p>
+                  <p className="text-gray-600">Year {invitation.year_group}</p>
+                </div>
+              </div>
+
+              {/* Flight (Class) Details */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-white rounded-xl p-4 shadow-md border border-teal-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Subject</p>
+                  <p className="text-lg font-bold text-gray-900">{invitation.subject}</p>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-md border border-teal-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Weekly</p>
+                  <p className="text-lg font-bold text-gray-900">{invitation.classes_per_week}x/week</p>
+                </div>
+              </div>
+
+              {/* Guardian Info */}
+              <div className="bg-gradient-to-r from-amber-100 to-yellow-100 rounded-2xl p-6 border border-amber-200">
+                <h4 className="text-sm font-semibold text-amber-800 uppercase tracking-wide mb-3">Guardian Contact</h4>
+                <p className="text-lg font-semibold text-amber-900 mb-1">{invitation.parent_name}</p>
+                <p className="text-amber-700">{invitation.parent_email}</p>
+              </div>
+            </div>
+
+            {/* Right Section - Stub */}
+            <div className="p-8 lg:p-12 bg-gradient-to-br from-teal-50 to-emerald-50 relative">
+              {/* Boarding Pass Stub Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+                  CLASS DETAILS
+                </h2>
+                <p className="text-gray-600">Keep this information handy</p>
+              </div>
+
+              {/* Class Schedule Info */}
+              <div className="space-y-6 mb-8">
+                <div className="bg-white rounded-xl p-5 shadow-md border border-emerald-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recharge Package</p>
+                  <p className="text-xl font-bold text-gray-900">{invitation.classes_per_recharge} Classes</p>
+                </div>
+
+                <div className="bg-white rounded-xl p-5 shadow-md border border-emerald-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Valid Until</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {new Date(invitation.expires_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Class Links */}
+              {(invitation.whatsapp_group_url || invitation.google_meet_url) && (
+                <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 border border-blue-200 mb-8">
+                  <h4 className="text-sm font-semibold text-blue-800 uppercase tracking-wide mb-4">Quick Access</h4>
+                  <div className="space-y-3">
+                    {invitation.whatsapp_group_url && (
+                      <a
+                        href={invitation.whatsapp_group_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center bg-green-500 text-white px-4 py-3 rounded-xl hover:bg-green-600 transition-colors font-semibold"
+                      >
+                        <span className="text-xl mr-3">💬</span>
+                        Join WhatsApp Group
+                      </a>
+                    )}
+                    {invitation.google_meet_url && (
+                      <a
+                        href={invitation.google_meet_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center bg-blue-500 text-white px-4 py-3 rounded-xl hover:bg-blue-600 transition-colors font-semibold"
+                      >
+                        <span className="text-xl mr-3">🎥</span>
+                        Join Google Meet
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Details</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Student Name</label>
-                    <p className="text-gray-900">{invitation.student_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Parent Name</label>
-                    <p className="text-gray-900">{invitation.parent_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Parent Email</label>
-                    <p className="text-gray-900">{invitation.parent_email}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Details</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Subject</label>
-                    <p className="text-gray-900">{invitation.subject}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Year Group</label>
-                    <p className="text-gray-900">{invitation.year_group}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Classes per Week</label>
-                    <p className="text-gray-900">{invitation.classes_per_week}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Classes per Recharge</label>
-                    <p className="text-gray-900">{invitation.classes_per_recharge}</p>
-                  </div>
-                </div>
-              </div>
+          {/* Bottom Action Section */}
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">Ready to Board?</h3>
+              <p className="text-emerald-100">Complete your enrollment to start your learning journey</p>
             </div>
 
-            {/* Class Links */}
-            {(invitation.whatsapp_group_url || invitation.google_meet_url) && (
-              <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Class Links</h4>
-                <div className="space-y-2">
-                  {invitation.whatsapp_group_url && (
-                    <a
-                      href={invitation.whatsapp_group_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-green-600 hover:text-green-700"
-                    >
-                      📱 Join WhatsApp Group
-                    </a>
-                  )}
-                  {invitation.google_meet_url && (
-                    <a
-                      href={invitation.google_meet_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-blue-600 hover:text-blue-700"
-                    >
-                      🎥 Join Google Meet
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Expiration Notice */}
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                ⏰ This invitation expires on{' '}
-                <strong>
-                  {new Date(invitation.expires_at).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </strong>
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-8 flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
               <button
                 onClick={completeOnboarding}
                 disabled={isCompleting}
-                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 bg-white text-emerald-600 py-4 px-8 rounded-2xl font-bold text-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg"
               >
-                {isCompleting ? 'Processing...' : 'Accept Invitation & Enroll'}
+                {isCompleting ? (
+                  <span className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-600 border-t-transparent mr-2"></div>
+                    Processing...
+                  </span>
+                ) : (
+                  '🎫 Accept & Board'
+                )}
               </button>
               <button
                 onClick={() => router.push('/')}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-8 py-4 border-2 border-white text-white rounded-2xl font-semibold hover:bg-white hover:text-emerald-600 transition-all duration-200 transform hover:scale-105"
               >
                 Cancel
               </button>
             </div>
+          </div>
+
+          {/* Decorative Perforations */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 flex flex-col justify-evenly">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Expiration Warning */}
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg">
+            <span className="text-2xl mr-3">⏰</span>
+            <span className="text-gray-800 font-semibold">
+              Expires {new Date(invitation.expires_at).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </span>
           </div>
         </div>
       </div>
