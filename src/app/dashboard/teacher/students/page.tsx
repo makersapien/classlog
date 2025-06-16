@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlusCircle, Users, AlertTriangle, CheckCircle, Settings } from 'lucide-react'
+import AddStudentModal from '@/components/AddStudentModal'
 
 // Types for our data
 interface Student {
@@ -334,16 +335,15 @@ export default function StudentsPage() {
         </CardContent>
       </Card>
 
-      {/* Add Student Modal - Will be implemented next */}
-      {showAddStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Student Modal</h2>
-            <p className="text-gray-600 mb-4">This will be implemented in the next file</p>
-            <Button onClick={() => setShowAddStudent(false)}>Close</Button>
-          </div>
-        </div>
-      )}
+      {/* Add Student Modal */}
+      <AddStudentModal 
+        isOpen={showAddStudent}
+        onClose={() => setShowAddStudent(false)}
+        onSuccess={() => {
+          setShowAddStudent(false)
+          fetchStudents() // Refresh the students list
+        }}
+      />
     </div>
   )
 }
