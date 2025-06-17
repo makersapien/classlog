@@ -208,7 +208,11 @@ function calculateStudentStats(students: any[], invitations: any[]) {
   const totalStudents = students.length
   
   // Count complete vs incomplete setup using the setup_completed field
-  const completeSetup = students.filter(student => student.setup_completed === true).length
+  const completeSetup = students.filter(student => {
+    return student.setup_completed === true && 
+           student.whatsapp_group_url && 
+           student.google_meet_url
+  }).length  
   const incompleteSetup = students.filter(student => student.setup_completed === false).length
 
   const pendingInvitations = invitations.length
