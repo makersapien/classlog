@@ -8,13 +8,16 @@ import type { Database } from '@/types/database'
 
 interface InvitationData {
   id: string
+  teacher_id: string
   student_name: string
+  student_email: string
   parent_name: string
   parent_email: string
   subject: string
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
+  tentative_schedule: any | null
   whatsapp_group_url: string | null
   google_meet_url: string | null
   status: string
@@ -85,31 +88,39 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
     try {
       setIsCompleting(true)
       
-      // Here you would typically:
-      // 1. Create user accounts for parent and student
-      // 2. Create enrollment records
-      // 3. Mark invitation as completed
-      // 4. Send confirmation emails
+      console.log('🔄 Starting onboarding process for:', invitation.student_name)
 
-      // For now, just mark the invitation as completed
-      const { error: updateError } = await supabase
-        .from('student_invitations')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', invitation.id)
+      // Call the server-side API to complete onboarding
+      const response = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invitation_id: invitation.id,
+          invitation_token: params.token
+        }),
+      })
 
-      if (updateError) {
-        throw updateError
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to complete onboarding')
       }
 
-      // Redirect to success page or login
+      console.log('✅ Onboarding completed successfully')
+
+      // Store credentials for success page
+      if (data.credentials) {
+        sessionStorage.setItem('onboarding_credentials', JSON.stringify(data.credentials))
+      }
+
+      // Redirect to success page
       router.push('/onboarding/success')
 
     } catch (err) {
-      console.error('Error completing onboarding:', err)
-      setError('Failed to complete onboarding. Please try again.')
+      console.error('💥 Error completing onboarding:', err)
+      setError(err instanceof Error ? err.message : 'Failed to complete onboarding. Please try again.')
     } finally {
       setIsCompleting(false)
     }

@@ -54,12 +54,14 @@ export default function StudentsPage() {
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
     student_name: '',
+    student_email: '',
     parent_name: '',
     parent_email: '',
     subject: '',
     year_group: '',
     classes_per_week: 1,
     classes_per_recharge: 4,
+    tentative_schedule: '',
     whatsapp_group_url: '',
     google_meet_url: ''
   })
@@ -118,12 +120,14 @@ export default function StudentsPage() {
         // Reset form
         setFormData({
           student_name: '',
+          student_email: '',
           parent_name: '',
           parent_email: '',
           subject: '',
           year_group: '',
           classes_per_week: 1,
           classes_per_recharge: 4,
+          tentative_schedule: '',
           whatsapp_group_url: '',
           google_meet_url: ''
         })
@@ -431,119 +435,238 @@ export default function StudentsPage() {
             </div>
             
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Student Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.student_name}
-                    onChange={(e) => setFormData({...formData, student_name: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                    placeholder="Enter student name"
-                  />
-                </div>
+              {/* Student & Parent Information */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  👤 Student & Parent Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Student Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.student_name}
+                      onChange={(e) => setFormData({...formData, student_name: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                      placeholder="Enter student name"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Parent Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.parent_name}
-                    onChange={(e) => setFormData({...formData, parent_name: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                    placeholder="Enter parent name"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Student Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.student_email}
+                      onChange={(e) => setFormData({...formData, student_email: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                      placeholder="student@example.com"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Parent Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.parent_email}
-                    onChange={(e) => setFormData({...formData, parent_email: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                    placeholder="parent@example.com"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Parent Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.parent_name}
+                      onChange={(e) => setFormData({...formData, parent_name: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                      placeholder="Enter parent name"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                    placeholder="e.g., Mathematics, Physics"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Year Group *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.year_group}
-                    onChange={(e) => setFormData({...formData, year_group: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                    placeholder="e.g., Year 10, Grade 8"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Classes per Week
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="7"
-                    value={formData.classes_per_week}
-                    onChange={(e) => setFormData({...formData, classes_per_week: parseInt(e.target.value)})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Parent Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.parent_email}
+                      onChange={(e) => setFormData({...formData, parent_email: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                      placeholder="parent@example.com"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  WhatsApp Group URL (optional)
-                </label>
-                <input
-                  type="url"
-                  value={formData.whatsapp_group_url}
-                  onChange={(e) => setFormData({...formData, whatsapp_group_url: e.target.value})}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                  placeholder="https://chat.whatsapp.com/..."
-                />
+              {/* Academic Information */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  📚 Academic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Subject *
+                    </label>
+                    <select
+                      required
+                      value={formData.subject}
+                      onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 bg-white"
+                    >
+                      <option value="">Select Subject</option>
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Physics">Physics</option>
+                      <option value="Chemistry">Chemistry</option>
+                      <option value="Biology">Biology</option>
+                      <option value="English">English</option>
+                      <option value="History">History</option>
+                      <option value="Geography">Geography</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Economics">Economics</option>
+                      <option value="Psychology">Psychology</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Year Group *
+                    </label>
+                    <select
+                      required
+                      value={formData.year_group}
+                      onChange={(e) => setFormData({...formData, year_group: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 bg-white"
+                    >
+                      <option value="">Select Year Group</option>
+                      <option value="Year 7">Year 7</option>
+                      <option value="Year 8">Year 8</option>
+                      <option value="Year 9">Year 9</option>
+                      <option value="Year 10">Year 10</option>
+                      <option value="Year 11">Year 11</option>
+                      <option value="Year 12">Year 12</option>
+                      <option value="Year 13">Year 13</option>
+                      <option value="Grade 6">Grade 6</option>
+                      <option value="Grade 7">Grade 7</option>
+                      <option value="Grade 8">Grade 8</option>
+                      <option value="Grade 9">Grade 9</option>
+                      <option value="Grade 10">Grade 10</option>
+                      <option value="Grade 11">Grade 11</option>
+                      <option value="Grade 12">Grade 12</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Google Meet URL (optional)
-                </label>
-                <input
-                  type="url"
-                  value={formData.google_meet_url}
-                  onChange={(e) => setFormData({...formData, google_meet_url: e.target.value})}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-                  placeholder="https://meet.google.com/..."
-                />
+              {/* Class Schedule */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  📅 Class Schedule & Frequency
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Classes per Week
+                    </label>
+                    <select
+                      value={formData.classes_per_week}
+                      onChange={(e) => setFormData({...formData, classes_per_week: parseInt(e.target.value)})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 bg-white"
+                    >
+                      <option value={1}>1 class per week</option>
+                      <option value={2}>2 classes per week</option>
+                      <option value={3}>3 classes per week</option>
+                      <option value={4}>4 classes per week</option>
+                      <option value={5}>5 classes per week</option>
+                      <option value={6}>6 classes per week</option>
+                      <option value={7}>7 classes per week</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Classes per Recharge
+                    </label>
+                    <select
+                      value={formData.classes_per_recharge}
+                      onChange={(e) => setFormData({...formData, classes_per_recharge: parseInt(e.target.value)})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 bg-white"
+                    >
+                      <option value={4}>4 classes</option>
+                      <option value={8}>8 classes</option>
+                      <option value={12}>12 classes</option>
+                      <option value={16}>16 classes</option>
+                      <option value={20}>20 classes</option>
+                      <option value={24}>24 classes</option>
+                      <option value={30}>30 classes</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Tentative Schedule
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.tentative_schedule}
+                      onChange={(e) => setFormData({...formData, tentative_schedule: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                      placeholder="e.g., Mon/Wed 4PM"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-4 pt-6">
+              {/* Communication Links */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  💬 Communication Links (Optional)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      WhatsApp Group URL
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={formData.whatsapp_group_url}
+                        onChange={(e) => setFormData({...formData, whatsapp_group_url: e.target.value})}
+                        className="w-full px-4 py-3 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                        placeholder="https://chat.whatsapp.com/..."
+                      />
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500 text-lg">
+                        💬
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Students will join this group for updates</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Google Meet URL
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={formData.google_meet_url}
+                        onChange={(e) => setFormData({...formData, google_meet_url: e.target.value})}
+                        className="w-full px-4 py-3 pl-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                        placeholder="https://meet.google.com/..."
+                      />
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 text-lg">
+                        🎥
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Online class meeting room</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex gap-4 pt-6 border-t border-gray-200">
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -552,10 +675,10 @@ export default function StudentsPage() {
                   {isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                      Creating...
+                      Creating Invitation...
                     </span>
                   ) : (
-                    '📧 Create Invitation'
+                    '📧 Create Student Invitation'
                   )}
                 </button>
                 <button
