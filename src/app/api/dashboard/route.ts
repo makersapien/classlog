@@ -1,9 +1,6 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import type { Database } from '@/types/database'
-
-type SupabaseClient = ReturnType<typeof createRouteHandlerClient<Database>>
 
 export async function GET(request: Request) {
   console.log('🔄 Dashboard API called')
@@ -14,7 +11,7 @@ export async function GET(request: Request) {
     
     console.log('📝 Role requested:', role)
     
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = createRouteHandlerClient({ cookies })
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -57,7 +54,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: string) {
+async function getTeacherDashboardData(supabase: any, teacherId: string) {
   try {
     console.log('🧑‍🏫 Fetching teacher dashboard data for:', teacherId)
 
@@ -203,7 +200,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
   }
 }
 
-async function getStudentDashboardData(supabase: SupabaseClient, studentId: string) {
+async function getStudentDashboardData(supabase: any, studentId: string) {
   try {
     console.log('🎓 Fetching student dashboard data for:', studentId)
 
@@ -324,7 +321,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
   }
 }
 
-async function getParentDashboardData(supabase: SupabaseClient, parentId: string) {
+async function getParentDashboardData(supabase: any, parentId: string) {
   try {
     console.log('👨‍👩‍👧‍👦 Fetching parent dashboard data for:', parentId)
 

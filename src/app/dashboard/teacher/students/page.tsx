@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import StudentDetailsModal from '@/components/StudentDetailsModal'
 
 interface Student {
   id: string
@@ -14,6 +15,7 @@ interface Student {
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
+  tentative_schedule: string | { note: string } | null
   whatsapp_group_url: string | null
   google_meet_url: string | null
   setup_completed: boolean
@@ -68,6 +70,11 @@ export default function StudentsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [invitationUrl, setInvitationUrl] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  // Modal state for student details
+  const [showStudentModal, setShowStudentModal] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
   useEffect(() => {
     fetchStudents()
@@ -76,10 +83,36 @@ export default function StudentsPage() {
   const fetchStudents = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/teacher/students')
-      const data = await response.json()
       
-      if (response.ok) {
+      // Add credentials and proper headers for authentication
+      const response = await fetch('/api/teacher/students', {
+        method: 'GET',
+        credentials: 'include', // This ensures cookies are sent
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      console.log('🔍 Response status:', response.status)
+      console.log('🔍 Response ok:', response.ok)
+      
+      if (!response.ok) {
+        console.error('❌ API response not ok:', response.status, response.statusText)
+        
+        if (response.status === 401) {
+          console.error('❌ Unauthorized - redirecting to login')
+          // Redirect to login if unauthorized
+          window.location.href = '/'
+          return
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('✅ Students data received:', data)
+      
+      if (data) {
         setStudents(data.students || [])
         setInvitations(data.invitations || [])
         setStats(data.stats || {
@@ -88,11 +121,10 @@ export default function StudentsPage() {
           incompleteSetup: 0,
           pendingInvitations: 0
         })
-      } else {
-        console.error('Failed to fetch students:', data.error)
       }
     } catch (error) {
-      console.error('Error fetching students:', error)
+      console.error('💥 Error fetching students:', error)
+      setError('Failed to load students data')
     } finally {
       setLoading(false)
     }
@@ -168,6 +200,34 @@ export default function StudentsPage() {
       console.error('Error resending invitation:', error)
       alert('Error resending invitation')
     }
+  }
+
+  // Handler for opening student details modal
+  const handleViewDetails = (student: Student) => {
+    console.log('👀 Opening details for student:', student.student_name)
+    setSelectedStudent(student)
+    setShowStudentModal(true)
+  }
+
+  // Handler for closing student details modal
+  const handleCloseModal = () => {
+    setShowStudentModal(false)
+    setSelectedStudent(null)
+  }
+
+  // Handler for updating student data
+  const handleUpdateStudent = (updatedStudent: Student) => {
+    console.log('🔄 Updating student in list:', updatedStudent.student_name)
+    
+    // Update the student in the local state
+    setStudents(prevStudents => 
+      prevStudents.map(student => 
+        student.id === updatedStudent.id ? updatedStudent : student
+      )
+    )
+    
+    // Refresh stats by refetching data
+    fetchStudents()
   }
 
   if (loading) {
@@ -404,7 +464,10 @@ export default function StudentsPage() {
                             </span>
                           </td>
                           <td className="py-5 px-3">
-                            <button className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 text-sm font-medium transform hover:scale-105">
+                            <button 
+                              onClick={() => handleViewDetails(student)}
+                              className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 text-sm font-medium transform hover:scale-105"
+                            >
                               View Details
                             </button>
                           </td>
@@ -747,6 +810,14 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        isOpen={showStudentModal}
+        onClose={handleCloseModal}
+        student={selectedStudent}
+        onUpdate={handleUpdateStudent}
+      />
     </div>
   )
 }
