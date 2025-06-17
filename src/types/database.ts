@@ -156,10 +156,9 @@ export interface Database {
       student_invitations: {
         Row: {
           id: string
-          teacher_id: string
+          teacher_id: string | null
           invitation_token: string
           student_name: string
-          student_email: string
           parent_name: string
           parent_email: string
           subject: string
@@ -169,18 +168,18 @@ export interface Database {
           tentative_schedule: any | null
           whatsapp_group_url: string | null
           google_meet_url: string | null
-          status: 'pending' | 'completed' | 'expired' | 'cancelled'
+          status: 'pending' | 'completed' | 'expired' | 'cancelled' | null
           expires_at: string | null
           completed_at: string | null
-          created_at: string
-          updated_at: string
+          created_at: string | null
+          updated_at: string | null
+          student_email: string | null
         }
         Insert: {
           id?: string
-          teacher_id: string
+          teacher_id?: string | null
           invitation_token?: string
           student_name: string
-          student_email: string
           parent_name: string
           parent_email: string
           subject: string
@@ -190,18 +189,18 @@ export interface Database {
           tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
-          status?: 'pending' | 'completed' | 'expired' | 'cancelled'
+          status?: 'pending' | 'completed' | 'expired' | 'cancelled' | null
           expires_at?: string | null
           completed_at?: string | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
+          student_email?: string | null
         }
         Update: {
           id?: string
-          teacher_id?: string
+          teacher_id?: string | null
           invitation_token?: string
           student_name?: string
-          student_email?: string
           parent_name?: string
           parent_email?: string
           subject?: string
@@ -211,11 +210,12 @@ export interface Database {
           tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
-          status?: 'pending' | 'completed' | 'expired' | 'cancelled'
+          status?: 'pending' | 'completed' | 'expired' | 'cancelled' | null
           expires_at?: string | null
           completed_at?: string | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
+          student_email?: string | null
         }
       }
       class_logs: {

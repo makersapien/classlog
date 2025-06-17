@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { use } from 'react' // Add this import for Next.js 15
 import type { Database } from '@/types/database'
 
 interface InvitationData {
@@ -25,12 +26,16 @@ interface InvitationData {
 }
 
 interface OnboardingPageProps {
-  params: {
+  params: Promise<{
     token: string
-  }
+  }>
 }
 
 export default function OnboardingPage({ params }: OnboardingPageProps) {
+  // Unwrap the params Promise for Next.js 15
+  const resolvedParams = use(params)
+  const token = resolvedParams.token
+
   const [invitation, setInvitation] = useState<InvitationData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,18 +45,21 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
 
   useEffect(() => {
     loadInvitation()
-  }, [params.token])
+  }, [token])
 
   const loadInvitation = async () => {
     try {
       setLoading(true)
       setError(null)
 
+      console.log('=== LOADING INVITATION ===')
+      console.log('Token:', token)
+
       // Fetch invitation details
       const { data: invitationData, error: invitationError } = await supabase
         .from('student_invitations')
         .select('*')
-        .eq('invitation_token', params.token)
+        .eq('invitation_token', token)
         .eq('status', 'pending')
         .single()
 
@@ -73,6 +81,7 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
         return
       }
 
+      console.log('Invitation loaded successfully:', invitationData)
       setInvitation(invitationData)
     } catch (err) {
       console.error('Error loading invitation:', err)
@@ -88,7 +97,17 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
     try {
       setIsCompleting(true)
       
+      console.log('=== FRONTEND DEBUG START ===')
       console.log('🔄 Starting onboarding process for:', invitation.student_name)
+      console.log('Invitation data:', invitation)
+      console.log('Token:', token)
+      console.log('API endpoint:', '/api/onboarding/complete')
+
+      const requestData = {
+        invitation_id: invitation.id,
+        invitation_token: token
+      }
+      console.log('Request data being sent:', requestData)
 
       // Call the server-side API to complete onboarding
       const response = await fetch('/api/onboarding/complete', {
@@ -96,19 +115,49 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          invitation_id: invitation.id,
-          invitation_token: params.token
-        }),
+        body: JSON.stringify(requestData),
       })
 
-      const data = await response.json()
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+      console.log('Response url:', response.url)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
+      // Get the raw response text first
+      const responseText = await response.text()
+      console.log('Raw response length:', responseText.length)
+      console.log('Raw response (first 500 chars):', responseText.substring(0, 500))
+
+      // Check if response is actually JSON
       if (!response.ok) {
+        console.error('Response not OK:', response.status)
+        console.error('Error response body:', responseText)
+        
+        if (response.status === 404) {
+          throw new Error('API endpoint not found. Check if /api/onboarding/complete/route.ts exists')
+        }
+        
+        throw new Error(`Server returned ${response.status}: ${responseText.substring(0, 200)}`)
+      }
+
+      // Try to parse as JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('Successfully parsed JSON:', data)
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError)
+        console.error('Response was not valid JSON. Full response:', responseText)
+        throw new Error('Server returned invalid JSON response')
+      }
+
+      if (!data.success) {
+        console.error('Onboarding failed:', data.error)
         throw new Error(data.error || 'Failed to complete onboarding')
       }
 
       console.log('✅ Onboarding completed successfully')
+      console.log('Response data:', data)
 
       // Store credentials for success page
       if (data.credentials) {
@@ -119,7 +168,9 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       router.push('/onboarding/success')
 
     } catch (err) {
+      console.error('=== FRONTEND ERROR ===')
       console.error('💥 Error completing onboarding:', err)
+      console.error('Error message:', err instanceof Error ? err.message : 'Unknown error')
       setError(err instanceof Error ? err.message : 'Failed to complete onboarding. Please try again.')
     } finally {
       setIsCompleting(false)
@@ -322,6 +373,23 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
             </span>
           </div>
         </div>
+
+        {/* Debug Info - Only visible in development */}
+        {process.env.NODE_ENV === 'development' && invitation && (
+          <div className="mt-6 mx-auto max-w-2xl bg-gray-900 text-green-400 rounded-xl p-4 font-mono text-xs">
+            <h4 className="text-yellow-400 font-bold mb-2">🐛 DEBUG INFO:</h4>
+            <div className="space-y-1">
+              <p><span className="text-yellow-400">Token:</span> {token}</p>
+              <p><span className="text-yellow-400">Invitation ID:</span> {invitation.id}</p>
+              <p><span className="text-yellow-400">Teacher ID:</span> {invitation.teacher_id}</p>
+              <p><span className="text-yellow-400">Student:</span> {invitation.student_name}</p>
+              <p><span className="text-yellow-400">Subject:</span> {invitation.subject}</p>
+              <p><span className="text-yellow-400">Year Group:</span> {invitation.year_group}</p>
+              <p><span className="text-yellow-400">Status:</span> {invitation.status}</p>
+              <p><span className="text-yellow-400">Expires:</span> {invitation.expires_at}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
