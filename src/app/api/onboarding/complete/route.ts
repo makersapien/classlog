@@ -298,6 +298,7 @@ export async function POST(request: NextRequest) {
       .from('enrollments')
       .insert({
         student_id: studentAuthData.user.id,
+        teacher_id: invitation.teacher_id,
         class_id: classId,
         status: 'active',
         enrollment_date: new Date().toISOString(),

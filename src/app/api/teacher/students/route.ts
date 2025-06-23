@@ -1,4 +1,4 @@
-// src/app/api/teacher/students/route.ts
+// src/app/api/teacher/students/route.ts - Patched with duplicate prevention
 
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
@@ -309,9 +309,134 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
   }
 }
 
-// POST endpoint for creating new student invitations
+// 🔧 ENHANCED: Duplicate validation helper functions
+async function validateGoogleMeetUrl(supabase: any, teacherId: string, googleMeetUrl: string, excludeInvitationId?: string) {
+  if (!googleMeetUrl || !googleMeetUrl.trim()) {
+    return { isValid: true } // URL is optional, so empty is valid
+  }
+
+  const cleanUrl = googleMeetUrl.trim()
+
+  // Check existing enrollments
+  const { data: existingEnrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select(`
+      id,
+      student_id,
+      google_meet_url,
+      profiles!enrollments_student_id_fkey (
+        full_name,
+        email
+      )
+    `)
+    .eq('teacher_id', teacherId)
+    .eq('google_meet_url', cleanUrl)
+    .eq('status', 'active')
+
+  if (enrollmentError) {
+    console.error('❌ Error checking existing enrollments:', enrollmentError)
+    throw new Error('Database error while checking Meet URL')
+  }
+
+  if (existingEnrollments && existingEnrollments.length > 0) {
+    const conflictingStudent = existingEnrollments[0].profiles
+    return {
+      isValid: false,
+      error: `This Google Meet URL is already assigned to ${conflictingStudent?.full_name || 'another student'} (${conflictingStudent?.email || 'unknown email'}). Each student must have a unique Meet URL.`,
+      conflictType: 'duplicate_meet_url_enrollment',
+      existingStudent: {
+        name: conflictingStudent?.full_name,
+        email: conflictingStudent?.email
+      }
+    }
+  }
+
+  // Check pending invitations (exclude current invitation if updating)
+  let invitationQuery = supabase
+    .from('student_invitations')
+    .select('id, student_name, parent_email, google_meet_url')
+    .eq('teacher_id', teacherId)
+    .eq('google_meet_url', cleanUrl)
+    .eq('status', 'pending')
+
+  if (excludeInvitationId) {
+    invitationQuery = invitationQuery.neq('id', excludeInvitationId)
+  }
+
+  const { data: existingInvitations, error: invitationError } = await invitationQuery
+
+  if (invitationError) {
+    console.error('❌ Error checking existing invitations:', invitationError)
+    throw new Error('Database error while checking pending invitations')
+  }
+
+  if (existingInvitations && existingInvitations.length > 0) {
+    const conflictingInvitation = existingInvitations[0]
+    return {
+      isValid: false,
+      error: `This Google Meet URL is already assigned to pending invitation for ${conflictingInvitation.student_name} (${conflictingInvitation.parent_email}). Each student must have a unique Meet URL.`,
+      conflictType: 'duplicate_meet_url_invitation',
+      existingInvitation: {
+        student_name: conflictingInvitation.student_name,
+        parent_email: conflictingInvitation.parent_email
+      }
+    }
+  }
+
+  return { isValid: true }
+}
+
+async function validateStudentEmail(supabase: any, teacherId: string, studentEmail: string, parentEmail: string) {
+  if (!studentEmail || !studentEmail.trim()) {
+    return { isValid: true } // Student email is optional in invitations
+  }
+
+  const cleanEmail = studentEmail.toLowerCase().trim()
+
+  // Check if student already has an active enrollment with this teacher
+  const { data: existingEnrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select(`
+      id,
+      google_meet_url,
+      profiles!enrollments_student_id_fkey (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .eq('teacher_id', teacherId)
+    .eq('status', 'active')
+
+  if (enrollmentError) {
+    console.error('❌ Error checking student enrollments:', enrollmentError)
+    throw new Error('Database error while checking student enrollment')
+  }
+
+  // Filter by student email
+  const studentEnrollment = existingEnrollments?.find(e => 
+    e.profiles?.email?.toLowerCase() === cleanEmail
+  )
+
+  if (studentEnrollment) {
+    return {
+      isValid: false,
+      error: `${studentEnrollment.profiles.full_name} is already enrolled with you. Their current Google Meet URL is: ${studentEnrollment.google_meet_url || 'Not set'}`,
+      conflictType: 'duplicate_student_enrollment',
+      existingEnrollment: {
+        id: studentEnrollment.id,
+        student_name: studentEnrollment.profiles.full_name,
+        meet_url: studentEnrollment.google_meet_url
+      }
+    }
+  }
+
+  return { isValid: true }
+}
+
+// POST endpoint for creating new student invitations - ENHANCED with duplicate prevention
 export async function POST(request: Request) {
-  console.log('🔄 Creating new student invitation')
+  console.log('🔄 Creating new student invitation with duplicate prevention')
   
   try {
     // Fix for Next.js 15 - properly handle cookies
@@ -351,6 +476,80 @@ export async function POST(request: Request) {
 
     console.log('📝 Creating invitation for:', student_name)
 
+    // 🔧 ENHANCED: Validate Google Meet URL for duplicates
+    if (google_meet_url) {
+      try {
+        const meetUrlValidation = await validateGoogleMeetUrl(supabase, user.id, google_meet_url)
+        if (!meetUrlValidation.isValid) {
+          return NextResponse.json({
+            success: false,
+            error: meetUrlValidation.error,
+            conflict_type: meetUrlValidation.conflictType,
+            existing_student: meetUrlValidation.existingStudent,
+            existing_invitation: meetUrlValidation.existingInvitation
+          }, { status: 409 })
+        }
+      } catch (error) {
+        console.error('❌ Meet URL validation error:', error)
+        return NextResponse.json({
+          error: 'Failed to validate Google Meet URL',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
+      }
+    }
+
+    // 🔧 ENHANCED: Validate student email for duplicates
+    if (student_email) {
+      try {
+        const studentEmailValidation = await validateStudentEmail(supabase, user.id, student_email, parent_email)
+        if (!studentEmailValidation.isValid) {
+          return NextResponse.json({
+            success: false,
+            error: studentEmailValidation.error,
+            conflict_type: studentEmailValidation.conflictType,
+            existing_enrollment: studentEmailValidation.existingEnrollment
+          }, { status: 409 })
+        }
+      } catch (error) {
+        console.error('❌ Student email validation error:', error)
+        return NextResponse.json({
+          error: 'Failed to validate student email',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
+      }
+    }
+
+    // 🔧 ENHANCED: Validate parent email for duplicates (optional - comment out if you allow same parent for multiple children)
+    /*
+    const { data: existingParentInvitations, error: parentCheckError } = await supabase
+      .from('student_invitations')
+      .select('id, student_name, parent_email')
+      .eq('teacher_id', user.id)
+      .eq('parent_email', parent_email.toLowerCase().trim())
+      .eq('status', 'pending')
+
+    if (parentCheckError) {
+      console.error('❌ Parent email check error:', parentCheckError)
+      return NextResponse.json({
+        error: 'Failed to validate parent email',
+        details: parentCheckError.message
+      }, { status: 500 })
+    }
+
+    if (existingParentInvitations && existingParentInvitations.length > 0) {
+      const existingInvitation = existingParentInvitations[0]
+      return NextResponse.json({
+        success: false,
+        error: `This parent email already has a pending invitation for ${existingInvitation.student_name}. Please complete that invitation first or use a different email.`,
+        conflict_type: 'duplicate_parent_invitation',
+        existing_invitation: {
+          student_name: existingInvitation.student_name,
+          parent_email: existingInvitation.parent_email
+        }
+      }, { status: 409 })
+    }
+    */
+
     // Generate a simple invitation token
     const invitation_token = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -366,21 +565,26 @@ export async function POST(request: Request) {
     const insertData: Record<string, any> = {
       teacher_id: user.id,
       invitation_token,
-      student_name,
-      parent_name,
-      parent_email,
-      subject,
-      year_group,
+      student_name: student_name.trim(),
+      parent_name: parent_name.trim(),
+      parent_email: parent_email.toLowerCase().trim(),
+      subject: subject.trim(),
+      year_group: year_group.trim(),
       classes_per_week,
       classes_per_recharge,
       tentative_schedule: scheduleData,
-      whatsapp_group_url: whatsapp_group_url || null,
-      google_meet_url: google_meet_url || null,
+      whatsapp_group_url: whatsapp_group_url ? whatsapp_group_url.trim() : null,
+      google_meet_url: google_meet_url ? google_meet_url.trim() : null,
       status: 'pending',
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     }
 
-    // Create student invitation with all fields
+    // 🔧 ENHANCED: Add student_email if provided
+    if (student_email) {
+      insertData.student_email = student_email.toLowerCase().trim()
+    }
+
+    // Create student invitation with all fields and duplicate protection
     const { data: invitation, error: invitationError } = await supabase
       .from('student_invitations')
       .insert(insertData)
@@ -389,6 +593,19 @@ export async function POST(request: Request) {
 
     if (invitationError) {
       console.error('❌ Invitation creation error:', invitationError)
+      
+      // Check if it's a constraint violation that we missed
+      if (invitationError.message.includes('unique') || 
+          invitationError.message.includes('duplicate') ||
+          invitationError.message.includes('already exists')) {
+        return NextResponse.json({
+          success: false,
+          error: 'A similar invitation already exists. Please check for duplicates.',
+          conflict_type: 'constraint_violation',
+          details: invitationError.message
+        }, { status: 409 })
+      }
+      
       return NextResponse.json({ 
         error: 'Failed to create invitation',
         details: invitationError.message
@@ -401,9 +618,10 @@ export async function POST(request: Request) {
     const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/${invitation_token}`
 
     return NextResponse.json({
+      success: true,
       invitation,
       invitation_url: invitationUrl,
-      message: 'Student invitation created successfully'
+      message: 'Student invitation created successfully with duplicate prevention'
     })
 
   } catch (error) {
