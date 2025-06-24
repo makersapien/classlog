@@ -233,15 +233,21 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
       }
       
       const result = await response.json()
+      
+      // ADD THESE DEBUG LINES
+      console.log('🔍 API Response Debug:', result)
+      console.log('🔍 Classes returned:', result.classes)
+      console.log('🔍 Classes length:', result.classes?.length)
+      debugApiResponse(result) // This function is already in your code
+      
       setData(result)
     } catch (err) {
-      console.error('Failed to fetch dashboard data:', err)
+      console.error('Failed to fetch dasshboard data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
   }
-
   // Convert real data to format expected by existing UI
   const transformClassesToSchedule = (classes: ClassData[], todaySchedule: TodayScheduleItem[]) => {
     return classes.map(cls => {
@@ -263,28 +269,106 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     })
   }
 
-  const transformClassesToStudents = (classes: ClassData[]): StudentData[] => {
-    const students: StudentData[] = []
-    
-    classes.forEach(cls => {
-      cls.enrollments?.forEach(enrollment => {
-        if (enrollment.status === 'active' && enrollment.profiles && enrollment.profiles.full_name) {
-          students.push({
-            id: enrollment.student_id,
-            name: enrollment.profiles.full_name || 'Unknown Student',
-            grade: cls.grade || 'Grade TBD',
-            subject: cls.subject,
-            lastClass: 'Today',
-            status: 'active',
-            paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending'
-          })
-        }
-      })
-    })
-    
-    return students.slice(0, 10)
+  // Fixed transformClassesToStudents function with debug logging
+const transformClassesToStudents = (classes: ClassData[]): StudentData[] => {
+  console.log('🔍 DEBUGGING: transformClassesToStudents called with:', classes)
+  
+  const students: StudentData[] = []
+  
+  if (!classes || !Array.isArray(classes)) {
+    console.log('❌ Classes is not an array or is null:', classes)
+    return students
   }
-
+  
+  classes.forEach((cls, classIndex) => {
+    console.log(`🔍 Processing class ${classIndex}:`, cls)
+    
+    if (!cls.enrollments || !Array.isArray(cls.enrollments)) {
+      console.log(`❌ Class ${classIndex} has no enrollments or enrollments is not an array:`, cls.enrollments)
+      return
+    }
+    
+    cls.enrollments.forEach((enrollment, enrollmentIndex) => {
+      console.log(`🔍 Processing enrollment ${enrollmentIndex}:`, enrollment)
+      console.log(`   - Status: ${enrollment.status}`)
+      console.log(`   - Profiles: ${JSON.stringify(enrollment.profiles)}`)
+      
+      // Check if enrollment is active
+      if (enrollment.status !== 'active') {
+        console.log(`   ❌ Skipping - not active status: ${enrollment.status}`)
+        return
+      }
+      
+      // Check if profiles exists and has full_name
+      if (!enrollment.profiles) {
+        console.log(`   ❌ Skipping - no profiles object`)
+        return
+      }
+      
+      if (!enrollment.profiles.full_name) {
+        console.log(`   ❌ Skipping - no full_name in profiles:`, enrollment.profiles)
+        return
+      }
+      
+      console.log(`   ✅ Valid enrollment found for: ${enrollment.profiles.full_name}`)
+      
+      // Create student object
+      const student: StudentData = {
+        id: enrollment.student_id || `student-${enrollmentIndex}`,
+        name: enrollment.profiles.full_name || 'Unknown Student',
+        grade: cls.grade || 'Grade TBD',
+        subject: cls.subject || 'Unknown Subject',
+        lastClass: 'Today',
+        status: 'active',
+        paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending',
+        // Add enhanced mock data based on your student cards
+        creditsRemaining: Math.floor(Math.random() * 15) + 5, // 5-20 credits
+        totalCredits: 16,
+        attendanceRate: Math.floor(Math.random() * 30) + 70, // 70-100%
+        performance: ['excellent', 'good', 'needs-attention'][Math.floor(Math.random() * 3)] as 'excellent' | 'good' | 'needs-attention',
+        nextClass: 'Tomorrow 4:00 PM',
+        subjects: [cls.subject || 'Unknown Subject'],
+        monthlyFee: 2500,
+        lastPayment: '15 Dec 2024'
+      }
+      
+      students.push(student)
+      console.log(`   ✅ Added student to array: ${student.name}`)
+    })
+  })
+  
+  console.log(`🎯 Final students array length: ${students.length}`)
+  console.log(`🎯 Final students:`, students.map(s => s.name))
+  
+  return students.slice(0, 10) // Limit to 10 for display
+}
+// Also add this debug function to check what your API is actually returning
+const debugApiResponse = (data: DashboardData | null) => {
+  console.log('🔍 API Response Debug:')
+  console.log('   - Data exists:', !!data)
+  console.log('   - Classes exists:', !!data?.classes)
+  console.log('   - Classes is array:', Array.isArray(data?.classes))
+  console.log('   - Classes length:', data?.classes?.length || 0)
+  
+  if (data?.classes && Array.isArray(data.classes)) {
+    data.classes.forEach((cls, index) => {
+      console.log(`   - Class ${index}:`)
+      console.log(`     * Name: ${cls.name}`)
+      console.log(`     * Subject: ${cls.subject}`)
+      console.log(`     * Grade: ${cls.grade}`)
+      console.log(`     * Enrollments length: ${cls.enrollments?.length || 0}`)
+      
+      if (cls.enrollments) {
+        cls.enrollments.forEach((enrollment, eIndex) => {
+          console.log(`     * Enrollment ${eIndex}:`)
+          console.log(`       - Status: ${enrollment.status}`)
+          console.log(`       - Student ID: ${enrollment.student_id}`)
+          console.log(`       - Profiles: ${JSON.stringify(enrollment.profiles)}`)
+        })
+      }
+    })
+  }
+}
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
