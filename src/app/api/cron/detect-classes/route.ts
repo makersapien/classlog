@@ -481,7 +481,7 @@ function parseTime(timeStr: string): number | null {
   
   try {
     // Handle various time formats
-    let cleanTime = timeStr.toString().toLowerCase().trim()
+    const cleanTime = timeStr.toString().toLowerCase().trim()
     
     // Handle AM/PM format
     const amPmMatch = cleanTime.match(/(\d{1,2}):?(\d{0,2})\s*(am|pm)/)

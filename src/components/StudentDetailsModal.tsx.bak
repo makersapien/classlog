@@ -158,7 +158,7 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
         throw new Error('Failed to update student');
       }
 
-      // // const result = await response.json();
+      // const result = await response.json();
       
       // Call parent callback to update the UI
       if (onUpdate) {

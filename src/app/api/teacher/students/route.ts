@@ -175,7 +175,7 @@ async function fetchTeacherStudents(supabase: any, teacherId: string): Promise<S
 
     // Get parent information for each student
     const studentIds = enrollments.map((e: any) => e.student_id).filter(Boolean)
-    let parentMap = new Map()
+    const parentMap = new Map()
 
     if (studentIds.length > 0) {
       const { data: parentRelations, error: parentError } = await supabase

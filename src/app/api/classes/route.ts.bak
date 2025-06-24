@@ -57,7 +57,7 @@ function extractTeacherIdFromAuth(authHeader: string | null, fallbackTeacherId?:
 export async function POST(request: NextRequest) {
   try {
     const body: StartClassRequest = await request.json()
-    const { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
+    let { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
 
     // Support extension format
     const authHeader = request.headers.get('authorization')

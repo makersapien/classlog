@@ -18,7 +18,7 @@ interface InvitationData {
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
-  tentative_schedule: unknown | null
+  tentative_schedule: any | null
   whatsapp_group_url: string | null
   google_meet_url: string | null
   status: string
