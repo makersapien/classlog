@@ -1,4 +1,4 @@
-// src/app/api/teacher/check-meet-url/route.ts - Fixed version with proper error handling
+// src/app/api/teacher/check-meet-url/route.ts - Updated to match your actual table structure
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Checking Meet URL:', meetUrl, 'for teacher:', teacherId)
 
     // Query enrollments with the specific Google Meet URL for this teacher
+    // Get data from enrollments table and student profiles
     const { data: enrollments, error: enrollmentError } = await supabase
       .from('enrollments')
       .select(`
@@ -31,17 +32,14 @@ export async function POST(request: NextRequest) {
         teacher_id,
         google_meet_url,
         status,
+        subject,
+        year_group,
+        enrollment_date,
         created_at,
         student:profiles!enrollments_student_id_fkey (
           id,
           email,
           full_name
-        ),
-        class:classes (
-          id,
-          name,
-          subject,
-          year_group
         )
       `)
       .eq('google_meet_url', meetUrl)
@@ -65,47 +63,28 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // ⚠️ CRITICAL: If multiple enrollments found, this indicates a data integrity issue
-    if (enrollments.length > 1) {
-      console.error(`🚨 DATA INTEGRITY ISSUE: Found ${enrollments.length} enrollments with the same Meet URL for teacher ${teacherId}:`)
-      enrollments.forEach((e, idx) => {
-        console.error(`  ${idx + 1}. Student: ${e.student?.full_name} (${e.student?.email}) - Created: ${e.created_at}`)
-      })
-
-      // Log this as a critical error for investigation
-      console.error('🚨 This should not happen if database constraints are properly set up!')
-      
-      // Return error to force admin to fix the data
-      return NextResponse.json({ 
-        success: false, 
-        error: `Critical Data Error: Multiple enrollments found with the same Google Meet URL. This indicates a database integrity issue that needs immediate attention. Found ${enrollments.length} duplicates for this URL.`,
-        conflict_type: 'multiple_enrollments',
-        duplicate_count: enrollments.length,
-        enrollments: enrollments.map(e => ({
-          id: e.id,
-          student_name: e.student?.full_name,
-          student_email: e.student?.email,
-          created_at: e.created_at
-        }))
-      }, { status: 409 })
-    }
-
     // Single enrollment found - this is the expected case
     const enrollment = enrollments[0]
 
-    // Verify we have all required data
-    if (!enrollment.student || !enrollment.class) {
-      console.error('❌ Incomplete enrollment data:', enrollment)
+    // If multiple enrollments found, log warning but use the most recent one
+    if (enrollments.length > 1) {
+      console.warn(`⚠️ Multiple enrollments found for this Meet URL. Using most recent one.`)
+      console.warn(`Found ${enrollments.length} enrollments for teacher ${teacherId} and URL ${meetUrl}`)
+    }
+
+    // Verify we have student data
+    if (!enrollment.student) {
+      console.error('❌ Incomplete enrollment data - missing student:', enrollment)
       return NextResponse.json({ 
         success: false, 
-        error: 'Incomplete enrollment data - missing student or class information' 
+        error: 'Incomplete enrollment data - missing student information' 
       }, { status: 500 })
     }
 
     console.log('✅ Valid enrollment found:', {
       student: enrollment.student.full_name,
-      class: enrollment.class.name,
-      subject: enrollment.class.subject
+      subject: enrollment.subject || 'General Class',
+      year_group: enrollment.year_group || 'Not specified'
     })
 
     // Return the enrollment data in the format expected by the extension
@@ -114,15 +93,15 @@ export async function POST(request: NextRequest) {
       enrollment: {
         id: enrollment.id,
         student_id: enrollment.student_id,
+        class_id: enrollment.class_id,
         student_name: enrollment.student.full_name,
         student_email: enrollment.student.email,
-        class_id: enrollment.class_id,
-        class_name: enrollment.class.name,
-        subject: enrollment.class.subject,
-        year_group: enrollment.class.year_group,
+        subject: enrollment.subject || 'General Class',
+        year_group: enrollment.year_group || 'Grade 10',
         google_meet_url: enrollment.google_meet_url,
         teacher_id: enrollment.teacher_id,
-        status: enrollment.status
+        status: enrollment.status,
+        enrollment_date: enrollment.enrollment_date
       },
       message: `Enrollment verified for ${enrollment.student.full_name}`
     })

@@ -1,4 +1,4 @@
-// src/app/api/extension/end-class/route.ts - Enhanced with content updates
+// src/app/api/extension/end-class/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -10,105 +10,118 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { class_log_id, classContent } = body
+    const { class_log_id, classContent, token } = body
+
+    console.log('🛑 Ending class:', class_log_id)
 
     if (!class_log_id) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Missing class_log_id' 
+        error: 'Missing required field: class_log_id' 
       }, { status: 400 })
     }
 
-    console.log('🛑 Ending class:', class_log_id)
-    console.log('📝 Class content received:', classContent)
+    // Validate token if provided
+    if (token) {
+      try {
+        const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/teacher/tokens/validate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token })
+        });
 
-    // First, verify the class log exists and is ongoing
-    const { data: classLog, error: fetchError } = await supabase
+        if (!tokenResponse.ok) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid authentication token' 
+          }, { status: 401 })
+        }
+
+        const tokenData = await tokenResponse.json()
+        if (!tokenData.success || !tokenData.teacher) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid authentication token' 
+          }, { status: 401 })
+        }
+      } catch (tokenError) {
+        console.warn('Token validation failed:', tokenError)
+        // Continue without token validation for now
+      }
+    }
+
+    // Get the existing class log to calculate duration
+    const { data: existingClass, error: fetchError } = await supabase
       .from('class_logs')
-      .select('id, status, start_time, enrollment_id')
+      .select('*')
       .eq('id', class_log_id)
       .single()
 
-    if (fetchError || !classLog) {
-      console.error('❌ Class log not found:', fetchError)
+    if (fetchError) {
+      console.error('❌ Error fetching class log:', fetchError)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Class log not found: ' + fetchError.message 
+      }, { status: 404 })
+    }
+
+    if (!existingClass) {
       return NextResponse.json({ 
         success: false, 
         error: 'Class log not found' 
       }, { status: 404 })
     }
 
-    if (classLog.status !== 'ongoing') {
-      return NextResponse.json({ 
-        success: false, 
-        error: `Class is not ongoing. Current status: ${classLog.status}` 
-      }, { status: 400 })
-    }
-
     // Calculate duration
-    const startTime = new Date(classLog.start_time)
+    const startTime = new Date(existingClass.start_time)
     const endTime = new Date()
     const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
 
-    // Prepare update data
+    // Prepare the update data - using your actual column names
     const updateData = {
       end_time: endTime.toISOString(),
       status: 'completed',
       duration_minutes: durationMinutes,
-      updated_at: endTime.toISOString()
+      updated_at: new Date().toISOString()
     }
 
-    // Add enhanced content if provided
+    // Add enhanced class content if provided
     if (classContent) {
-      // Update content with manual notes (prioritize over auto-generated)
-      if (classContent.manual_notes?.classDescription) {
-        updateData.content = classContent.manual_notes.classDescription;
-      } else if (classContent.content_summary) {
-        updateData.content = classContent.content_summary;
-      }
-
-      // Update topics covered with manual notes
-      if (classContent.manual_notes?.topicsCovered) {
-        const manualTopics = classContent.manual_notes.topicsCovered
-          .split('\n')
-          .map(topic => topic.trim())
-          .filter(topic => topic.length > 0);
-        updateData.topics_covered = manualTopics;
-      } else if (classContent.topics_covered && classContent.topics_covered.length > 0) {
-        updateData.topics_covered = classContent.topics_covered;
-      }
-
-      // Update homework assignment
-      if (classContent.manual_notes?.homeworkAssigned) {
-        updateData.homework_assigned = classContent.manual_notes.homeworkAssigned;
-      }
-
-      // Update attendance count with max participants
-      if (classContent.max_participants) {
-        updateData.attendance_count = classContent.max_participants;
-        updateData.total_students = classContent.max_participants;
-      }
-
-      // Add comprehensive attachments with session metadata and manual notes
-      const sessionMetadata = {
-        auto_detected: true,
-        features_used: classContent.features_used || [],
-        session_type: 'google_meet',
-        detection_timestamp: endTime.toISOString(),
-        duration_minutes: durationMinutes,
-        manual_notes: {
-          class_description: classContent.manual_notes?.classDescription || null,
-          topics_covered: classContent.manual_notes?.topicsCovered || null,
-          homework_assigned: classContent.manual_notes?.homeworkAssigned || null,
-          key_points: classContent.manual_notes?.keyPoints || null,
-          notes_last_saved: classContent.manual_notes?.lastSaved || null
+      updateData.content = classContent.content_summary || existingClass.content || 'Class completed via extension'
+      updateData.topics_covered = classContent.topics_covered || existingClass.topics_covered || []
+      updateData.homework_assigned = classContent.homework_assigned || existingClass.homework_assigned
+      
+      // Store additional metadata in attachments (since your schema doesn't have class_metadata)
+      const existingAttachments = existingClass.attachments || {}
+      updateData.attachments = {
+        ...existingAttachments,
+        extension_data: {
+          duration_minutes: classContent.duration_minutes || durationMinutes,
+          max_participants: classContent.max_participants || 1,
+          features_used: classContent.features_used || [],
+          screenshots_taken: classContent.screenshots_taken || 0,
+          manual_notes: classContent.manual_notes || {},
+          end_time: endTime.toISOString(),
+          completed_via: 'extension'
         }
-      };
+      }
 
-      updateData.attachments = sessionMetadata;
+      // Update attendance if we have participant data
+      if (classContent.max_participants) {
+        updateData.attendance_count = classContent.max_participants
+        updateData.total_students = classContent.max_participants
+      }
+    } else {
+      // Set defaults if no content provided
+      updateData.content = existingClass.content || 'Class completed via extension'
+      updateData.attendance_count = existingClass.attendance_count || 1
+      updateData.total_students = existingClass.total_students || 1
     }
 
-    // Update class log with end time, status, and enhanced content
-    const { data: updatedLog, error: updateError } = await supabase
+    // Update the class log
+    const { data: updatedClass, error: updateError } = await supabase
       .from('class_logs')
       .update(updateData)
       .eq('id', class_log_id)
@@ -116,34 +129,26 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (updateError) {
-      console.error('❌ Failed to update class log:', updateError)
+      console.error('❌ Error updating class log:', updateError)
       return NextResponse.json({ 
         success: false, 
         error: 'Failed to end class: ' + updateError.message 
       }, { status: 500 })
     }
 
-    console.log('✅ Class ended successfully with enhanced content:', class_log_id, `Duration: ${durationMinutes} minutes`)
+    console.log('✅ Class ended successfully:', class_log_id, `(${durationMinutes} minutes)`)
 
     return NextResponse.json({
       success: true,
-      message: 'Class ended successfully with enhanced content',
       class_log_id: class_log_id,
       duration_minutes: durationMinutes,
-      start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
-      content_added: {
-        summary: classContent?.manual_notes?.classDescription || classContent?.content_summary || 'Auto-generated',
-        topics: classContent?.manual_notes?.topicsCovered ? 'Manual' : (classContent?.topics_covered?.length || 0),
-        homework: classContent?.manual_notes?.homeworkAssigned ? 'Added' : 'None',
-        participants: classContent?.max_participants || 0,
-        features: classContent?.features_used?.length || 0,
-        manual_notes: classContent?.manual_notes ? 'Saved' : 'None'
-      }
+      message: `Class completed successfully (${durationMinutes} minutes)`,
+      class_data: updatedClass
     })
 
   } catch (error) {
-    console.error('❌ API Error:', error)
+    console.error('❌ End class API error:', error)
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error: ' + error.message 

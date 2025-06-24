@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Users, Heart, TrendingUp, DollarSign, BookOpen, Calendar, MessageSquare, CreditCard, Star, Target, Award, Sparkles, Clock, Bell, Gift, Zap, Crown, Trophy, Rocket } from 'lucide-react'
 
 interface ParentDashboardProps {
   user: {
@@ -39,7 +40,10 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
       totalClasses: 24,
       attendedClasses: 22,
       currentBalance: 2500,
-      nextClass: 'Today, 4:00 PM'
+      nextClass: 'Today, 4:00 PM',
+      performance: 'excellent',
+      streak: 5,
+      averageScore: 92
     },
     {
       id: 2,
@@ -50,7 +54,10 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
       totalClasses: 20,
       attendedClasses: 19,
       currentBalance: -500, // negative means overdue
-      nextClass: 'Tomorrow, 10:00 AM'
+      nextClass: 'Tomorrow, 10:00 AM',
+      performance: 'good',
+      streak: 3,
+      averageScore: 85
     }
   ]
 
@@ -158,11 +165,11 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
 
   const getPerformanceColor = (performance: string) => {
     switch (performance) {
-      case 'excellent': return 'bg-green-100 text-green-800'
-      case 'good': return 'bg-blue-100 text-blue-800'
-      case 'needs_improvement': return 'bg-yellow-100 text-yellow-800'
-      case 'poor': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'excellent': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+      case 'good': return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+      case 'needs_improvement': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+      case 'poor': return 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg'
     }
   }
 
@@ -178,10 +185,10 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'overdue': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'paid': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+      case 'pending': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+      case 'overdue': return 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg'
     }
   }
 
@@ -195,445 +202,589 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
     return totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0
   }
 
+  const getAveragePerformance = () => {
+    const totalScore = children.reduce((total, child) => total + child.averageScore, 0)
+    return Math.round(totalScore / children.length)
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {user.name}! 👨‍👩‍👧‍👦
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Track your children's academic progress and stay connected
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+      <div className="space-y-8 pt-6 pb-20 px-4 sm:px-6">
+        {/* Enhanced Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-6 sm:space-y-0">
+          <div className="flex items-center space-x-4">
+            <div className="h-16 w-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl">
+              <Heart className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-purple-800 bg-clip-text text-transparent">
+                Welcome, {user.name}! 👨‍👩‍👧‍👦
+              </h1>
+              <p className="text-lg text-gray-600 mt-2 flex items-center">
+                <Crown className="w-5 h-5 mr-2 text-purple-500" />
+                Track your children's academic journey and stay connected
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Select value={selectedChild} onValueChange={setSelectedChild}>
+              <SelectTrigger className="w-40 border-2 border-purple-200 rounded-xl bg-white shadow-lg">
+                <SelectValue placeholder="Select child" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Children</SelectItem>
+                {children.map((child) => (
+                  <SelectItem key={child.id} value={child.id.toString()}>
+                    {child.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Select value={selectedChild} onValueChange={setSelectedChild}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select child" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Children</SelectItem>
-              {children.map((child) => (
-                <SelectItem key={child.id} value={child.id.toString()}>
-                  {child.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Children Enrolled</p>
-                <p className="text-2xl font-bold text-gray-900">{children.length}</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-full">
-                <span className="text-xl">👶</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Overall Attendance</p>
-                <p className="text-2xl font-bold text-gray-900">{getOverallAttendance()}%</p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-full">
-                <span className="text-xl">📊</span>
-              </div>
-            </div>
-            <Progress value={getOverallAttendance()} className="mt-2" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Account Balance</p>
-                <p className={`text-2xl font-bold ${getTotalBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₹{Math.abs(getTotalBalance()).toLocaleString()}
-                  {getTotalBalance() < 0 && ' (Due)'}
-                </p>
-              </div>
-              <div className={`p-2 rounded-full ${getTotalBalance() >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                <span className="text-xl">{getTotalBalance() >= 0 ? '💰' : '⚠️'}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Subjects</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Array.from(new Set(children.flatMap(child => child.subjects))).length}
-                </p>
-              </div>
-              <div className="p-2 bg-purple-100 rounded-full">
-                <span className="text-xl">📚</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Children Overview Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {children.map((child) => (
-          <Card key={child.id} className="border-l-4 border-l-emerald-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-emerald-100 text-emerald-600">
-                      {child.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{child.name}</h3>
-                    <p className="text-sm text-gray-600">{child.grade}</p>
+        {/* Enhanced Quick Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 font-medium mb-1">Children Enrolled</p>
+                  <p className="text-3xl font-bold">{children.length}</p>
+                  <div className="flex items-center mt-2">
+                    <Users className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-blue-100">Active learners</span>
                   </div>
                 </div>
-                <Badge className={child.currentBalance >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                  {child.currentBalance >= 0 ? 'Paid' : 'Due'}
-                </Badge>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subjects:</span>
-                  <span className="font-medium">{child.subjects.join(', ')}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Attendance:</span>
-                  <span className="font-medium">
-                    {child.attendedClasses}/{child.totalClasses} ({Math.round((child.attendedClasses / child.totalClasses) * 100)}%)
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Next Class:</span>
-                  <span className="font-medium">{child.nextClass}</span>
-                </div>
-                {child.currentBalance < 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Amount Due:</span>
-                    <span className="font-medium text-red-600">₹{Math.abs(child.currentBalance)}</span>
-                  </div>
-                )}
-              </div>
-              
-              <Progress 
-                value={(child.attendedClasses / child.totalClasses) * 100} 
-                className="mt-3"
-              />
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="logs" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="logs">Class Logs</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-        </TabsList>
+          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 font-medium mb-1">Overall Attendance</p>
+                  <p className="text-3xl font-bold">{getOverallAttendance()}%</p>
+                  <div className="flex items-center mt-2">
+                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-emerald-100">Excellent rate</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Target className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Progress 
+                  value={getOverallAttendance()} 
+                  className="bg-emerald-400/30"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="logs" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>📝</span>
-                <span>Recent Class Logs</span>
-              </CardTitle>
-              <CardDescription>Latest updates from your children's classes</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentClassLogs.map((log) => (
-                <div key={log.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                          {log.studentName.charAt(0)}
+          <Card className={`${getTotalBalance() >= 0 ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-orange-500 to-red-500'} text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300`}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`${getTotalBalance() >= 0 ? 'text-green-100' : 'text-orange-100'} font-medium mb-1`}>Account Balance</p>
+                  <p className="text-3xl font-bold">
+                    ₹{Math.abs(getTotalBalance()).toLocaleString()}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    <span className={`text-xs ${getTotalBalance() >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
+                      {getTotalBalance() >= 0 ? 'All paid up' : 'Amount due'}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  {getTotalBalance() >= 0 ? 
+                    <Award className="h-8 w-8 text-white" /> : 
+                    <Bell className="h-8 w-8 text-white" />
+                  }
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 font-medium mb-1">Average Performance</p>
+                  <p className="text-3xl font-bold">{getAveragePerformance()}%</p>
+                  <div className="flex items-center mt-2">
+                    <Trophy className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-purple-100">Outstanding progress</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Star className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Progress 
+                  value={getAveragePerformance()} 
+                  className="bg-purple-400/30"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Children Overview Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {children.map((child, index) => (
+            <Card key={child.id} className="border-0 shadow-2xl overflow-hidden bg-gradient-to-br from-white to-purple-50 transform hover:scale-105 transition-all duration-300">
+              <div className={`h-2 bg-gradient-to-r ${index === 0 ? 'from-blue-500 to-indigo-600' : 'from-pink-500 to-purple-600'}`}></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <Avatar className="h-14 w-14 border-4 border-white shadow-lg">
+                        <AvatarFallback className={`bg-gradient-to-br ${index === 0 ? 'from-blue-400 to-indigo-500' : 'from-pink-400 to-purple-500'} text-white font-bold text-lg`}>
+                          {child.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{log.studentName}</h4>
-                        <p className="text-sm text-gray-600">{log.subject} • {log.teacher}</p>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-xs font-bold text-white">{child.streak}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{log.date}</p>
-                      <p className="text-xs text-gray-500">{log.time}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getPerformanceColor(log.performance)}>
-                      {getPerformanceEmoji(log.performance)} {log.performance.replace('_', ' ')}
-                    </Badge>
-                    <Badge variant="outline">
-                      {log.attendance === 'present' ? '✅ Present' : '❌ Absent'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Topics Covered:</p>
-                      <p className="text-sm text-gray-600">{log.topics.join(', ')}</p>
-                    </div>
-                    
-                    {log.homework && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Homework:</p>
-                        <p className="text-sm text-gray-600">{log.homework}</p>
+                      <h3 className="font-bold text-gray-900 text-xl">{child.name}</h3>
+                      <p className="text-sm text-gray-600 font-medium">{child.grade}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge className={getPerformanceColor(child.performance)}>
+                          {getPerformanceEmoji(child.performance)} {child.performance}
+                        </Badge>
                       </div>
-                    )}
-                    
-                    {log.notes && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Teacher's Notes:</p>
-                        <p className="text-sm text-gray-600 italic">"{log.notes}"</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="schedule" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>📅</span>
-                <span>Upcoming Classes</span>
-              </CardTitle>
-              <CardDescription>Your children's class schedule</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {upcomingClasses.map((cls) => (
-                <div key={cls.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
-                        {cls.studentName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium text-gray-900">{cls.studentName}</h4>
-                      <p className="text-sm text-gray-600">{cls.subject} • {cls.teacher}</p>
-                      <p className="text-xs text-gray-500">Topic: {cls.topic}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{cls.date}</p>
-                    <p className="text-xs text-gray-500">{cls.time}</p>
+                    <div className="text-3xl font-bold text-gray-900">{child.averageScore}%</div>
+                    <p className="text-xs text-gray-500">Avg Score</p>
                   </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-xl border border-blue-200">
+                    <p className="text-xs text-blue-700 font-semibold mb-1">SUBJECTS</p>
+                    <p className="text-sm font-bold text-blue-900">{child.subjects.join(', ')}</p>
+                  </div>
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-3 rounded-xl border border-emerald-200">
+                    <p className="text-xs text-emerald-700 font-semibold mb-1">ATTENDANCE</p>
+                    <p className="text-sm font-bold text-emerald-900">
+                      {child.attendedClasses}/{child.totalClasses} ({Math.round((child.attendedClasses / child.totalClasses) * 100)}%)
+                    </p>
+                  </div>
+                </div>
 
-        <TabsContent value="payments" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Card className="flex-1 mr-4">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>💳</span>
-                  <span>Payment History</span>
-                </CardTitle>
-                <CardDescription>Track all payments and dues</CardDescription>
-              </CardHeader>
-            </Card>
-            <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
-              <DialogTrigger asChild>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  <span className="mr-2">💰</span>
-                  Make Payment
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Make Payment</DialogTitle>
-                  <DialogDescription>
-                    Pay tuition fees for your children
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="child-select">Select Child</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select child" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {children.map((child) => (
-                          <SelectItem key={child.id} value={child.id.toString()}>
-                            {child.name} - {child.grade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 font-medium">Next Class:</span>
+                    <span className="text-sm font-bold text-gray-900">{child.nextClass}</span>
                   </div>
-                  <div>
-                    <Label htmlFor="amount">Amount (₹)</Label>
-                    <Input id="amount" type="number" placeholder="Enter amount" />
-                  </div>
-                  <div>
-                    <Label htmlFor="period">Payment For</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="current">Current Month</SelectItem>
-                        <SelectItem value="advance">Advance Payment</SelectItem>
-                        <SelectItem value="overdue">Overdue Amount</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setPaymentDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => setPaymentDialog(false)}>
-                      Proceed to Pay
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-          
-          <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {paymentHistory.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                          {payment.studentName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{payment.studentName}</h4>
-                        <p className="text-sm text-gray-600">{payment.subject}</p>
-                        <p className="text-xs text-gray-500">{payment.period}</p>
+                  
+                  {child.currentBalance < 0 && (
+                    <div className="bg-gradient-to-r from-red-50 to-pink-50 p-3 rounded-xl border-2 border-red-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-red-700 font-semibold">Amount Due:</span>
+                        <span className="text-lg font-bold text-red-600">₹{Math.abs(child.currentBalance)}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-gray-900">₹{payment.amount.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">{payment.date}</p>
-                      <Badge className={getPaymentStatusColor(payment.status)}>
-                        {payment.status}
-                      </Badge>
-                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-gray-600 mb-2">
+                    <span>Attendance Progress</span>
+                    <span>{Math.round((child.attendedClasses / child.totalClasses) * 100)}%</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="messages" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Card className="flex-1 mr-4">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>💬</span>
-                  <span>Messages</span>
-                </CardTitle>
-                <CardDescription>Communicate with teachers</CardDescription>
-              </CardHeader>
+                  <Progress 
+                    value={(child.attendedClasses / child.totalClasses) * 100} 
+                    className="h-3"
+                  />
+                </div>
+              </CardContent>
             </Card>
-            <Dialog open={messageDialog} onOpenChange={setMessageDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <span className="mr-2">✉️</span>
-                  New Message
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Send Message</DialogTitle>
-                  <DialogDescription>
-                    Send a message to your child's teacher
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="teacher-select">Select Teacher</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sharma">Mr. Sharma - Mathematics</SelectItem>
-                        <SelectItem value="gupta">Ms. Gupta - Science</SelectItem>
-                        <SelectItem value="kumar">Mr. Kumar - Physics</SelectItem>
-                        <SelectItem value="reddy">Ms. Reddy - English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" placeholder="Message subject" />
-                  </div>
-                  <div>
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea 
-                      id="message" 
-                      placeholder="Type your message here..." 
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setMessageDialog(false)}>
-                      Cancel
+          ))}
+        </div>
+
+        {/* Enhanced Main Content Tabs */}
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          <Tabs defaultValue="logs" className="w-full">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+              <TabsList className="grid w-full grid-cols-4 bg-white/20 backdrop-blur-sm rounded-xl">
+                <TabsTrigger 
+                  value="logs" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-purple-600 text-white font-semibold"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Class Logs
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="schedule"
+                  className="data-[state=active]:bg-white data-[state=active]:text-purple-600 text-white font-semibold"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="payments"
+                  className="data-[state=active]:bg-white data-[state=active]:text-purple-600 text-white font-semibold"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Payments
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="messages"
+                  className="data-[state=active]:bg-white data-[state=active]:text-purple-600 text-white font-semibold"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Messages
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="logs" className="p-6 space-y-6">
+              <Card className="border-2 border-gradient-to-r from-blue-200 to-indigo-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                      Recent Class Logs
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-600 font-medium">Latest updates from your children's classes</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                  {recentClassLogs.map((log) => (
+                    <div key={log.id} className="border-2 border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-blue-50 hover:shadow-lg transition-all duration-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10 border-2 border-blue-300">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-bold">
+                              {log.studentName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-lg">{log.studentName}</h4>
+                            <p className="text-sm text-gray-700 font-medium">{log.subject} • {log.teacher}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-gray-900">{log.date}</p>
+                          <p className="text-xs text-gray-500">{log.time}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3 mb-4">
+                        <Badge className={getPerformanceColor(log.performance)}>
+                          {getPerformanceEmoji(log.performance)} {log.performance.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant="outline" className="border-2 border-emerald-300 text-emerald-700 bg-emerald-50">
+                          {log.attendance === 'present' ? '✅ Present' : '❌ Absent'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 rounded-xl border border-gray-200">
+                          <p className="text-sm font-bold text-gray-700 mb-2">📚 Topics Covered:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {log.topics.map((topic, index) => (
+                              <span key={index} className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {log.homework && (
+                          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-xl border border-yellow-200">
+                            <p className="text-sm font-bold text-yellow-800 mb-2">📝 Homework:</p>
+                            <p className="text-sm text-yellow-700">{log.homework}</p>
+                          </div>
+                        )}
+                        
+                        {log.notes && (
+                          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200">
+                            <p className="text-sm font-bold text-emerald-800 mb-2">💭 Teacher's Notes:</p>
+                            <p className="text-sm text-emerald-700 italic">"{log.notes}"</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="schedule" className="p-6 space-y-6">
+              <Card className="border-2 border-gradient-to-r from-emerald-200 to-teal-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="p-2 bg-emerald-500 rounded-lg">
+                      <Clock className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
+                      Upcoming Classes
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-emerald-600 font-medium">Your children's class schedule</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                  {upcomingClasses.map((cls) => (
+                    <div key={cls.id} className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl bg-gradient-to-r from-white to-emerald-50 hover:shadow-lg transition-all duration-200">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="h-10 w-10 border-2 border-emerald-300">
+                          <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-bold">
+                            {cls.studentName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="font-bold text-gray-900">{cls.studentName}</h4>
+                          <p className="text-sm text-gray-700 font-medium">{cls.subject} • {cls.teacher}</p>
+                          <p className="text-xs text-gray-600 bg-gradient-to-r from-gray-100 to-emerald-100 px-2 py-1 rounded-full mt-1 inline-block">
+                            Topic: {cls.topic}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg mb-2">
+                          {cls.date}
+                        </Badge>
+                        <p className="text-xs text-gray-500 font-medium">{cls.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="payments" className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-6">
+                <Card className="flex-1 mr-4 border-2 border-gradient-to-r from-orange-200 to-red-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-orange-500 rounded-lg">
+                        <Gift className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-orange-700 to-red-700 bg-clip-text text-transparent">
+                        Payment History
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-orange-600 font-medium">Track all payments and dues</CardDescription>
+                  </CardHeader>
+                </Card>
+                <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-4 rounded-xl">
+                      <Rocket className="mr-2 h-5 w-5" />
+                      Make Payment
                     </Button>
-                    <Button onClick={() => setMessageDialog(false)}>
-                      Send Message
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">💬</span>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
-                <p className="text-gray-600 mb-4">Start a conversation with your child's teachers</p>
-                <Button onClick={() => setMessageDialog(true)}>
-                  Send First Message
-                </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
+                        Make Payment
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Pay tuition fees for your children
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                      <div>
+                        <Label htmlFor="child-select" className="font-semibold text-gray-700">Select Child</Label>
+                        <Select>
+                          <SelectTrigger className="border-2 border-gray-200 rounded-xl focus:border-emerald-500">
+                            <SelectValue placeholder="Select child" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {children.map((child) => (
+                              <SelectItem key={child.id} value={child.id.toString()}>
+                                {child.name} - {child.grade}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="amount" className="font-semibold text-gray-700">Amount (₹)</Label>
+                        <Input 
+                          id="amount" 
+                          type="number" 
+                          placeholder="Enter amount"
+                          className="border-2 border-gray-200 rounded-xl focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="period" className="font-semibold text-gray-700">Payment For</Label>
+                        <Select>
+                          <SelectTrigger className="border-2 border-gray-200 rounded-xl focus:border-emerald-500">
+                            <SelectValue placeholder="Select period" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="current">Current Month</SelectItem>
+                            <SelectItem value="advance">Advance Payment</SelectItem>
+                            <SelectItem value="overdue">Overdue Amount</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end space-x-3">
+                        <Button variant="outline" onClick={() => setPaymentDialog(false)} className="rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => setPaymentDialog(false)}
+                          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl"
+                        >
+                          Proceed to Pay
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              
+              <Card className="border-2 border-gray-200 shadow-xl">
+                <CardContent className="p-0">
+                  <div className="divide-y-2 divide-gray-100">
+                    {paymentHistory.map((payment) => (
+                      <div key={payment.id} className="flex items-center justify-between p-6 hover:bg-gradient-to-r hover:from-white hover:to-gray-50 transition-all duration-200">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12 border-2 border-gray-300">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white font-bold">
+                              {payment.studentName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-lg">{payment.studentName}</h4>
+                            <p className="text-sm text-gray-700 font-medium">{payment.subject}</p>
+                            <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full mt-1 inline-block">{payment.period}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-gray-900">₹{payment.amount.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500 font-medium mb-2">{payment.date}</p>
+                          <Badge className={getPaymentStatusColor(payment.status)}>
+                            {payment.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="messages" className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-6">
+                <Card className="flex-1 mr-4 border-2 border-gradient-to-r from-blue-200 to-purple-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Zap className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+                        Messages
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-blue-600 font-medium">Communicate with teachers</CardDescription>
+                  </CardHeader>
+                </Card>
+                <Dialog open={messageDialog} onOpenChange={setMessageDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-4 rounded-xl">
+                      <MessageSquare className="mr-2 h-5 w-5" />
+                      New Message
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+                        Send Message
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Send a message to your child's teacher
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                      <div>
+                        <Label htmlFor="teacher-select" className="font-semibold text-gray-700">Select Teacher</Label>
+                        <Select>
+                          <SelectTrigger className="border-2 border-gray-200 rounded-xl focus:border-blue-500">
+                            <SelectValue placeholder="Select teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sharma">Mr. Sharma - Mathematics</SelectItem>
+                            <SelectItem value="gupta">Ms. Gupta - Science</SelectItem>
+                            <SelectItem value="kumar">Mr. Kumar - Physics</SelectItem>
+                            <SelectItem value="reddy">Ms. Reddy - English</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="subject" className="font-semibold text-gray-700">Subject</Label>
+                        <Input 
+                          id="subject" 
+                          placeholder="Message subject"
+                          className="border-2 border-gray-200 rounded-xl focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="message" className="font-semibold text-gray-700">Message</Label>
+                        <Textarea 
+                          id="message" 
+                          placeholder="Type your message here..." 
+                          rows={4}
+                          className="border-2 border-gray-200 rounded-xl focus:border-blue-500"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-3">
+                        <Button variant="outline" onClick={() => setMessageDialog(false)} className="rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => setMessageDialog(false)}
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-xl"
+                        >
+                          Send Message
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              <Card className="border-2 border-gray-200 shadow-xl">
+                <CardContent className="p-8">
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                      <MessageSquare className="h-10 w-10 text-blue-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">No messages yet</h3>
+                    <p className="text-gray-600 mb-6 text-lg">Start a conversation with your child's teachers</p>
+                    <Button 
+                      onClick={() => setMessageDialog(true)}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-4 rounded-xl"
+                    >
+                      <MessageSquare className="mr-2 h-5 w-5" />
+                      Send First Message
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }

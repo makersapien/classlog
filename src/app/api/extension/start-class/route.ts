@@ -1,23 +1,61 @@
-// pages/api/start-class.js
-import { createClient } from '@supabase/supabase-js';
+// src/app/api/extension/start-class/route.ts - Converted from Pages API to App Router
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { meetUrl, student_email, enrollment_id } = req.body;
+    const body = await request.json()
+    const { meetUrl, student_email, enrollment_id, token } = body
+
+    console.log('🚀 Starting class for enrollment:', enrollment_id)
 
     if (!meetUrl || !student_email) {
-      return res.status(400).json({ 
+      return NextResponse.json({ 
+        success: false,
         error: 'Missing required fields: meetUrl and student_email' 
-      });
+      }, { status: 400 })
+    }
+
+    // Validate token if provided and get teacher info
+    let teacherId = null;
+    if (token) {
+      try {
+        const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/teacher/tokens/validate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token })
+        });
+
+        if (!tokenResponse.ok) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid authentication token' 
+          }, { status: 401 })
+        }
+
+        const tokenData = await tokenResponse.json()
+        if (!tokenData.success || !tokenData.teacher) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid authentication token' 
+          }, { status: 401 })
+        }
+        
+        // Store teacher ID for use in creating class log
+        teacherId = tokenData.teacher.id;
+        console.log('✅ Token validated for teacher:', teacherId);
+        
+      } catch (tokenError) {
+        console.warn('Token validation failed:', tokenError)
+        // Continue without token validation for now
+      }
     }
 
     // Check for existing ACTIVE class for this enrollment
@@ -25,14 +63,14 @@ export default async function handler(req, res) {
       .from('class_logs')
       .select('*')
       .eq('enrollment_id', enrollment_id)
-      .in('status', ['ongoing', 'started'])
+      .in('status', ['ongoing', 'started', 'in_progress'])
       .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
       console.error('Database check error:', checkError);
       return NextResponse.json({ 
         success: false, 
-        error: 'Database error checking existing classes' 
+        error: 'Database error checking existing classes: ' + checkError.message 
       }, { status: 500 });
     }
 
@@ -59,7 +97,7 @@ export default async function handler(req, res) {
         message: 'Resumed existing class session',
         resumed: true,
         student_name: existingClass.student_name,
-        subject: enrollment?.class?.subject || 'Class',
+        subject: existingClass.subject || 'Class',
         start_time: existingClass.start_time,
         class_data: existingClass
       });
@@ -76,7 +114,8 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (recentClass) {
-      return res.status(200).json({
+      console.log('🔄 Using recent class session:', recentClass.id);
+      return NextResponse.json({
         success: true,
         class_log_id: recentClass.id,
         message: 'Using recent class session',
@@ -85,31 +124,39 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create new class log
+    // Create new class log - using your actual column names
     const { data: classLog, error: insertError } = await supabase
       .from('class_logs')
       .insert({
         enrollment_id: enrollment_id,
+        teacher_id: teacherId, // Now properly defined
         student_email: student_email,
-        meet_url: meetUrl,
+        google_meet_link: meetUrl, // Fixed: use google_meet_link (your actual column name)
+        date: new Date().toISOString().split('T')[0], // Required field - date only
         start_time: new Date().toISOString(),
         status: 'ongoing',
-        content: '',
+        content: 'Class started via extension',
         topics_covered: [],
         homework_assigned: null,
-        attachments: null
+        attachments: null,
+        detected_automatically: true,
+        attendance_count: 1,
+        total_students: 1
       })
       .select()
       .single();
 
     if (insertError) {
       console.error('Insert error:', insertError);
-      return res.status(500).json({ error: 'Failed to create class log' });
+      return NextResponse.json({ 
+        success: false,
+        error: 'Failed to create class log: ' + insertError.message 
+      }, { status: 500 });
     }
 
     console.log('✅ New class started:', classLog.id);
     
-    res.status(200).json({
+    return NextResponse.json({
       success: true,
       class_log_id: classLog.id,
       message: 'Class started successfully',
@@ -118,10 +165,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Start class error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: error.message 
-    });
+    console.error('❌ Start class API error:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: 'Internal server error: ' + error.message 
+    }, { status: 500 });
   }
 }

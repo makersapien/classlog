@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Calendar } from '@/components/ui/calendar'
+import { BookOpen, Users, Clock, Target, TrendingUp, Calendar as CalendarIcon, MessageSquare, FileText, Zap, Star, Award, Trophy, Sparkles, Rocket, Crown, Gift, Bell, Heart, Brain, Lightbulb, Flame } from 'lucide-react'
 
 interface StudentDashboardProps {
   user: {
@@ -38,7 +39,9 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
     totalClasses: 48,
     attendedClasses: 44,
     currentStreak: 7,
-    averageScore: 85
+    averageScore: 85,
+    rank: 3,
+    weeklyGoal: 90
   }
 
   const todaySchedule = [
@@ -49,7 +52,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       time: '9:00 AM - 10:00 AM',
       topic: 'Trigonometry',
       status: 'completed',
-      room: 'Room 101'
+      room: 'Room 101',
+      score: 92
     },
     {
       id: 2,
@@ -58,7 +62,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       time: '10:30 AM - 11:30 AM',
       topic: 'Wave Motion',
       status: 'completed',
-      room: 'Lab 2'
+      room: 'Lab 2',
+      score: 88
     },
     {
       id: 3,
@@ -67,7 +72,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       time: '2:00 PM - 3:00 PM',
       topic: 'Organic Chemistry',
       status: 'upcoming',
-      room: 'Lab 1'
+      room: 'Lab 1',
+      score: null
     },
     {
       id: 4,
@@ -76,7 +82,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       time: '3:30 PM - 4:30 PM',
       topic: 'Essay Writing',
       status: 'upcoming',
-      room: 'Room 205'
+      room: 'Room 205',
+      score: null
     }
   ]
 
@@ -88,7 +95,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       dueDate: 'Tomorrow',
       status: 'pending',
       priority: 'high',
-      description: 'Solve problems 1-15 from Chapter 8'
+      description: 'Solve problems 1-15 from Chapter 8',
+      progress: 0
     },
     {
       id: 2,
@@ -97,7 +105,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       dueDate: 'Dec 20',
       status: 'in_progress',
       priority: 'medium',
-      description: 'Write lab report on sound wave experiments'
+      description: 'Write lab report on sound wave experiments',
+      progress: 65
     },
     {
       id: 3,
@@ -106,7 +115,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       dueDate: 'Dec 22',
       status: 'completed',
       priority: 'low',
-      description: 'Prepare detailed notes on hydrocarbon reactions'
+      description: 'Prepare detailed notes on hydrocarbon reactions',
+      progress: 100
     },
     {
       id: 4,
@@ -115,7 +125,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       dueDate: 'Dec 25',
       status: 'pending',
       priority: 'medium',
-      description: 'Write a 500-word creative piece on "Future Cities"'
+      description: 'Write a 500-word creative piece on "Future Cities"',
+      progress: 20
     }
   ]
 
@@ -127,7 +138,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       progress: 92,
       lastTest: 88,
       attendance: 95,
-      trend: 'up'
+      trend: 'up',
+      color: 'blue'
     },
     {
       subject: 'Physics',
@@ -136,7 +148,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       progress: 85,
       lastTest: 82,
       attendance: 90,
-      trend: 'up'
+      trend: 'up',
+      color: 'emerald'
     },
     {
       subject: 'Chemistry',
@@ -145,7 +158,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       progress: 88,
       lastTest: 85,
       attendance: 93,
-      trend: 'stable'
+      trend: 'stable',
+      color: 'purple'
     },
     {
       subject: 'English',
@@ -154,7 +168,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       progress: 78,
       lastTest: 75,
       attendance: 88,
-      trend: 'down'
+      trend: 'down',
+      color: 'orange'
     }
   ]
 
@@ -169,7 +184,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       homework: 'Chapter 8, Exercise 8.2 - Questions 1-10',
       performance: 'excellent',
       notes: 'Great participation in class discussions. Shows strong understanding of concepts.',
-      materials: ['Textbook Chapter 8', 'Practice Worksheet']
+      materials: ['Textbook Chapter 8', 'Practice Worksheet'],
+      score: 92
     },
     {
       id: 2,
@@ -181,7 +197,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       homework: 'Lab report due next class',
       performance: 'good',
       notes: 'Good understanding of wave concepts. Practice more numerical problems.',
-      materials: ['Lab Manual', 'Wave Simulation Video']
+      materials: ['Lab Manual', 'Wave Simulation Video'],
+      score: 88
     },
     {
       id: 3,
@@ -193,7 +210,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       homework: 'Read Chapter 12 and prepare notes',
       performance: 'good',
       notes: 'Active participation in practical session. Good grasp of organic structures.',
-      materials: ['Molecular Model Kit', 'Chapter 12 Notes']
+      materials: ['Molecular Model Kit', 'Chapter 12 Notes'],
+      score: 85
     }
   ]
 
@@ -205,7 +223,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       date: 'Dec 22, 2024',
       topics: ['Trigonometry', 'Coordinate Geometry'],
       duration: '2 hours',
-      weightage: '20%'
+      weightage: '20%',
+      difficulty: 'hard'
     },
     {
       id: 2,
@@ -214,7 +233,8 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
       date: 'Dec 24, 2024',
       topics: ['Wave Experiments', 'Sound Analysis'],
       duration: '3 hours',
-      weightage: '15%'
+      weightage: '15%',
+      difficulty: 'medium'
     }
   ]
 
@@ -292,28 +312,28 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'upcoming': return 'bg-blue-100 text-blue-800'
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800'
-      case 'pending': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+      case 'upcoming': return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+      case 'in_progress': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+      case 'pending': return 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg'
     }
   }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'high': return 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+      case 'medium': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+      case 'low': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg'
     }
   }
 
   const getGradeColor = (grade: string) => {
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800'
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800'
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800'
-    return 'bg-gray-100 text-gray-800'
+    if (grade.startsWith('A')) return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+    if (grade.startsWith('B')) return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+    if (grade.startsWith('C')) return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+    return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg'
   }
 
   const getTrendIcon = (trend: string) => {
@@ -344,589 +364,812 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
     }
   }
 
+  const getSubjectGradient = (color: string) => {
+    const gradients = {
+      blue: 'from-blue-500 to-indigo-600',
+      emerald: 'from-emerald-500 to-teal-600',
+      purple: 'from-purple-500 to-pink-600',
+      orange: 'from-orange-500 to-red-500'
+    }
+    return gradients[color as keyof typeof gradients] || 'from-gray-400 to-gray-500'
+  }
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'hard': return 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+      case 'medium': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
+      case 'easy': return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Hello, {studentProfile.name}! 🎓
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {studentProfile.grade} • Roll No: {studentProfile.rollNumber}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <div className="space-y-8 pt-6 pb-20 px-4 sm:px-6">
+        {/* Enhanced Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-6 sm:space-y-0">
+          <div className="flex items-center space-x-4">
+            <div className="h-16 w-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+              <Brain className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent">
+                Hello, {studentProfile.name}! 🎓
+              </h1>
+              <p className="text-lg text-gray-600 mt-2 flex items-center">
+                <Rocket className="w-5 h-5 mr-2 text-indigo-500" />
+                {studentProfile.grade} • Roll No: {studentProfile.rollNumber}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg px-4 py-2 text-lg">
+              🔥 {studentProfile.currentStreak} day streak
+            </Badge>
+            <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg px-4 py-2 text-lg">
+              👑 Rank #{studentProfile.rank}
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge className="bg-emerald-100 text-emerald-800">
-            🔥 {studentProfile.currentStreak} day streak
-          </Badge>
+
+        {/* Enhanced Quick Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 font-medium mb-1">Attendance</p>
+                  <p className="text-3xl font-bold">
+                    {Math.round((studentProfile.attendedClasses / studentProfile.totalClasses) * 100)}%
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <Target className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-emerald-100">Outstanding rate</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Target className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Progress 
+                  value={(studentProfile.attendedClasses / studentProfile.totalClasses) * 100} 
+                  className="bg-emerald-400/30"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 font-medium mb-1">Average Score</p>
+                  <p className="text-3xl font-bold">{studentProfile.averageScore}%</p>
+                  <div className="flex items-center mt-2">
+                    <Trophy className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-blue-100">Goal: {studentProfile.weeklyGoal}%</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Trophy className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Progress value={studentProfile.averageScore} className="bg-blue-400/30" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 font-medium mb-1">Subjects</p>
+                  <p className="text-3xl font-bold">{studentProfile.subjects.length}</p>
+                  <div className="flex items-center mt-2">
+                    <BookOpen className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-purple-100">Active learning</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <BookOpen className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 font-medium mb-1">Pending Tasks</p>
+                  <p className="text-3xl font-bold text-white">
+                    {recentAssignments.filter(a => a.status === 'pending').length}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <Bell className="w-4 h-4 mr-1" />
+                    <span className="text-xs text-orange-100">Need attention</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <Bell className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Attendance</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Math.round((studentProfile.attendedClasses / studentProfile.totalClasses) * 100)}%
-                </p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-full">
-                <span className="text-xl">📊</span>
-              </div>
+        {/* Enhanced Main Content Tabs */}
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          <Tabs defaultValue="today" className="w-full">
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+              <TabsList className="grid w-full grid-cols-5 bg-white/20 backdrop-blur-sm rounded-xl">
+                <TabsTrigger 
+                  value="today" 
+                  className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 text-white font-semibold"
+                >
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  Today
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="assignments"
+                  className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 text-white font-semibold"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Assignments
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="progress"
+                  className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 text-white font-semibold"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Progress
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="schedule"
+                  className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 text-white font-semibold"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="resources"
+                  className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 text-white font-semibold"
+                >
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Resources
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <Progress 
-              value={(studentProfile.attendedClasses / studentProfile.totalClasses) * 100} 
-              className="mt-2"
-            />
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Score</p>
-                <p className="text-2xl font-bold text-gray-900">{studentProfile.averageScore}%</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-full">
-                <span className="text-xl">🎯</span>
-              </div>
-            </div>
-            <Progress value={studentProfile.averageScore} className="mt-2" />
-          </CardContent>
-        </Card>
+            <TabsContent value="today" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Enhanced Today's Schedule */}
+                <Card className="border-2 border-gradient-to-r from-blue-200 to-indigo-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Sparkles className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                        Today's Classes
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-blue-600 font-medium">Your schedule for today</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    {todaySchedule.map((cls) => (
+                      <div key={cls.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-white to-blue-50 border-2 border-blue-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="font-bold text-gray-900">{cls.subject}</h4>
+                            <Badge className={getStatusColor(cls.status)}>
+                              {cls.status}
+                            </Badge>
+                            {cls.score && (
+                              <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg">
+                                {cls.score}%
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-700 font-medium mb-1">{cls.time} • {cls.room}</p>
+                          <p className="text-xs text-gray-600">{cls.teacher} • {cls.topic}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Subjects</p>
-                <p className="text-2xl font-bold text-gray-900">{studentProfile.subjects.length}</p>
+                {/* Enhanced Recent Class Logs */}
+                <Card className="border-2 border-gradient-to-r from-emerald-200 to-teal-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-emerald-500 rounded-lg">
+                        <Award className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
+                        Recent Class Logs
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-emerald-600 font-medium">Latest updates from your classes</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    {recentClassLogs.slice(0, 3).map((log) => (
+                      <div key={log.id} className="border-2 border-emerald-200 rounded-xl p-4 space-y-3 bg-gradient-to-r from-emerald-50 to-teal-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{log.subject}</h4>
+                            <p className="text-sm text-gray-600">{log.teacher} • {log.date} {log.time}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg">{getPerformanceEmoji(log.performance)}</span>
+                            <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg">
+                              {log.score}%
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <p><strong>Topics:</strong> {log.topics.join(', ')}</p>
+                          {log.homework && <p><strong>Homework:</strong> {log.homework}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
-              <div className="p-2 bg-purple-100 rounded-full">
-                <span className="text-xl">📚</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending Tasks</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {recentAssignments.filter(a => a.status === 'pending').length}
-                </p>
-              </div>
-              <div className="p-2 bg-orange-100 rounded-full">
-                <span className="text-xl">📝</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              {/* Enhanced Upcoming Tests */}
+              {upcomingTests.length > 0 && (
+                <Card className="border-2 border-gradient-to-r from-yellow-200 to-orange-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-yellow-500 rounded-lg">
+                        <Flame className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-yellow-700 to-orange-700 bg-clip-text text-transparent">
+                        Upcoming Tests
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-yellow-600 font-medium">Prepare for your upcoming assessments</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {upcomingTests.map((test) => (
+                        <div key={test.id} className="border-2 border-yellow-200 rounded-xl p-6 bg-gradient-to-br from-yellow-50 to-orange-50 hover:shadow-lg transition-all duration-200">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-bold text-gray-900 text-lg">{test.subject}</h4>
+                            <div className="flex space-x-2">
+                              <Badge variant="outline" className="border-2 border-yellow-300 text-yellow-700 bg-yellow-100">
+                                {test.type}
+                              </Badge>
+                              <Badge className={getDifficultyColor(test.difficulty)}>
+                                {test.difficulty}
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 font-medium mb-3">{test.date} • {test.duration}</p>
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-700">
+                              <strong className="text-yellow-800">Topics:</strong> {test.topics.join(', ')}
+                            </p>
+                            <p className="text-xs text-gray-600 bg-yellow-100 px-2 py-1 rounded-full inline-block">
+                              Weightage: {test.weightage}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="today" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="today">Today</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-        </TabsList>
+            <TabsContent value="assignments" className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-6">
+                <Card className="flex-1 mr-4 border-2 border-gradient-to-r from-purple-200 to-pink-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-purple-500 rounded-lg">
+                        <Zap className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
+                        Assignments & Homework
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-purple-600 font-medium">Track your pending and completed tasks</CardDescription>
+                  </CardHeader>
+                </Card>
+                <Dialog open={homeworkDialog} onOpenChange={setHomeworkDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-4 rounded-xl">
+                      <Gift className="mr-2 h-5 w-5" />
+                      Submit Work
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
+                        Submit Assignment
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Submit your completed homework or assignment
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                      <div>
+                        <Label htmlFor="assignment-select" className="font-semibold text-gray-700">Select Assignment</Label>
+                        <Select>
+                          <SelectTrigger className="border-2 border-gray-200 rounded-xl focus:border-purple-500">
+                            <SelectValue placeholder="Select assignment" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {recentAssignments.filter(a => a.status !== 'completed').map((assignment) => (
+                              <SelectItem key={assignment.id} value={assignment.id.toString()}>
+                                {assignment.subject} - {assignment.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="submission" className="font-semibold text-gray-700">Submission Notes</Label>
+                        <Textarea 
+                          id="submission" 
+                          placeholder="Add any notes about your submission..." 
+                          rows={3}
+                          className="border-2 border-gray-200 rounded-xl focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="file-upload" className="font-semibold text-gray-700">Upload Files (Optional)</Label>
+                        <Input 
+                          id="file-upload" 
+                          type="file" 
+                          multiple 
+                          className="border-2 border-gray-200 rounded-xl focus:border-purple-500"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-3">
+                        <Button variant="outline" onClick={() => setHomeworkDialog(false)} className="rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => setHomeworkDialog(false)}
+                          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 rounded-xl"
+                        >
+                          Submit
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
 
-        <TabsContent value="today" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Today's Schedule */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>📅</span>
-                  <span>Today's Classes</span>
-                </CardTitle>
-                <CardDescription>Your schedule for today</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {todaySchedule.map((cls) => (
-                  <div key={cls.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="font-medium text-gray-900">{cls.subject}</h4>
-                        <Badge className={getStatusColor(cls.status)}>
-                          {cls.status}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentAssignments.map((assignment) => (
+                  <Card key={assignment.id} className={`border-0 shadow-2xl overflow-hidden transform hover:scale-105 transition-all duration-300 ${
+                    assignment.status === 'completed' ? 'bg-gradient-to-br from-green-50 to-emerald-50' :
+                    assignment.status === 'in_progress' ? 'bg-gradient-to-br from-yellow-50 to-orange-50' : 
+                    'bg-gradient-to-br from-red-50 to-pink-50'
+                  }`}>
+                    <div className={`h-2 bg-gradient-to-r ${
+                      assignment.status === 'completed' ? 'from-green-500 to-emerald-600' :
+                      assignment.status === 'in_progress' ? 'from-yellow-500 to-orange-500' : 
+                      'from-red-500 to-pink-600'
+                    }`}></div>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <Badge className={getStatusColor(assignment.status)}>
+                          {assignment.status.replace('_', ' ')}
+                        </Badge>
+                        <Badge className={getPriorityColor(assignment.priority)}>
+                          {assignment.priority}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">{cls.time} • {cls.room}</p>
-                      <p className="text-xs text-gray-500">{cls.teacher} • {cls.topic}</p>
-                    </div>
-                  </div>
+                      <h3 className="font-bold text-gray-900 mb-2 text-lg">{assignment.title}</h3>
+                      <p className="text-sm text-gray-700 font-medium mb-2">{assignment.subject}</p>
+                      <p className="text-xs text-gray-600 mb-4 leading-relaxed">{assignment.description}</p>
+                      
+                      {assignment.progress > 0 && (
+                        <div className="mb-4">
+                          <div className="flex justify-between text-xs text-gray-600 mb-2">
+                            <span>Progress</span>
+                            <span>{assignment.progress}%</span>
+                          </div>
+                          <Progress value={assignment.progress} className="h-2" />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium bg-gray-100 px-2 py-1 rounded-full">
+                          Due: {assignment.dueDate}
+                        </span>
+                        {assignment.status !== 'completed' && (
+                          <Button 
+                            size="sm" 
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg rounded-xl"
+                          >
+                            Work on it
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </TabsContent>
 
-            {/* Recent Class Logs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>📝</span>
-                  <span>Recent Class Logs</span>
-                </CardTitle>
-                <CardDescription>Latest updates from your classes</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {recentClassLogs.slice(0, 3).map((log) => (
-                  <div key={log.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{log.subject}</h4>
-                        <p className="text-sm text-gray-600">{log.teacher} • {log.date} {log.time}</p>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span>{getPerformanceEmoji(log.performance)}</span>
-                      </div>
+            <TabsContent value="progress" className="p-6 space-y-6">
+              <Card className="border-2 border-gradient-to-r from-blue-200 to-purple-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-white" />
                     </div>
-                    <div className="text-xs text-gray-600">
-                      <p><strong>Topics:</strong> {log.topics.join(', ')}</p>
-                      {log.homework && <p><strong>Homework:</strong> {log.homework}</p>}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Upcoming Tests */}
-          {upcomingTests.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>🎯</span>
-                  <span>Upcoming Tests</span>
-                </CardTitle>
-                <CardDescription>Prepare for your upcoming assessments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {upcomingTests.map((test) => (
-                    <div key={test.id} className="border rounded-lg p-4 bg-yellow-50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">{test.subject}</h4>
-                        <Badge variant="outline">{test.type}</Badge>
+                    <span className="bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+                      Academic Progress
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-600 font-medium">Track your performance across all subjects</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-6">
+                    {progressData.map((subject) => (
+                      <div key={subject.subject} className="border-2 border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-gray-50 hover:shadow-lg transition-all duration-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-lg">{subject.subject}</h3>
+                            <p className="text-sm text-gray-600 font-medium">{subject.teacher}</p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <Badge className={getGradeColor(subject.currentGrade)}>
+                              {subject.currentGrade}
+                            </Badge>
+                            <span className="text-2xl">{getTrendIcon(subject.trend)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-6 mb-4">
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600 font-medium mb-2">Overall Progress</p>
+                            <p className="text-2xl font-bold text-gray-900">{subject.progress}%</p>
+                            <Progress value={subject.progress} className="mt-2 h-3" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600 font-medium mb-2">Last Test</p>
+                            <p className="text-2xl font-bold text-gray-900">{subject.lastTest}%</p>
+                            <div className="mt-2 h-3 bg-gray-200 rounded-full">
+                              <div 
+                                className={`h-full bg-gradient-to-r ${getSubjectGradient(subject.color)} rounded-full transition-all duration-300`}
+                                style={{ width: `${subject.lastTest}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600 font-medium mb-2">Attendance</p>
+                            <p className="text-2xl font-bold text-gray-900">{subject.attendance}%</p>
+                            <div className="mt-2 h-3 bg-gray-200 rounded-full">
+                              <div 
+                                className={`h-full bg-gradient-to-r ${getSubjectGradient(subject.color)} rounded-full transition-all duration-300`}
+                                style={{ width: `${subject.attendance}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{test.date} • {test.duration}</p>
-                      <p className="text-sm text-gray-700 mb-2">
-                        <strong>Topics:</strong> {test.topics.join(', ')}
-                      </p>
-                      <p className="text-xs text-gray-600">Weightage: {test.weightage}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="assignments" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Card className="flex-1 mr-4">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>📋</span>
-                  <span>Assignments & Homework</span>
-                </CardTitle>
-                <CardDescription>Track your pending and completed tasks</CardDescription>
-              </CardHeader>
-            </Card>
-            <Dialog open={homeworkDialog} onOpenChange={setHomeworkDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <span className="mr-2">✅</span>
-                  Submit Work
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Submit Assignment</DialogTitle>
-                  <DialogDescription>
-                    Submit your completed homework or assignment
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="assignment-select">Select Assignment</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select assignment" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {recentAssignments.filter(a => a.status !== 'completed').map((assignment) => (
-                          <SelectItem key={assignment.id} value={assignment.id.toString()}>
-                            {assignment.subject} - {assignment.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="submission">Submission Notes</Label>
-                    <Textarea 
-                      id="submission" 
-                      placeholder="Add any notes about your submission..." 
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="file-upload">Upload Files (Optional)</Label>
-                    <Input id="file-upload" type="file" multiple />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setHomeworkDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => setHomeworkDialog(false)}>
-                      Submit
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentAssignments.map((assignment) => (
-              <Card key={assignment.id} className={`border-l-4 ${
-                assignment.status === 'completed' ? 'border-l-green-500' :
-                assignment.status === 'in_progress' ? 'border-l-yellow-500' : 'border-l-red-500'
-              }`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge className={getStatusColor(assignment.status)}>
-                      {assignment.status.replace('_', ' ')}
-                    </Badge>
-                    <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
-                      {assignment.priority}
-                    </Badge>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{assignment.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{assignment.subject}</p>
-                  <p className="text-xs text-gray-500 mb-3">{assignment.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Due: {assignment.dueDate}</span>
-                    {assignment.status !== 'completed' && (
-                      <Button size="sm" variant="outline">
-                        Work on it
-                      </Button>
-                    )}
+                    ))}
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="progress" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>📈</span>
-                <span>Academic Progress</span>
-              </CardTitle>
-              <CardDescription>Track your performance across all subjects</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {progressData.map((subject) => (
-                  <div key={subject.subject} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{subject.subject}</h3>
-                        <p className="text-sm text-gray-600">{subject.teacher}</p>
+            <TabsContent value="schedule" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-1 border-2 border-gradient-to-r from-emerald-200 to-teal-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3">
+                      <div className="p-2 bg-emerald-500 rounded-lg">
+                        <CalendarIcon className="h-5 w-5 text-white" />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={getGradeColor(subject.currentGrade)}>
-                          {subject.currentGrade}
-                        </Badge>
-                        <span className="text-lg">{getTrendIcon(subject.trend)}</span>
+                      <span className="bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
+                        Calendar
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      className="rounded-md border"
+                    />
+                  </CardContent>
+                </Card>
+                
+                <Card className="lg:col-span-2 border-2 border-gradient-to-r from-blue-200 to-indigo-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+                    <CardTitle className="flex items-center space-x-3 text-xl">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Clock className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                        Weekly Schedule
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-blue-600 font-medium">Your complete class timetable</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-6">
+                      {Object.entries(weeklySchedule).map(([day, classes]) => (
+                        <div key={day} className="border-2 border-blue-200 rounded-xl p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                          <h4 className="font-bold text-gray-900 mb-3 text-lg flex items-center">
+                            <span className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                              {day.charAt(0)}
+                            </span>
+                            {day}
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            {classes.map((cls, index) => (
+                              <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-blue-200 hover:shadow-md transition-all duration-200">
+                                <div>
+                                  <span className="font-bold text-gray-900">{cls.time}</span>
+                                  <p className="text-xs text-blue-700 font-medium">{cls.subject}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-600 font-medium">{cls.teacher}</p>
+                                  <p className="text-xs text-gray-500">{cls.room}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="resources" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <BookOpen className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-3 text-lg">Study Materials</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Access textbooks, notes, and reference materials</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <FileText className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-3 text-lg">Video Lectures</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Watch recorded classes and educational videos</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <Lightbulb className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-3 text-lg">Lab Resources</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Virtual labs and experiment simulations</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <Target className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-3 text-lg">Practice Tests</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Take mock tests and practice questions</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-red-200 bg-gradient-to-br from-red-50 to-pink-50">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <Users className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-3 text-lg">Discussion Forum</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Ask questions and discuss with classmates</p>
+                  </CardContent>
+                </Card>
+
+                <Dialog open={messageDialog} onOpenChange={setMessageDialog}>
+                  <DialogTrigger asChild>
+                    <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+                      <CardContent className="p-8 text-center">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                          <MessageSquare className="h-8 w-8 text-white" />
+                        </div>
+                        <h3 className="font-bold text-gray-900 mb-3 text-lg">Message Teacher</h3>
+                        <p className="text-sm text-gray-600 leading-relaxed">Send messages to your teachers</p>
+                      </CardContent>
+                    </Card>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
+                        Send Message to Teacher
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Contact your teacher with questions or concerns
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                      <div>
+                        <Label htmlFor="teacher-select" className="font-semibold text-gray-700">Select Teacher</Label>
+                        <Select>
+                          <SelectTrigger className="border-2 border-gray-200 rounded-xl focus:border-emerald-500">
+                            <SelectValue placeholder="Select teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sharma">Mr. Sharma - Mathematics</SelectItem>
+                            <SelectItem value="kumar">Mr. Kumar - Physics</SelectItem>
+                            <SelectItem value="gupta">Ms. Gupta - Chemistry</SelectItem>
+                            <SelectItem value="reddy">Ms. Reddy - English</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="subject" className="font-semibold text-gray-700">Subject</Label>
+                        <Input 
+                          id="subject" 
+                          placeholder="What is this about?"
+                          className="border-2 border-gray-200 rounded-xl focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="message" className="font-semibold text-gray-700">Message</Label>
+                        <Textarea 
+                          id="message" 
+                          placeholder="Type your message here..." 
+                          rows={4}
+                          className="border-2 border-gray-200 rounded-xl focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-3">
+                        <Button variant="outline" onClick={() => setMessageDialog(false)} className="rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={() => setMessageDialog(false)}
+                          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl"
+                        >
+                          Send Message
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Quick Access to Recent Materials */}
+              <Card className="border-2 border-gradient-to-r from-gray-200 to-blue-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-t-lg">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="p-2 bg-gray-500 rounded-lg">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-gray-700 to-blue-700 bg-clip-text text-transparent">
+                      Recent Materials
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 font-medium">Recently shared study materials from your teachers</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {recentMaterials.map((material) => (
+                      <div key={material.id} className="border-2 border-gray-200 rounded-lg p-4 hover:bg-gradient-to-r hover:from-white hover:to-blue-50 cursor-pointer transition-all duration-200 hover:shadow-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-blue-100 rounded-lg flex items-center justify-center">
+                            <span className="text-lg">{getFileTypeIcon(material.type)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-gray-900 truncate">{material.title}</h4>
+                            <p className="text-xs text-gray-600">{material.subject} • {material.teacher}</p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-gray-400">{material.uploadedAt}</p>
+                              <p className="text-xs text-gray-400">{material.size}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Separator className="my-6" />
+                  
+                  <div className="text-center">
+                    <Button className="bg-gradient-to-r from-gray-500 to-blue-600 hover:from-gray-600 hover:to-blue-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-3 rounded-xl">
+                      <FileText className="mr-2 h-5 w-5" />
+                      View All Materials
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Study Tips & Resources */}
+              <Card className="border-2 border-gradient-to-r from-indigo-200 to-purple-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="p-2 bg-indigo-500 rounded-lg">
+                      <Lightbulb className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                      Study Tips & Resources
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-indigo-600 font-medium">Helpful resources to improve your learning</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="border-2 border-blue-200 rounded-xl p-4 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-blue-900 mb-2 flex items-center">
+                          <BookOpen className="w-5 h-5 mr-2" />
+                          Active Reading Tips
+                        </h4>
+                        <p className="text-sm text-blue-700">Take notes while reading and summarize each chapter in your own words.</p>
+                      </div>
+                      
+                      <div className="border-2 border-green-200 rounded-xl p-4 bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-green-900 mb-2 flex items-center">
+                          <Target className="w-5 h-5 mr-2" />
+                          Goal Setting
+                        </h4>
+                        <p className="text-sm text-green-700">Break large assignments into smaller, manageable tasks with deadlines.</p>
+                      </div>
+                      
+                      <div className="border-2 border-purple-200 rounded-xl p-4 bg-gradient-to-br from-purple-50 to-pink-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-purple-900 mb-2 flex items-center">
+                          <Brain className="w-5 h-5 mr-2" />
+                          Memory Techniques
+                        </h4>
+                        <p className="text-sm text-purple-700">Use mnemonics, flashcards, and spaced repetition for better retention.</p>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-4 mb-3">
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600">Overall Progress</p>
-                        <p className="text-lg font-semibold text-gray-900">{subject.progress}%</p>
-                        <Progress value={subject.progress} className="mt-1" />
+                    <div className="space-y-4">
+                      <div className="border-2 border-yellow-200 rounded-xl p-4 bg-gradient-to-br from-yellow-50 to-orange-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-yellow-900 mb-2 flex items-center">
+                          <Clock className="w-5 h-5 mr-2" />
+                          Time Management
+                        </h4>
+                        <p className="text-sm text-yellow-700">Use the Pomodoro technique: 25 minutes focused study, 5 minutes break.</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600">Last Test</p>
-                        <p className="text-lg font-semibold text-gray-900">{subject.lastTest}%</p>
+                      
+                      <div className="border-2 border-red-200 rounded-xl p-4 bg-gradient-to-br from-red-50 to-pink-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-red-900 mb-2 flex items-center">
+                          <Users className="w-5 h-5 mr-2" />
+                          Study Groups
+                        </h4>
+                        <p className="text-sm text-red-700">Form study groups with classmates to discuss difficult concepts.</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600">Attendance</p>
-                        <p className="text-lg font-semibold text-gray-900">{subject.attendance}%</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="schedule" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Calendar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border"
-                />
-              </CardContent>
-            </Card>
-            
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Weekly Schedule</CardTitle>
-                <CardDescription>Your complete class timetable</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(weeklySchedule).map(([day, classes]) => (
-                    <div key={day} className="border rounded-lg p-3">
-                      <h4 className="font-medium text-gray-900 mb-2">{day}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                        {classes.map((cls, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                            <div>
-                              <span className="font-medium">{cls.time}</span>
-                              <p className="text-xs text-gray-600">{cls.subject}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-600">{cls.teacher}</p>
-                              <p className="text-xs text-gray-500">{cls.room}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="resources" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">📚</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Study Materials</h3>
-                <p className="text-sm text-gray-600">Access textbooks, notes, and reference materials</p>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🎥</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Video Lectures</h3>
-                <p className="text-sm text-gray-600">Watch recorded classes and educational videos</p>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🧪</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Lab Resources</h3>
-                <p className="text-sm text-gray-600">Virtual labs and experiment simulations</p>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">📝</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Practice Tests</h3>
-                <p className="text-sm text-gray-600">Take mock tests and practice questions</p>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">💬</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Discussion Forum</h3>
-                <p className="text-sm text-gray-600">Ask questions and discuss with classmates</p>
-              </CardContent>
-            </Card>
-
-            <Dialog open={messageDialog} onOpenChange={setMessageDialog}>
-              <DialogTrigger asChild>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent className="p-6 text-center">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">✉️</span>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Message Teacher</h3>
-                    <p className="text-sm text-gray-600">Send messages to your teachers</p>
-                  </CardContent>
-                </Card>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Send Message to Teacher</DialogTitle>
-                  <DialogDescription>
-                    Contact your teacher with questions or concerns
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="teacher-select">Select Teacher</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sharma">Mr. Sharma - Mathematics</SelectItem>
-                        <SelectItem value="kumar">Mr. Kumar - Physics</SelectItem>
-                        <SelectItem value="gupta">Ms. Gupta - Chemistry</SelectItem>
-                        <SelectItem value="reddy">Ms. Reddy - English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" placeholder="What is this about?" />
-                  </div>
-                  <div>
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea 
-                      id="message" 
-                      placeholder="Type your message here..." 
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setMessageDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => setMessageDialog(false)}>
-                      Send Message
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Quick Access to Recent Materials */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>📂</span>
-                <span>Recent Materials</span>
-              </CardTitle>
-              <CardDescription>Recently shared study materials from your teachers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recentMaterials.map((material) => (
-                  <div key={material.id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
-                        <span className="text-lg">{getFileTypeIcon(material.type)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 truncate">{material.title}</h4>
-                        <p className="text-xs text-gray-500">{material.subject} • {material.teacher}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-gray-400">{material.uploadedAt}</p>
-                          <p className="text-xs text-gray-400">{material.size}</p>
-                        </div>
+                      
+                      <div className="border-2 border-indigo-200 rounded-xl p-4 bg-gradient-to-br from-indigo-50 to-purple-50 hover:shadow-lg transition-all duration-200">
+                        <h4 className="font-bold text-indigo-900 mb-2 flex items-center">
+                          <Heart className="w-5 h-5 mr-2" />
+                          Rest & Recovery
+                        </h4>
+                        <p className="text-sm text-indigo-700">Get 7-9 hours of sleep and take regular breaks to maintain focus.</p>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="text-center">
-                <Button variant="outline" className="w-full">
-                  <span className="mr-2">📁</span>
-                  View All Materials
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Study Tips & Resources */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>💡</span>
-                <span>Study Tips & Resources</span>
-              </CardTitle>
-              <CardDescription>Helpful resources to improve your learning</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="border rounded-lg p-3 bg-blue-50">
-                    <h4 className="font-medium text-blue-900 mb-1">📖 Active Reading Tips</h4>
-                    <p className="text-sm text-blue-700">Take notes while reading and summarize each chapter in your own words.</p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-3 bg-green-50">
-                    <h4 className="font-medium text-green-900 mb-1">🎯 Goal Setting</h4>
-                    <p className="text-sm text-green-700">Break large assignments into smaller, manageable tasks with deadlines.</p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-3 bg-purple-50">
-                    <h4 className="font-medium text-purple-900 mb-1">🧠 Memory Techniques</h4>
-                    <p className="text-sm text-purple-700">Use mnemonics, flashcards, and spaced repetition for better retention.</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="border rounded-lg p-3 bg-yellow-50">
-                    <h4 className="font-medium text-yellow-900 mb-1">⏰ Time Management</h4>
-                    <p className="text-sm text-yellow-700">Use the Pomodoro technique: 25 minutes focused study, 5 minutes break.</p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-3 bg-red-50">
-                    <h4 className="font-medium text-red-900 mb-1">🤝 Study Groups</h4>
-                    <p className="text-sm text-red-700">Form study groups with classmates to discuss difficult concepts.</p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-3 bg-indigo-50">
-                    <h4 className="font-medium text-indigo-900 mb-1">💤 Rest & Recovery</h4>
-                    <p className="text-sm text-indigo-700">Get 7-9 hours of sleep and take regular breaks to maintain focus.</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }

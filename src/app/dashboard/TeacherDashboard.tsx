@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { BookOpen, Users, Clock, DollarSign, TrendingUp, Calendar, Plus, FileText, User, Send, BarChart3, Sparkles, Zap, Star, Target, Award, Shield, Chrome, Key, Smartphone } from 'lucide-react'
+import { BookOpen, Users, Clock, DollarSign, TrendingUp, Calendar, Plus, FileText, User, Send, BarChart3, Sparkles, Zap, Star, Target, Award, Shield, Chrome, Key, Smartphone, CreditCard, GraduationCap, CheckCircle, AlertCircle, Calendar as CalendarIcon, MessageCircle } from 'lucide-react'
 import ExtensionTokenManager from '@/components/ExtensionTokenManager'
 
 interface TeacherDashboardProps {
@@ -81,7 +81,122 @@ interface StudentData {
   lastClass: string
   status: string
   paymentStatus: string
+  creditsRemaining?: number
+  totalCredits?: number
+  attendanceRate?: number
+  nextClass?: string
+  profilePicture?: string
+  subjects?: string[]
+  performance?: 'excellent' | 'good' | 'needs-attention'
+  lastPayment?: string
+  monthlyFee?: number
 }
+
+// Mock student data - replace with real data from your API
+const mockStudentData: StudentData[] = [
+  {
+    id: '1',
+    name: 'Arjun Patel',
+    grade: 'Grade 10',
+    subject: 'Mathematics',
+    subjects: ['Mathematics', 'Physics'],
+    lastClass: '2 hours ago',
+    nextClass: 'Tomorrow 4:00 PM',
+    status: 'active',
+    paymentStatus: 'paid',
+    creditsRemaining: 12,
+    totalCredits: 16,
+    attendanceRate: 94,
+    performance: 'excellent',
+    lastPayment: '15 Dec 2024',
+    monthlyFee: 2500
+  },
+  {
+    id: '2',
+    name: 'Priya Sharma',
+    grade: 'Grade 12',
+    subject: 'Chemistry',
+    subjects: ['Chemistry', 'Biology'],
+    lastClass: '1 day ago',
+    nextClass: 'Today 6:00 PM',
+    status: 'active',
+    paymentStatus: 'paid',
+    creditsRemaining: 8,
+    totalCredits: 12,
+    attendanceRate: 88,
+    performance: 'good',
+    lastPayment: '10 Dec 2024',
+    monthlyFee: 3000
+  },
+  {
+    id: '3',
+    name: 'Rohan Kumar',
+    grade: 'Grade 11',
+    subject: 'Physics',
+    subjects: ['Physics', 'Mathematics'],
+    lastClass: '3 hours ago',
+    nextClass: 'Tomorrow 2:00 PM',
+    status: 'active',
+    paymentStatus: 'pending',
+    creditsRemaining: 15,
+    totalCredits: 16,
+    attendanceRate: 92,
+    performance: 'excellent',
+    lastPayment: '28 Nov 2024',
+    monthlyFee: 2800
+  },
+  {
+    id: '4',
+    name: 'Sneha Reddy',
+    grade: 'Grade 9',
+    subject: 'English',
+    subjects: ['English', 'Social Studies'],
+    lastClass: '2 days ago',
+    nextClass: 'Today 7:00 PM',
+    status: 'active',
+    paymentStatus: 'paid',
+    creditsRemaining: 6,
+    totalCredits: 12,
+    attendanceRate: 76,
+    performance: 'needs-attention',
+    lastPayment: '12 Dec 2024',
+    monthlyFee: 2200
+  },
+  {
+    id: '5',
+    name: 'Vikram Singh',
+    grade: 'Grade 12',
+    subject: 'Mathematics',
+    subjects: ['Mathematics', 'Computer Science'],
+    lastClass: '4 hours ago',
+    nextClass: 'Tomorrow 10:00 AM',
+    status: 'active',
+    paymentStatus: 'paid',
+    creditsRemaining: 10,
+    totalCredits: 16,
+    attendanceRate: 96,
+    performance: 'excellent',
+    lastPayment: '18 Dec 2024',
+    monthlyFee: 3200
+  },
+  {
+    id: '6',
+    name: 'Ananya Gupta',
+    grade: 'Grade 10',
+    subject: 'Biology',
+    subjects: ['Biology', 'Chemistry'],
+    lastClass: '1 hour ago',
+    nextClass: 'Tomorrow 5:00 PM',
+    status: 'active',
+    paymentStatus: 'paid',
+    creditsRemaining: 14,
+    totalCredits: 16,
+    attendanceRate: 90,
+    performance: 'good',
+    lastPayment: '20 Dec 2024',
+    monthlyFee: 2700
+  }
+]
 
 export default function TeacherDashboard({ user }: TeacherDashboardProps) {
   const [selectedTimeframe, setSelectedTimeframe] = useState('today')
@@ -90,6 +205,8 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null)
+  const [studentDetailDialog, setStudentDetailDialog] = useState(false)
 
   // Form states for new class
   const [newClassData, setNewClassData] = useState({
@@ -135,7 +252,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
         : 'Time TBD'
       
       return {
-        id: parseInt(cls.id.slice(-6), 16), // Convert UUID to number for existing logic
+        id: parseInt(cls.id.slice(-6), 16),
         subject: cls.subject,
         grade: cls.grade || 'Grade TBD',
         time: timeStr,
@@ -157,15 +274,15 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
             name: enrollment.profiles.full_name || 'Unknown Student',
             grade: cls.grade || 'Grade TBD',
             subject: cls.subject,
-            lastClass: 'Today', // Simplified for now
+            lastClass: 'Today',
             status: 'active',
-            paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending' // Mock payment status
+            paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending'
           })
         }
       })
     })
     
-    return students.slice(0, 10) // Limit to 10 for display
+    return students.slice(0, 10)
   }
 
   const getStatusColor = (status: string) => {
@@ -186,23 +303,42 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     }
   }
 
+  const getPerformanceColor = (performance: string) => {
+    switch (performance) {
+      case 'excellent': return 'text-green-600 bg-green-100'
+      case 'good': return 'text-blue-600 bg-blue-100'
+      case 'needs-attention': return 'text-orange-600 bg-orange-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getPerformanceIcon = (performance: string) => {
+    switch (performance) {
+      case 'excellent': return <Star className="w-4 h-4" />
+      case 'good': return <CheckCircle className="w-4 h-4" />
+      case 'needs-attention': return <AlertCircle className="w-4 h-4" />
+      default: return <Target className="w-4 h-4" />
+    }
+  }
+
   const handleCreateClass = async () => {
-    // TODO: Implement API call to create new class
     console.log('Creating new class:', newClassData)
     setNewClassDialog(false)
-    // Refresh data after creating
     await fetchDashboardData()
   }
 
   const handleCreateLog = async () => {
-    // TODO: Implement API call to create class log
     console.log('Creating new log')
     setNewLogDialog(false)
-    // Refresh data after creating
     await fetchDashboardData()
   }
 
-  // Loading state with enhanced design
+  const handleStudentClick = (student: StudentData) => {
+    setSelectedStudent(student)
+    setStudentDetailDialog(true)
+  }
+
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 pt-6">
@@ -224,7 +360,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     )
   }
 
-  // Error state with enhanced design
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 pt-6">
@@ -251,7 +387,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     )
   }
 
-  // Use real data or fallback to mock data with proper defaults
+  // Use real data or fallback to mock data
   const todayStats = {
     classesScheduled: data?.stats?.totalClasses || 4,
     classesCompleted: data?.stats?.classesToday || 2,
@@ -287,22 +423,12 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
   ]
 
   const recentStudents = data?.classes && Array.isArray(data.classes) ? 
-    transformClassesToStudents(data.classes) : [
-    {
-      id: '1',
-      name: 'Arjun Patel',
-      grade: 'Grade 10',
-      subject: 'Mathematics',
-      lastClass: '2 hours ago',
-      status: 'active',
-      paymentStatus: 'paid'
-    }
-  ]
+    transformClassesToStudents(data.classes) : mockStudentData
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <div className="space-y-8 pt-6 pb-20 px-4 sm:px-6">
-        {/* Enhanced Header with proper spacing */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-6 sm:space-y-0">
           <div className="flex items-center space-x-4">
             <div className="h-16 w-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl">
@@ -332,7 +458,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
           </div>
         </div>
 
-        {/* Enhanced Quick Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-2xl transform hover:scale-105 transition-all duration-300">
             <CardContent className="p-6">
@@ -427,7 +553,265 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
           </Card>
         </div>
 
-        {/* Enhanced Main Content Tabs */}
+        {/* STUDENT CARDS SECTION */}
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">My Students</h2>
+                  <p className="text-indigo-100 font-medium">Quick overview of your active students</p>
+                </div>
+              </div>
+              <Badge className="bg-white/20 text-white font-semibold px-3 py-1">
+                {recentStudents.length} Active
+              </Badge>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentStudents.map((student) => (
+                <Card 
+                  key={student.id} 
+                  className="border-2 border-gray-200 hover:border-indigo-300 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 bg-gradient-to-br from-white to-gray-50"
+                  onClick={() => handleStudentClick(student)}
+                >
+                  <CardContent className="p-6">
+                    {/* Student Header */}
+                    <div className="flex items-center space-x-4 mb-4">
+                      <Avatar className="h-14 w-14 border-3 border-indigo-300 shadow-lg">
+                        <AvatarImage src={student.profilePicture} />
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-500 text-white font-bold text-lg">
+                          {student.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 text-lg leading-tight">{student.name}</h3>
+                        <p className="text-sm text-gray-600 font-medium">{student.grade}</p>
+                        <div className="flex items-center mt-1">
+                          <Badge 
+                            className={`text-xs px-2 py-1 ${getPerformanceColor(student.performance || 'good')}`}
+                          >
+                            {getPerformanceIcon(student.performance || 'good')}
+                            <span className="ml-1 capitalize">{student.performance || 'Good'}</span>
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Credits & Progress */}
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <CreditCard className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-semibold text-blue-900">Class Credits</span>
+                          </div>
+                          <span className="text-sm font-bold text-blue-800">
+                            {student.creditsRemaining || 10}/{student.totalCredits || 16}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={student.creditsRemaining && student.totalCredits ? 
+                            (student.creditsRemaining / student.totalCredits) * 100 : 62.5} 
+                          className="h-2 bg-blue-200"
+                        />
+                        <p className="text-xs text-blue-700 mt-1 font-medium">
+                          {student.creditsRemaining || 10} classes remaining
+                        </p>
+                      </div>
+
+                      {/* Attendance Rate */}
+                      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-semibold text-emerald-900">Attendance</span>
+                          </div>
+                          <span className="text-sm font-bold text-emerald-800">
+                            {student.attendanceRate || 88}%
+                          </span>
+                        </div>
+                        <Progress 
+                          value={student.attendanceRate || 88} 
+                          className="h-2 bg-emerald-200"
+                        />
+                      </div>
+
+                      {/* Subjects */}
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <BookOpen className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-semibold text-gray-700">Subjects</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {(student.subjects || [student.subject]).map((subject, index) => (
+                            <Badge key={index} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Next Class & Payment Status */}
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200">
+                        <div>
+                          <div className="flex items-center space-x-1 mb-1">
+                            <CalendarIcon className="w-3 h-3 text-gray-500" />
+                            <span className="text-xs text-gray-600 font-medium">Next Class</span>
+                          </div>
+                          <p className="text-xs text-gray-800 font-semibold">
+                            {student.nextClass || 'TBD'}
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-1 mb-1">
+                            <DollarSign className="w-3 h-3 text-gray-500" />
+                            <span className="text-xs text-gray-600 font-medium">Payment</span>
+                          </div>
+                          <Badge className={`text-xs ${getPaymentStatusColor(student.paymentStatus)}`}>
+                            {student.paymentStatus}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Last Activity */}
+                      <div className="pt-2 border-t border-gray-200">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Last class: {student.lastClass}</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                          >
+                            <MessageCircle className="w-3 h-3 mr-1" />
+                            Message
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* View All Students Button */}
+            <div className="mt-6 text-center">
+              <Button 
+                variant="outline" 
+                className="border-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-semibold px-6 py-2 rounded-xl"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                View All Students ({recentStudents.length})
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Student Detail Dialog */}
+        <Dialog open={studentDetailDialog} onOpenChange={setStudentDetailDialog}>
+          <DialogContent className="max-w-2xl">
+            {selectedStudent && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-16 w-16 border-3 border-indigo-300 shadow-lg">
+                      <AvatarImage src={selectedStudent.profilePicture} />
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-500 text-white font-bold text-xl">
+                        {selectedStudent.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="text-2xl bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                        {selectedStudent.name}
+                      </DialogTitle>
+                      <DialogDescription className="text-lg">
+                        {selectedStudent.grade} • {selectedStudent.subjects?.join(', ') || selectedStudent.subject}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+                
+                <div className="space-y-6 mt-6">
+                  {/* Performance Overview */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
+                      <CreditCard className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-blue-800">
+                        {selectedStudent.creditsRemaining || 10}
+                      </p>
+                      <p className="text-xs text-blue-600 font-medium">Credits Remaining</p>
+                    </div>
+                    <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                      <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-emerald-800">
+                        {selectedStudent.attendanceRate || 88}%
+                      </p>
+                      <p className="text-xs text-emerald-600 font-medium">Attendance Rate</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
+                      <Star className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-purple-800 capitalize">
+                        {selectedStudent.performance || 'Good'}
+                      </p>
+                      <p className="text-xs text-purple-600 font-medium">Performance</p>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200">
+                    <h3 className="font-semibold text-orange-900 mb-3 flex items-center">
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Payment Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-orange-700 font-medium">Monthly Fee</p>
+                        <p className="text-lg font-bold text-orange-900">₹{selectedStudent.monthlyFee?.toLocaleString() || '2,500'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-orange-700 font-medium">Last Payment</p>
+                        <p className="text-lg font-bold text-orange-900">{selectedStudent.lastPayment || '15 Dec 2024'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Badge className={getPaymentStatusColor(selectedStudent.paymentStatus)}>
+                        {selectedStudent.paymentStatus}
+                      </Badge>
+                      {selectedStudent.paymentStatus === 'pending' && (
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                          Send Reminder
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex space-x-3">
+                    <Button className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Message Parent
+                    </Button>
+                    <Button variant="outline" className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Schedule Class
+                    </Button>
+                    <Button variant="outline" className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50">
+                      <FileText className="mr-2 h-4 w-4" />
+                      View Logs
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Main Content Tabs */}
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <Tabs defaultValue="overview" className="w-full">
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
@@ -472,7 +856,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
 
             <TabsContent value="overview" className="p-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Enhanced Today's Schedule */}
+                {/* Today's Schedule */}
                 <Card className="border-2 border-gradient-to-r from-blue-200 to-indigo-200 shadow-xl">
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
                     <CardTitle className="flex items-center space-x-3 text-xl">
@@ -541,7 +925,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
                   </CardContent>
                 </Card>
 
-                {/* Enhanced Recent Activity */}
+                {/* Recent Activity */}
                 <Card className="border-2 border-gradient-to-r from-emerald-200 to-teal-200 shadow-xl">
                   <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg">
                     <CardTitle className="flex items-center space-x-3 text-xl">
@@ -557,7 +941,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
                   <CardContent className="space-y-4 pt-6">
                     <div className="space-y-4">
                       {data?.todaySchedule && data.todaySchedule.length > 0 ? (
-                        data.todaySchedule.map((schedule, index) => (
+                        data.todaySchedule.map((schedule) => (
                         <div key={schedule.id} className="flex items-start space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200 shadow-sm">
                           <div className="w-3 h-3 bg-emerald-500 rounded-full mt-2 shadow-md"></div>
                           <div className="flex-1">
@@ -569,7 +953,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
                             </p>
                           </div>
                         </div>
-                                        )) 
+                        )) 
                       ) : (
                         <>
                           <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-sm">
@@ -880,7 +1264,6 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
               </Card>
             </TabsContent>
 
-            {/* NEW EXTENSION TAB - The Star of the Show! */}
             <TabsContent value="extension" className="p-6 space-y-6">
               {/* Hero Section */}
               <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-2xl">
