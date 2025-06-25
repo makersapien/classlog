@@ -13,7 +13,7 @@ export interface RazorpayOptions {
       email?: string;
       contact?: string;
     };
-    notes?: Record<string, any>;
+    notes?: Record<string, string>;
     theme?: {
       color?: string;
     };
@@ -31,7 +31,7 @@ export interface RazorpayOptions {
   export interface RazorpayInstance {
     open(): void;
     close(): void;
-    on(event: string, handler: (response: unknown) => void): void;
+    on(event: string, handler: (response: RazorpayPaymentResponse) => void): void;
   }
   
   export interface RazorpayConstructor {
@@ -55,7 +55,7 @@ export interface RazorpayOptions {
     offer_id: string | null;
     status: 'created' | 'attempted' | 'paid';
     attempts: number;
-    notes: Record<string, any>;
+    notes: Record<string, string>;
     created_at: number;
   }
   
@@ -63,5 +63,5 @@ export interface RazorpayOptions {
     amount: number;
     currency?: string;
     receipt?: string;
-    notes?: Record<string, any>;
+    notes?: Record<string, string>;
   }

@@ -1,6 +1,148 @@
+// src/app/api/dashboard/route.ts
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { Database } from '@/types/database'
+
+// Type definitions for better type safety
+interface ClassWithEnrollments {
+  id: string
+  name: string
+  subject: string
+  grade: string | null
+  description: string | null
+  teacher_id: string
+  status: string
+  created_at: string
+  updated_at: string
+  enrollments: Array<{
+    id: string
+    student_id: string
+    status: string
+    profiles: {
+      full_name: string | null
+      email: string
+    } | null
+  }>
+}
+
+// Type for raw Supabase responses
+interface SupabaseQueryResult<T> {
+  data: T | null
+  error: {
+    message: string
+    details?: string
+    hint?: string
+  } | null
+}
+
+interface ClassLogWithDetails {
+  id: string
+  teacher_id: string
+  class_id: string
+  date: string
+  attendance_count: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  classes: {
+    name: string
+    subject: string
+    grade: string | null
+  } | null
+}
+
+interface Payment {
+  id: string
+  class_id: string
+  student_id: string
+  amount: string
+  status: 'pending' | 'paid' | 'failed' | 'cancelled'
+  due_date: string | null
+  paid_date: string | null
+  created_at: string
+  updated_at: string
+  classes?: {
+    name: string
+    subject: string
+  } | null
+  profiles?: {
+    full_name: string | null
+  } | null
+}
+
+interface MessageWithDetails {
+  id: string
+  sender_id: string
+  recipient_id: string
+  class_id: string | null
+  subject: string | null
+  message: string
+  is_read: boolean
+  created_at: string
+  updated_at: string
+  sender: {
+    full_name: string | null
+  } | null
+  classes: {
+    name: string
+  } | null
+}
+
+interface EnrollmentWithDetails {
+  id: string
+  student_id: string
+  class_id: string
+  status: 'active' | 'inactive' | 'completed' | 'dropped'
+  enrollment_date: string | null
+  completion_date: string | null
+  final_grade: string | null
+  created_at: string
+  updated_at: string
+  classes: {
+    id: string
+    name: string
+    subject: string
+    grade: string | null
+    teacher_id: string
+    profiles: {
+      full_name: string | null
+      email: string
+    } | null
+  } | null
+  profiles?: {
+    full_name: string | null
+  } | null
+}
+
+interface AttendanceWithDetails {
+  id: string
+  student_id: string
+  class_log_id: string
+  status: 'present' | 'absent' | 'late'
+  notes: string | null
+  created_at: string
+  updated_at: string
+  class_logs: {
+    date: string
+    classes: {
+      name: string
+      subject: string
+    } | null
+  } | null
+}
+
+interface Profile {
+  id: string
+  email: string
+  full_name: string | null
+  role: 'teacher' | 'student' | 'parent'
+  parent_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+type SupabaseClient = ReturnType<typeof createRouteHandlerClient<Database>>
 
 export async function GET(request: Request) {
   console.log('🔄 Dashboard API called')
@@ -11,7 +153,7 @@ export async function GET(request: Request) {
     
     console.log('📝 Role requested:', role)
     
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -54,25 +196,9 @@ export async function GET(request: Request) {
   }
 }
 
-async function getTeacherDashboardData(supabase: any, teacherId: string) {
+async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: string) {
   try {
     console.log('🧑‍🏫 Fetching teacher dashboard data for:', teacherId)
-
-    // Initialize default response structure
-    const defaultResponse = {
-      stats: {
-        totalClasses: 0,
-        totalStudents: 0,
-        pendingPayments: 0,
-        totalRevenue: 0,
-        classesToday: 0,
-        attendanceToday: 0
-      },
-      classes: [],
-      todaySchedule: [],
-      recentMessages: [],
-      upcomingPayments: []
-    }
 
     // Get teacher's classes with better error handling
     console.log('📚 Fetching classes...')
@@ -95,7 +221,8 @@ async function getTeacherDashboardData(supabase: any, teacherId: string) {
       // Don't throw, just use empty array
     }
 
-    console.log('✅ Classes fetched:', classes?.length || 0)
+    const typedClasses = classes as ClassWithEnrollments[] | null
+    console.log('✅ Classes fetched:', typedClasses?.length || 0)
 
     // Get today's class logs with better error handling
     const today = new Date().toISOString().split('T')[0]
@@ -115,11 +242,12 @@ async function getTeacherDashboardData(supabase: any, teacherId: string) {
       // Don't throw, just use empty array
     }
 
-    console.log('✅ Today\'s logs fetched:', todayLogs?.length || 0)
+    const typedTodayLogs = todayLogs as ClassLogWithDetails[] | null
+    console.log('✅ Today\'s logs fetched:', typedTodayLogs?.length || 0)
 
     // Get payment statistics for teacher's classes with better error handling
-    const classIds = classes?.map((c: any) => c.id) || []
-    let payments: any[] = []
+    const classIds = typedClasses?.map((c) => c.id) || []
+    let payments: Payment[] = []
     
     if (classIds.length > 0) {
       console.log('💰 Fetching payments for classes:', classIds.length)
@@ -132,7 +260,7 @@ async function getTeacherDashboardData(supabase: any, teacherId: string) {
         console.error('❌ Payments query error:', paymentsError)
         // Don't throw, just use empty array
       } else {
-        payments = paymentsData || []
+        payments = paymentsData as Payment[] || []
       }
     }
 
@@ -157,35 +285,36 @@ async function getTeacherDashboardData(supabase: any, teacherId: string) {
       // Don't throw, just use empty array
     }
 
-    console.log('✅ Messages fetched:', messages?.length || 0)
+    const typedMessages = messages as MessageWithDetails[] | null
+    console.log('✅ Messages fetched:', typedMessages?.length || 0)
 
     // Calculate statistics safely
-    const totalStudents = classes?.reduce((sum: number, cls: any) => {
-      const activeEnrollments = cls.enrollments?.filter((e: any) => e.status === 'active') || []
+    const totalStudents = typedClasses?.reduce((sum: number, cls) => {
+      const activeEnrollments = cls.enrollments?.filter((e) => e.status === 'active') || []
       return sum + activeEnrollments.length
     }, 0) || 0
 
-    const pendingPayments = payments?.filter((p: any) => p.status === 'pending').length || 0
-    const totalRevenue = payments?.filter((p: any) => p.status === 'paid')
-      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0) || 0
+    const pendingPayments = payments?.filter((p) => p.status === 'pending').length || 0
+    const totalRevenue = payments?.filter((p) => p.status === 'paid')
+      .reduce((sum: number, p) => sum + parseFloat(p.amount || '0'), 0) || 0
 
-    const classesToday = todayLogs?.length || 0
-    const attendanceToday = todayLogs?.reduce((sum: number, log: any) => 
+    const classesToday = typedTodayLogs?.length || 0
+    const attendanceToday = typedTodayLogs?.reduce((sum: number, log) => 
       sum + (log.attendance_count || 0), 0) || 0
 
     const responseData = {
       stats: {
-        totalClasses: classes?.length || 0,
+        totalClasses: typedClasses?.length || 0,
         totalStudents,
         pendingPayments,
         totalRevenue,
         classesToday,
         attendanceToday
       },
-      classes: classes || [],
-      todaySchedule: todayLogs || [],
-      recentMessages: messages || [],
-      upcomingPayments: payments?.filter((p: any) => p.status === 'pending').slice(0, 5) || []
+      classes: typedClasses || [],
+      todaySchedule: typedTodayLogs || [],
+      recentMessages: typedMessages || [],
+      upcomingPayments: payments?.filter((p) => p.status === 'pending').slice(0, 5) || []
     }
 
     console.log('✅ Teacher dashboard data prepared successfully')
@@ -200,7 +329,7 @@ async function getTeacherDashboardData(supabase: any, teacherId: string) {
   }
 }
 
-async function getStudentDashboardData(supabase: any, studentId: string) {
+async function getStudentDashboardData(supabase: SupabaseClient, studentId: string) {
   try {
     console.log('🎓 Fetching student dashboard data for:', studentId)
 
@@ -222,16 +351,18 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
       throw enrollmentsError
     }
 
+    const typedEnrollments = enrollments as EnrollmentWithDetails[] | null
+
     // Get recent class logs for enrolled classes
-    const classIds = enrollments?.map((e: any) => e.class_id) || []
-    let recentLogs: any[] = []
+    const classIds = typedEnrollments?.map((e) => e.class_id) || []
+    let recentLogs: ClassLogWithDetails[] = []
     
     if (classIds.length > 0) {
       const { data: logsData, error: logsError } = await supabase
         .from('class_logs')
         .select(`
           *,
-          classes(name, subject)
+          classes(name, subject, grade)
         `)
         .in('class_id', classIds)
         .order('date', { ascending: false })
@@ -240,7 +371,7 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
       if (logsError) {
         console.error('❌ Logs error:', logsError)
       } else {
-        recentLogs = logsData || []
+        recentLogs = logsData as ClassLogWithDetails[] || []
       }
     }
 
@@ -257,6 +388,8 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
     if (paymentsError) {
       console.error('❌ Payments error:', paymentsError)
     }
+
+    const typedPayments = payments as Payment[] | null
 
     // Get student's attendance
     const { data: attendance, error: attendanceError } = await supabase
@@ -276,6 +409,8 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
       console.error('❌ Attendance error:', attendanceError)
     }
 
+    const typedAttendance = attendance as AttendanceWithDetails[] | null
+
     // Get messages
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
@@ -292,11 +427,13 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
       console.error('❌ Messages error:', messagesError)
     }
 
+    const typedMessages = messages as MessageWithDetails[] | null
+
     // Calculate stats
-    const totalClasses = enrollments?.length || 0
-    const pendingPayments = payments?.filter((p: any) => p.status === 'pending').length || 0
-    const attendanceRate = attendance && attendance.length > 0 
-      ? (attendance.filter((a: any) => a.status === 'present').length / attendance.length) * 100
+    const totalClasses = typedEnrollments?.length || 0
+    const pendingPayments = typedPayments?.filter((p) => p.status === 'pending').length || 0
+    const attendanceRate = typedAttendance && typedAttendance.length > 0 
+      ? (typedAttendance.filter((a) => a.status === 'present').length / typedAttendance.length) * 100
       : 0
 
     return NextResponse.json({
@@ -306,11 +443,11 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
         attendanceRate: Math.round(attendanceRate),
         upcomingAssignments: 3 // TODO: Add assignments table
       },
-      enrollments: enrollments || [],
+      enrollments: typedEnrollments || [],
       recentLogs: recentLogs || [],
-      payments: payments || [],
-      attendance: attendance || [],
-      messages: messages || []
+      payments: typedPayments || [],
+      attendance: typedAttendance || [],
+      messages: typedMessages || []
     })
   } catch (error) {
     console.error('💥 Student dashboard error:', error)
@@ -321,7 +458,7 @@ async function getStudentDashboardData(supabase: any, studentId: string) {
   }
 }
 
-async function getParentDashboardData(supabase: any, parentId: string) {
+async function getParentDashboardData(supabase: SupabaseClient, parentId: string) {
   try {
     console.log('👨‍👩‍👧‍👦 Fetching parent dashboard data for:', parentId)
 
@@ -337,7 +474,9 @@ async function getParentDashboardData(supabase: any, parentId: string) {
       throw childrenError
     }
 
-    if (!children || children.length === 0) {
+    const typedChildren = children as Profile[] | null
+
+    if (!typedChildren || typedChildren.length === 0) {
       return NextResponse.json({
         stats: { totalChildren: 0, totalClasses: 0, pendingPayments: 0, totalExpenses: 0 },
         children: [],
@@ -346,7 +485,7 @@ async function getParentDashboardData(supabase: any, parentId: string) {
       })
     }
 
-    const childIds = children.map((c: any) => c.id)
+    const childIds = typedChildren.map((c) => c.id)
 
     // Get children's enrollments
     const { data: enrollments, error: enrollmentsError } = await supabase
@@ -363,6 +502,8 @@ async function getParentDashboardData(supabase: any, parentId: string) {
       console.error('❌ Enrollments error:', enrollmentsError)
     }
 
+    const typedEnrollments = enrollments as EnrollmentWithDetails[] | null
+
     // Get payments for children
     const { data: payments, error: paymentsError } = await supabase
       .from('payments')
@@ -378,16 +519,18 @@ async function getParentDashboardData(supabase: any, parentId: string) {
       console.error('❌ Payments error:', paymentsError)
     }
 
+    const typedPayments = payments as Payment[] | null
+
     // Get recent class logs for children's classes
-    const classIds = enrollments?.map((e: any) => e.class_id) || []
-    let recentLogs: any[] = []
+    const classIds = typedEnrollments?.map((e) => e.class_id) || []
+    let recentLogs: ClassLogWithDetails[] = []
     
     if (classIds.length > 0) {
       const { data: logsData, error: logsError } = await supabase
         .from('class_logs')
         .select(`
           *,
-          classes(name, subject)
+          classes(name, subject, grade)
         `)
         .in('class_id', classIds)
         .order('date', { ascending: false })
@@ -396,26 +539,26 @@ async function getParentDashboardData(supabase: any, parentId: string) {
       if (logsError) {
         console.error('❌ Logs error:', logsError)
       } else {
-        recentLogs = logsData || []
+        recentLogs = logsData as ClassLogWithDetails[] || []
       }
     }
 
     // Calculate stats
-    const totalClasses = enrollments?.length || 0
-    const pendingPayments = payments?.filter((p: any) => p.status === 'pending').length || 0
-    const totalExpenses = payments?.filter((p: any) => p.status === 'paid')
-      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0) || 0
+    const totalClasses = typedEnrollments?.length || 0
+    const pendingPayments = typedPayments?.filter((p) => p.status === 'pending').length || 0
+    const totalExpenses = typedPayments?.filter((p) => p.status === 'paid')
+      .reduce((sum: number, p) => sum + parseFloat(p.amount || '0'), 0) || 0
 
     return NextResponse.json({
       stats: {
-        totalChildren: children.length,
+        totalChildren: typedChildren.length,
         totalClasses,
         pendingPayments,
         totalExpenses
       },
-      children: children || [],
-      enrollments: enrollments || [],
-      payments: payments || [],
+      children: typedChildren || [],
+      enrollments: typedEnrollments || [],
+      payments: typedPayments || [],
       recentActivity: recentLogs || []
     })
   } catch (error) {

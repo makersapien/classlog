@@ -1,10 +1,10 @@
 // src/app/onboarding/[token]/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { use } from 'react' // Add this import for Next.js 15
+import { use } from 'react'
 import type { Database } from '@/types/database'
 
 interface InvitationData {
@@ -32,7 +32,6 @@ interface OnboardingPageProps {
 }
 
 export default function OnboardingPage({ params }: OnboardingPageProps) {
-  // Unwrap the params Promise for Next.js 15
   const resolvedParams = use(params)
   const token = resolvedParams.token
 
@@ -43,11 +42,7 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
   const router = useRouter()
   const supabase = createClientComponentClient<Database>()
 
-  useEffect(() => {
-    loadInvitation()
-  }, [token])
-
-  const loadInvitation = async () => {
+  const loadInvitation = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -55,7 +50,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       console.log('=== LOADING INVITATION ===')
       console.log('Token:', token)
 
-      // Fetch invitation details
       const { data: invitationData, error: invitationError } = await supabase
         .from('student_invitations')
         .select('*')
@@ -74,7 +68,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
         return
       }
 
-      // Check if invitation is expired
       const expiresAt = new Date(invitationData.expires_at || '')
       if (expiresAt < new Date()) {
         setError('This invitation has expired')
@@ -89,7 +82,11 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, supabase])
+
+  useEffect(() => {
+    loadInvitation()
+  }, [loadInvitation])
 
   const completeOnboarding = async () => {
     if (!invitation) return
@@ -109,7 +106,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       }
       console.log('Request data being sent:', requestData)
 
-      // Call the server-side API to complete onboarding
       const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: {
@@ -123,12 +119,10 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       console.log('Response url:', response.url)
       console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
-      // Get the raw response text first
       const responseText = await response.text()
       console.log('Raw response length:', responseText.length)
       console.log('Raw response (first 500 chars):', responseText.substring(0, 500))
 
-      // Check if response is actually JSON
       if (!response.ok) {
         console.error('Response not OK:', response.status)
         console.error('Error response body:', responseText)
@@ -140,7 +134,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
         throw new Error(`Server returned ${response.status}: ${responseText.substring(0, 200)}`)
       }
 
-      // Try to parse as JSON
       let data
       try {
         data = JSON.parse(responseText)
@@ -159,12 +152,10 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       console.log('✅ Onboarding completed successfully')
       console.log('Response data:', data)
 
-      // Store credentials for success page
       if (data.credentials) {
         sessionStorage.setItem('onboarding_credentials', JSON.stringify(data.credentials))
       }
 
-      // Redirect to success page
       router.push('/onboarding/success')
 
     } catch (err) {
@@ -213,16 +204,11 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-400 via-emerald-500 to-teal-600 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
-        {/* Boarding Pass Container */}
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden relative">
-          {/* Dotted Line for Tear-off Effect */}
           <div className="absolute left-1/2 top-0 bottom-0 w-px border-l-2 border-dashed border-gray-300 z-10"></div>
           
-          {/* Left Side - Main Boarding Pass */}
           <div className="grid lg:grid-cols-2">
-            {/* Left Section */}
             <div className="p-8 lg:p-12 bg-gradient-to-br from-emerald-50 to-teal-50 relative">
-              {/* Boarding Pass Header */}
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
                   BOARDING PASS
@@ -230,7 +216,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
                 <p className="text-gray-600 text-lg">Student Enrollment Invitation</p>
               </div>
 
-              {/* Passenger (Student) Info */}
               <div className="mb-8">
                 <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-100">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Passenger</h3>
@@ -239,7 +224,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
                 </div>
               </div>
 
-              {/* Flight (Class) Details */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-white rounded-xl p-4 shadow-md border border-teal-100">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Subject</p>
@@ -251,7 +235,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
                 </div>
               </div>
 
-              {/* Guardian Info */}
               <div className="bg-gradient-to-r from-amber-100 to-yellow-100 rounded-2xl p-6 border border-amber-200">
                 <h4 className="text-sm font-semibold text-amber-800 uppercase tracking-wide mb-3">Guardian Contact</h4>
                 <p className="text-lg font-semibold text-amber-900 mb-1">{invitation.parent_name}</p>
@@ -259,9 +242,7 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
               </div>
             </div>
 
-            {/* Right Section - Stub */}
             <div className="p-8 lg:p-12 bg-gradient-to-br from-teal-50 to-emerald-50 relative">
-              {/* Boarding Pass Stub Header */}
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">
                   CLASS DETAILS
@@ -269,7 +250,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
                 <p className="text-gray-600">Keep this information handy</p>
               </div>
 
-              {/* Class Schedule Info */}
               <div className="space-y-6 mb-8">
                 <div className="bg-white rounded-xl p-5 shadow-md border border-emerald-100">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recharge Package</p>
@@ -288,7 +268,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
                 </div>
               </div>
 
-              {/* Class Links */}
               {(invitation.whatsapp_group_url || invitation.google_meet_url) && (
                 <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 border border-blue-200 mb-8">
                   <h4 className="text-sm font-semibold text-blue-800 uppercase tracking-wide mb-4">Quick Access</h4>
@@ -321,7 +300,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
             </div>
           </div>
 
-          {/* Bottom Action Section */}
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8">
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-white mb-2">Ready to Board?</h3>
@@ -352,7 +330,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
             </div>
           </div>
 
-          {/* Decorative Perforations */}
           <div className="absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 flex flex-col justify-evenly">
             {[...Array(12)].map((_, i) => (
               <div key={i} className="w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
@@ -360,7 +337,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
           </div>
         </div>
 
-        {/* Expiration Warning */}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg">
             <span className="text-2xl mr-3">⏰</span>
@@ -374,7 +350,6 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
           </div>
         </div>
 
-        {/* Debug Info - Only visible in development */}
         {process.env.NODE_ENV === 'development' && invitation && (
           <div className="mt-6 mx-auto max-w-2xl bg-gray-900 text-green-400 rounded-xl p-4 font-mono text-xs">
             <h4 className="text-yellow-400 font-bold mb-2">🐛 DEBUG INFO:</h4>

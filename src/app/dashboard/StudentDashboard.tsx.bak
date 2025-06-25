@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -14,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Calendar } from '@/components/ui/calendar'
-import { BookOpen, Users, Clock, Target, TrendingUp, Calendar as CalendarIcon, MessageSquare, FileText, Zap, Star, Award, Trophy, Sparkles, Rocket, Crown, Gift, Bell, Heart, Brain, Lightbulb, Flame } from 'lucide-react'
+import { BookOpen, Users, Clock, Target, TrendingUp, Calendar as CalendarIcon, MessageSquare, FileText, Zap, Award, Trophy, Sparkles, Rocket, Gift, Bell, Heart, Brain, Lightbulb, Flame } from 'lucide-react'
 
 interface StudentDashboardProps {
   user: {
@@ -553,7 +552,7 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
                         <Sparkles className="h-5 w-5 text-white" />
                       </div>
                       <span className="bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                        Today's Classes
+                        Today&apos;s Classes
                       </span>
                     </CardTitle>
                     <CardDescription className="text-blue-600 font-medium">Your schedule for today</CardDescription>

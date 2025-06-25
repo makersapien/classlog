@@ -31,16 +31,11 @@ interface ExtensionTokenManagerProps {
   teacherName: string
 }
 
-export default function ExtensionTokenManager({ teacherId, teacherName }: ExtensionTokenManagerProps) {
+export default function ExtensionTokenManager({ teacherId }: ExtensionTokenManagerProps) {
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null)
   const [currentToken, setCurrentToken] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-
-  // Load token status on component mount
-  useEffect(() => {
-    fetchTokenStatus()
-  }, [teacherId])
 
   const fetchTokenStatus = async () => {
     try {
@@ -60,6 +55,10 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
     }
   }
 
+  useEffect(() => {
+    fetchTokenStatus()
+  }, [teacherId, fetchTokenStatus])
+
   const generateToken = async () => {
     try {
       setIsGenerating(true)
@@ -75,7 +74,7 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
       
       if (data.success) {
         setCurrentToken(data.token)
-        await fetchTokenStatus() // Refresh status
+        await fetchTokenStatus()
         toast({
           title: "Token Generated!",
           description: "Your new extension token is ready. Copy it to your browser extension.",
@@ -118,7 +117,7 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
       
       if (data.success) {
         setCurrentToken('')
-        await fetchTokenStatus() // Refresh status
+        await fetchTokenStatus()
         toast({
           title: "Token Revoked",
           description: "Your extension token has been deactivated.",
@@ -208,7 +207,6 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
       </CardHeader>
       <CardContent className="space-y-6">
         
-        {/* Current Status */}
         {tokenStatus && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -233,7 +231,6 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
               </AlertDescription>
             </Alert>
 
-            {/* Token Details */}
             {tokenStatus.has_token && tokenStatus.token_info && (
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
@@ -262,7 +259,6 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
           </div>
         )}
 
-        {/* Generate New Token */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -285,7 +281,6 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
             </Button>
           </div>
 
-          {/* Show newly generated token */}
           {currentToken && (
             <div className="space-y-2">
               <Label htmlFor="new-token">Your New Extension Token:</Label>
@@ -313,20 +308,18 @@ export default function ExtensionTokenManager({ teacherId, teacherName }: Extens
           )}
         </div>
 
-        {/* Setup Instructions */}
         <div className="space-y-2">
           <h3 className="font-medium">Setup Instructions:</h3>
           <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
             <li>Generate a new token using the button above</li>
             <li>Copy the token to your clipboard</li>
             <li>Open your ClassLogger Chrome extension</li>
-            <li>Paste the token in the "Extension Token" field</li>
-            <li>Click "Save Token" to activate</li>
+            <li>Paste the token in the &quot;Extension Token&quot; field</li>
+            <li>Click &quot;Save Token&quot; to activate</li>
             <li>Your extension is now ready to log classes!</li>
           </ol>
         </div>
 
-        {/* Danger Zone */}
         {tokenStatus?.has_token && (
           <div className="pt-4 border-t border-gray-200">
             <div className="space-y-2">

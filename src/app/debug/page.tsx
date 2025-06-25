@@ -1,7 +1,20 @@
-// src/app/debug/page.tsx
 'use client'
 
 import React, { useState } from 'react';
+
+// Define types for better TypeScript support
+interface StudentData {
+  whatsapp_group_url?: string | null;
+  google_meet_url?: string | null;
+  setup_completed?: boolean;
+  [key: string]: any; // Allow for additional properties
+}
+
+interface APIResponse {
+  status: number | string;
+  ok: boolean;
+  data: any;
+}
 
 const APIDebugger = () => {
   const [enrollmentId, setEnrollmentId] = useState('');
@@ -10,12 +23,12 @@ const APIDebugger = () => {
     google_meet_url: 'https://meet.google.com/test-meeting',
     setup_completed: true
   });
-  const [response, setResponse] = useState<unknown>(null);
-  const [beforeData, setBeforeData] = useState<unknown>(null);
-  const [afterData, setAfterData] = useState<unknown>(null);
+  const [response, setResponse] = useState<APIResponse | null>(null);
+  const [beforeData, setBeforeData] = useState<StudentData | null>(null);
+  const [afterData, setAfterData] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchCurrentData = async (enrollmentId: string) => {
+  const fetchCurrentData = async (enrollmentId: string): Promise<StudentData | null> => {
     try {
       const response = await fetch(`/api/teacher/students/${enrollmentId}`, {
         method: 'GET'
@@ -38,13 +51,11 @@ const APIDebugger = () => {
     try {
       console.log('🧪 Testing API with data:', testData);
       
-      // Get data BEFORE update
       console.log('📊 Fetching data BEFORE update...');
       const beforeUpdate = await fetchCurrentData(enrollmentId);
       setBeforeData(beforeUpdate);
       console.log('📊 Data BEFORE:', beforeUpdate);
       
-      // Perform the update
       console.log('🔄 Performing PATCH update...');
       const response = await fetch(`/api/teacher/students/${enrollmentId}`, {
         method: 'PATCH',
@@ -68,29 +79,27 @@ const APIDebugger = () => {
         data: result
       });
 
-      // Get data AFTER update
       console.log('📊 Fetching data AFTER update...');
       setTimeout(async () => {
         const afterUpdate = await fetchCurrentData(enrollmentId);
         setAfterData(afterUpdate);
         console.log('📊 Data AFTER:', afterUpdate);
         
-        // Compare the data
         console.log('🔍 COMPARISON:');
-        console.log('WhatsApp URL changed?', 
+        console.log('WhatsApp URL changed?',
           beforeUpdate?.whatsapp_group_url !== afterUpdate?.whatsapp_group_url);
-        console.log('Google Meet URL changed?', 
+        console.log('Google Meet URL changed?',
           beforeUpdate?.google_meet_url !== afterUpdate?.google_meet_url);
-        console.log('Setup completed changed?', 
+        console.log('Setup completed changed?',
           beforeUpdate?.setup_completed !== afterUpdate?.setup_completed);
-      }, 1000); // Wait 1 second for DB to update
-
-    } catch (error: any) {
+      }, 1000);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error('💥 API Test Error:', error);
       setResponse({
         status: 'ERROR',
         ok: false,
-        data: { error: error.message }
+        data: { error: errorMessage }
       });
     } finally {
       setLoading(false);
@@ -103,7 +112,6 @@ const APIDebugger = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-900">🧪 Enhanced API Debugger</h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input Section */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -130,8 +138,8 @@ const APIDebugger = () => {
                 onChange={(e) => {
                   try {
                     setTestData(JSON.parse(e.target.value));
-                  } catch (err) {
-                    // Invalid JSON, keep the text but don't update state
+                  } catch {
+                    // Silently handle JSON parse errors
                   }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
@@ -155,7 +163,6 @@ const APIDebugger = () => {
             </button>
           </div>
 
-          {/* Results Section */}
           <div className="space-y-4">
             {response && (
               <div className="p-4 bg-gray-50 rounded-md">
@@ -165,7 +172,7 @@ const APIDebugger = () => {
                     <span className="font-medium">Status:</span>
                     <span className={`px-2 py-1 rounded text-sm ${
                       response.ok 
-                        ? 'bg-green-100 text-green-800' 
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
                       {response.status}
@@ -227,9 +234,9 @@ const APIDebugger = () => {
           <ol className="text-sm text-yellow-800 list-decimal list-inside space-y-1">
             <li>Open browser DevTools (F12) and go to Console tab</li>
             <li>Enter a valid enrollment ID above</li>
-            <li>Click "Test PATCH API" and watch the console</li>
-            <li>Check if "Data BEFORE" and "Data AFTER" show any changes</li>
-            <li>If no changes detected, there's a database issue</li>
+            <li>Click &ldquo;Test PATCH API&rdquo; and watch the console</li>
+            <li>Check if &ldquo;Data BEFORE&rdquo; and &ldquo;Data AFTER&rdquo; show any changes</li>
+            <li>If no changes detected, there&apos;s a database issue</li>
             <li>Share the console output for further debugging</li>
           </ol>
         </div>

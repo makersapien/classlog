@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { BookOpen, Users, Clock, DollarSign, TrendingUp, Calendar, Plus, FileText, User, Send, BarChart3, Sparkles, Zap, Star, Target, Award, Shield, Chrome, Key, Smartphone, CreditCard, GraduationCap, CheckCircle, AlertCircle, Calendar as CalendarIcon, MessageCircle } from 'lucide-react'
 import ExtensionTokenManager from '@/components/ExtensionTokenManager'
 
@@ -37,16 +36,27 @@ interface DashboardStats {
   totalRevenue?: number
 }
 
+interface ScheduleData {
+  start_time?: string
+  end_time?: string
+}
+
 interface ClassData {
   id: string
   name: string
   subject: string
   grade: string
-  schedule: any
+  schedule: ScheduleData | null
   max_students: number
   fees_per_month: number
   status: string
-  enrollments?: any[]
+  enrollments?: EnrollmentData[]
+}
+
+interface ClassInfo {
+  name: string
+  subject: string
+  grade: string
 }
 
 interface TodayScheduleItem {
@@ -58,19 +68,25 @@ interface TodayScheduleItem {
   attendance_count: number
   total_students: number
   status: string
-  classes: {
-    name: string
-    subject: string
-    grade: string
-  }
+  classes: ClassInfo
+}
+
+interface ProfileData {
+  full_name?: string
+}
+
+interface EnrollmentData {
+  student_id?: string
+  status: string
+  profiles: ProfileData
 }
 
 interface DashboardData {
   stats: DashboardStats
   classes: ClassData[]
   todaySchedule: TodayScheduleItem[]
-  recentMessages: any[]
-  upcomingPayments: any[]
+  recentMessages: unknown[]
+  upcomingPayments: unknown[]
 }
 
 interface StudentData {
@@ -218,11 +234,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     fees: 2500
   })
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [selectedTimeframe])
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -247,7 +259,12 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [selectedTimeframe, fetchDashboardData])
+
   // Convert real data to format expected by existing UI
   const transformClassesToSchedule = (classes: ClassData[], todaySchedule: TodayScheduleItem[]) => {
     return classes.map(cls => {
@@ -524,7 +541,7 @@ const debugApiResponse = (data: DashboardData | null) => {
               </h1>
               <p className="text-lg text-gray-600 mt-2 flex items-center">
                 <Star className="w-5 h-5 mr-2 text-yellow-500" />
-                Here's what's happening with your classes today
+                Here&apos;s what&apos;s happening with your classes today
               </p>
             </div>
           </div>
@@ -580,7 +597,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                   </p>
                   <div className="flex items-center mt-2">
                     <Users className="w-4 h-4 mr-1" />
-                    <span className="text-xs text-emerald-100">Today's attendance</span>
+                    <span className="text-xs text-emerald-100">Today&apos;s attendance</span>
                   </div>
                 </div>
                 <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -948,7 +965,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                         <Calendar className="h-5 w-5 text-white" />
                       </div>
                       <span className="bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                        Today's Schedule
+                        Today&apos;s Schedule
                       </span>
                     </CardTitle>
                     <CardDescription className="text-blue-600 font-medium">Your classes for today</CardDescription>
@@ -1071,7 +1088,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                                 New message from parent
                               </p>
                               <p className="text-xs text-gray-600 mt-1">
-                                Priya's mother • About homework • 3 hours ago
+                                Priya&apos;s mother • About homework • 3 hours ago
                               </p>
                             </div>
                           </div>
@@ -1237,7 +1254,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                                       Add Class Log
                                     </DialogTitle>
                                     <DialogDescription>
-                                      Record what happened in today's {cls.subject} class
+                                      Record what happened in today&apos;s {cls.subject} class
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="space-y-6">
@@ -1435,14 +1452,14 @@ const debugApiResponse = (data: DashboardData | null) => {
                         <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
                           <h4 className="font-semibold text-gray-800 mb-2">🔧 Enable Developer Mode</h4>
                           <p className="text-sm text-gray-600">
-                            Go to <code className="bg-gray-200 px-2 py-1 rounded text-xs">chrome://extensions</code> and enable "Developer mode"
+                            Go to <code className="bg-gray-200 px-2 py-1 rounded text-xs">chrome://extensions</code> and enable &quot;Developer mode&quot;
                           </p>
                         </div>
 
                         <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
                           <h4 className="font-semibold text-gray-800 mb-2">📁 Load Extension</h4>
                           <p className="text-sm text-gray-600">
-                            Click "Load unpacked" and select the ClassLogger extension folder
+                            Click &quot;Load unpacked&quot; and select the ClassLogger extension folder
                           </p>
                         </div>
                       </div>
@@ -1471,7 +1488,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                         </div>
 
                         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                          <h4 className="font-semibold text-gray-800 mb-2">✅ You're Ready!</h4>
+                          <h4 className="font-semibold text-gray-800 mb-2">✅ You&apos;re Ready!</h4>
                           <p className="text-sm text-gray-600">
                             Join any Google Meet session and the ClassLogger widget will appear automatically.
                           </p>
@@ -1489,7 +1506,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                           <Users className="h-6 w-6 text-white" />
                         </div>
                         <h4 className="font-semibold text-gray-800 mb-2">Student Recognition</h4>
-                        <p className="text-xs text-gray-600">Automatically detects which student's class you're in</p>
+                        <p className="text-xs text-gray-600">Automatically detects which student&apos;s class you&apos;re in</p>
                       </div>
 
                       <div className="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
@@ -1529,7 +1546,7 @@ const debugApiResponse = (data: DashboardData | null) => {
                       <FileText className="h-8 w-8 text-white" />
                     </div>
                     <h3 className="font-bold text-gray-900 mb-3 text-lg">Create Class Log</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">Record today's class activities and student progress</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">Record today&apos;s class activities and student progress</p>
                   </CardContent>
                 </Card>
 

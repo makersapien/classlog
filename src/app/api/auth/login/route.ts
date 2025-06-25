@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    // Create a Supabase session for this user
-    const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
+    // Generate a magic link for authentication (but we don't need to use the result)
+    const { error: authError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
       options: {

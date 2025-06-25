@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -94,7 +95,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
       teacher: 'Mr. Kumar',
       date: '2024-01-14',
       time: '2:00 PM - 3:00 PM',
-      topics: ['Motion and Forces', 'Newton\'s Laws'],
+      topics: ['Motion and Forces', 'Newton&apos;s Laws'],
       homework: 'Solve numerical problems from Chapter 8',
       performance: 'needs_improvement',
       notes: 'Arjun needs to practice more numerical problems. Conceptual understanding is good but application needs work.',
@@ -221,7 +222,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
               </h1>
               <p className="text-lg text-gray-600 mt-2 flex items-center">
                 <Crown className="w-5 h-5 mr-2 text-purple-500" />
-                Track your children's academic journey and stay connected
+                Track your children&apos;s academic journey and stay connected
               </p>
             </div>
           </div>
@@ -461,7 +462,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
                       Recent Class Logs
                     </span>
                   </CardTitle>
-                  <CardDescription className="text-blue-600 font-medium">Latest updates from your children's classes</CardDescription>
+                  <CardDescription className="text-blue-600 font-medium">Latest updates from your children&apos;s classes</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
                   {recentClassLogs.map((log) => (
@@ -514,8 +515,8 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
                         
                         {log.notes && (
                           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200">
-                            <p className="text-sm font-bold text-emerald-800 mb-2">💭 Teacher's Notes:</p>
-                            <p className="text-sm text-emerald-700 italic">"{log.notes}"</p>
+                            <p className="text-sm font-bold text-emerald-800 mb-2">💭 Teacher&apos;s Notes:</p>
+                            <p className="text-sm text-emerald-700 italic">&ldquo;{log.notes}&rdquo;</p>
                           </div>
                         )}
                       </div>
@@ -536,7 +537,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
                       Upcoming Classes
                     </span>
                   </CardTitle>
-                  <CardDescription className="text-emerald-600 font-medium">Your children's class schedule</CardDescription>
+                  <CardDescription className="text-emerald-600 font-medium">Your children&apos;s class schedule</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
                   {upcomingClasses.map((cls) => (
@@ -711,7 +712,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
                         Send Message
                       </DialogTitle>
                       <DialogDescription className="text-gray-600">
-                        Send a message to your child's teacher
+                        Send a message to your child&apos;s teacher
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6">
@@ -769,7 +770,7 @@ export default function ParentDashboard({ user }: ParentDashboardProps) {
                       <MessageSquare className="h-10 w-10 text-blue-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">No messages yet</h3>
-                    <p className="text-gray-600 mb-6 text-lg">Start a conversation with your child's teachers</p>
+                    <p className="text-gray-600 mb-6 text-lg">Start a conversation with your child&apos;s teachers</p>
                     <Button 
                       onClick={() => setMessageDialog(true)}
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-4 rounded-xl"

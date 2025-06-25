@@ -4,21 +4,41 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { Database } from '@/types/database'
 
-const supabase = createClient(
+const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-interface Enrollment {
+// Types based on actual Supabase response structure
+interface SupabaseJoinResult {
   id: string
-  teacher_id: string
+  student_id: string | null
+  class_id: string | null
+  teacher_id: string | null
+  google_meet_url: string | null
+  status: string | null
+  tentative_schedule: unknown
+  classes_per_week: number | null
+  subject: string | null
+  year_group: string | null
+  // Supabase foreign key joins return any[] or null
+  student_profile: unknown[] | null
+  class_info: unknown[] | null
+}
+
+interface ProcessedEnrollment {
+  id: string
   student_id: string
   class_id: string
+  teacher_id: string
   google_meet_url: string
   status: string
-  tentative_schedule: unknown
+  tentative_schedule: ScheduleData | null
   classes_per_week: number
+  subject: string | null
+  year_group: string | null
   student_profile: {
     full_name: string
     email: string
@@ -27,6 +47,10 @@ interface Enrollment {
     subject: string
     name: string
   } | null
+}
+
+interface ScheduleData {
+  [key: string]: unknown
 }
 
 interface ClassData {
@@ -68,7 +92,32 @@ interface MeetingStatus {
   reason: string
 }
 
-export async function GET(request: NextRequest) {
+interface MetadataResult {
+  hasIndicators: boolean
+  [key: string]: unknown
+}
+
+interface ScheduleValidation {
+  valid: boolean
+  reason?: string
+}
+
+interface ProcessingDecision {
+  process: boolean
+  reason: string
+}
+
+// Type for schedule slot
+interface ScheduleSlot {
+  day?: number
+  dayOfWeek?: number
+  startTime?: string
+  start?: string
+  endTime?: string
+  end?: string
+}
+
+export async function GET(_request: NextRequest) {
   try {
     // Uncomment for production with proper cron secret
     /*
@@ -82,22 +131,25 @@ export async function GET(request: NextRequest) {
     const startTime = Date.now()
     
     // 1. Get all active enrollments with Google Meet URLs
+    // The enrollments table has teacher_id directly now
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
       .select(`
         id,
-        teacher_id,
         student_id,
         class_id,
+        teacher_id,
         google_meet_url,
         status,
         tentative_schedule,
         classes_per_week,
-        student_profile:student_id (
+        subject,
+        year_group,
+        student_profile:profiles!enrollments_student_id_fkey(
           full_name,
           email
         ),
-        class_info:class_id (
+        class_info:classes!enrollments_class_id_fkey(
           subject,
           name
         )
@@ -105,12 +157,59 @@ export async function GET(request: NextRequest) {
       .eq('status', 'active')
       .not('google_meet_url', 'is', null)
       .not('google_meet_url', 'eq', '')
+      .not('teacher_id', 'is', null)
 
     if (enrollmentsError) {
       throw new Error(`Failed to fetch enrollments: ${enrollmentsError.message}`)
     }
 
-    const typedEnrollments = enrollments as Enrollment[]
+    // Convert and validate the query results
+    const rawEnrollments = enrollments as SupabaseJoinResult[]
+    const typedEnrollments: ProcessedEnrollment[] = rawEnrollments
+      .filter(raw => {
+        // Check if we have the required basic fields
+        if (!raw.google_meet_url || !raw.teacher_id || !raw.student_id || !raw.class_id) {
+          return false
+        }
+        
+        // Check if student_profile join returned data
+        if (!raw.student_profile || !Array.isArray(raw.student_profile) || raw.student_profile.length === 0) {
+          return false
+        }
+        
+        // Extract the first student profile (should only be one)
+        const studentProfile = raw.student_profile[0] as any
+        return studentProfile && studentProfile.email
+      })
+      .map(raw => {
+        // Extract student profile data safely
+        const studentProfile = (raw.student_profile as any[])[0] as any
+        const classInfo = raw.class_info && Array.isArray(raw.class_info) && raw.class_info.length > 0 
+          ? (raw.class_info[0] as any) 
+          : null
+
+        return {
+          id: raw.id,
+          student_id: raw.student_id!,
+          class_id: raw.class_id!,
+          teacher_id: raw.teacher_id!,
+          google_meet_url: raw.google_meet_url!,
+          status: raw.status || 'active',
+          tentative_schedule: raw.tentative_schedule as ScheduleData | null,
+          classes_per_week: raw.classes_per_week || 1,
+          subject: raw.subject,
+          year_group: raw.year_group,
+          student_profile: {
+            full_name: String(studentProfile.full_name || 'Unknown Student'),
+            email: String(studentProfile.email)
+          },
+          class_info: classInfo ? {
+            subject: String(classInfo.subject || ''),
+            name: String(classInfo.name || '')
+          } : null
+        }
+      })
+    
     console.log(`📚 Found ${typedEnrollments.length} active enrollments with Google Meet URLs`)
 
     const results: DetectionResults = { 
@@ -123,19 +222,22 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Group enrollments by Google Meet URL to avoid duplicate checks
-    const urlGroups = new Map<string, Enrollment[]>()
+    const urlGroups = new Map<string, ProcessedEnrollment[]>()
     for (const enrollment of typedEnrollments) {
       const url = enrollment.google_meet_url
       if (!urlGroups.has(url)) {
         urlGroups.set(url, [])
       }
-      urlGroups.get(url)!.push(enrollment)
+      const group = urlGroups.get(url)
+      if (group) {
+        group.push(enrollment)
+      }
     }
 
     console.log(`🔗 Found ${urlGroups.size} unique Google Meet URLs to check`)
 
     // 3. Check each unique Google Meet URL
-    for (const [meetUrl, groupEnrollments] of urlGroups) {
+    for (const [meetUrl, groupEnrollments] of Array.from(urlGroups.entries())) {
       try {
         await checkMeetingGroup(meetUrl, groupEnrollments, results)
       } catch (error) {
@@ -177,7 +279,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function checkMeetingGroup(meetUrl: string, enrollments: Enrollment[], results: DetectionResults): Promise<void> {
+async function checkMeetingGroup(meetUrl: string, enrollments: ProcessedEnrollment[], results: DetectionResults): Promise<void> {
   console.log(`\n🔍 Checking meeting: ${meetUrl.substring(0, 50)}... (${enrollments.length} enrollments)`)
 
   // 1. Enhanced meeting status check
@@ -198,33 +300,12 @@ async function checkMeetingGroup(meetUrl: string, enrollments: Enrollment[], res
 }
 
 async function checkEnrollmentMeeting(
-  enrollment: Enrollment, 
+  enrollment: ProcessedEnrollment, 
   meetingStatus: MeetingStatus, 
   results: DetectionResults
 ): Promise<void> {
   
-  // Get teacher_id - from enrollment first, then from class as fallback
-  let teacher_id = enrollment.teacher_id
-  
-  if (!teacher_id && enrollment.class_id) {
-    console.log('⚠️ No teacher_id in enrollment, fetching from class...')
-    const { data: classData } = await supabase
-      .from('classes')
-      .select('teacher_id')
-      .eq('id', enrollment.class_id)
-      .single()
-    
-    teacher_id = classData?.teacher_id
-    console.log(`🔧 Got teacher_id from class: ${teacher_id}`)
-  }
-  
-  if (!teacher_id) {
-    console.log('❌ No teacher_id found, skipping enrollment')
-    results.skipped++
-    return
-  }
-
-  const { google_meet_url, student_profile, class_info } = enrollment
+  const { teacher_id, google_meet_url, student_profile, class_info } = enrollment
 
   if (!student_profile) {
     console.log('⚠️ No student profile found')
@@ -269,7 +350,7 @@ async function checkEnrollmentMeeting(
     // Meeting appears active and no active log - start class
     await startClassLog({
       teacher_id,
-      class_id: enrollment.class_id, // ✅ ADD THIS LINE
+      class_id: enrollment.class_id,
       student_name: studentName,
       student_email: studentEmail,
       google_meet_link: google_meet_url,
@@ -297,7 +378,7 @@ async function getEnhancedMeetingStatus(meetUrl: string): Promise<MeetingStatus>
   ])
 
   const accessibility = results[0].status === 'fulfilled' ? results[0].value : false
-  const metadata = results[1].status === 'fulfilled' ? results[1].value : {}
+  const metadata = results[1].status === 'fulfilled' ? results[1].value : { hasIndicators: false }
 
   // Determine confidence based on multiple factors
   let confidence: 'high' | 'medium' | 'low' = 'medium'
@@ -351,7 +432,7 @@ async function checkMeetingAccessibility(meetUrl: string): Promise<boolean> {
   }
 }
 
-async function checkMeetingMetadata(meetUrl: string): Promise<{hasIndicators: boolean, [key: string]: unknown}> {
+async function checkMeetingMetadata(meetUrl: string): Promise<MetadataResult> {
   try {
     // This is a placeholder for more advanced meeting detection
     // You could implement:
@@ -375,9 +456,9 @@ async function checkMeetingMetadata(meetUrl: string): Promise<{hasIndicators: bo
 }
 
 async function shouldProcessEnrollment(
-  enrollment: Enrollment, 
+  enrollment: ProcessedEnrollment, 
   meetingStatus: MeetingStatus
-): Promise<{process: boolean, reason: string}> {
+): Promise<ProcessingDecision> {
   
   const now = new Date()
   const currentTime = now.getHours() * 60 + now.getMinutes()
@@ -433,14 +514,20 @@ async function shouldProcessEnrollment(
   }
 }
 
-function validateScheduleForDetection(schedule: unknown, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
+function validateScheduleForDetection(schedule: ScheduleData | null, currentDay: number, currentTime: number): ScheduleValidation {
   try {
+    // Handle null schedule
+    if (!schedule) {
+      return { valid: true }
+    }
+
     // If schedule is an array of time slots
     if (Array.isArray(schedule)) {
       for (const slot of schedule) {
-        if (slot.day === currentDay || slot.dayOfWeek === currentDay) {
-          const slotStart = parseTime(slot.startTime || slot.start)
-          const slotEnd = parseTime(slot.endTime || slot.end)
+        const typedSlot = slot as ScheduleSlot
+        if (typedSlot.day === currentDay || typedSlot.dayOfWeek === currentDay) {
+          const slotStart = parseTime(typedSlot.startTime || typedSlot.start)
+          const slotEnd = parseTime(typedSlot.endTime || typedSlot.end)
           
           if (slotStart && slotEnd) {
             // Allow auto-detection within a wider window (1 hour before/after)
@@ -460,10 +547,15 @@ function validateScheduleForDetection(schedule: unknown, currentDay: number, cur
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     const currentDayName = dayNames[currentDay]
     
-    if (schedule[currentDayName]) {
-      const daySchedule = schedule[currentDayName]
+    // Type-safe property access
+    const scheduleObj = schedule as Record<string, unknown>
+    if (scheduleObj[currentDayName]) {
+      const daySchedule = scheduleObj[currentDayName]
       if (Array.isArray(daySchedule)) {
-        return validateScheduleForDetection(daySchedule, currentDay, currentTime)
+        // Create a new ScheduleData object for recursion
+        const recursiveSchedule: ScheduleData = {}
+        Object.assign(recursiveSchedule, daySchedule)
+        return validateScheduleForDetection(recursiveSchedule, currentDay, currentTime)
       }
     }
 
@@ -476,7 +568,7 @@ function validateScheduleForDetection(schedule: unknown, currentDay: number, cur
   }
 }
 
-function parseTime(timeStr: string): number | null {
+function parseTime(timeStr?: string): number | null {
   if (!timeStr) return null
   
   try {
@@ -533,7 +625,7 @@ async function startClassLog(classData: ClassData): Promise<void> {
   const { data, error } = await supabase
     .from('class_logs')
     .insert([{
-      class_id: classData.class_id, // ✅ ADD THIS LINE
+      class_id: classData.class_id,
       teacher_id: classData.teacher_id,
       date: today,
       content: `Auto-detected class with ${classData.student_name} - ${classData.subject}`,
