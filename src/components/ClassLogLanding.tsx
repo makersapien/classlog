@@ -176,7 +176,7 @@ const ClassLoggerLanding = () => {
       <Header 
         showAuthButton={true}
         onSignInClick={() => setIsLoginOpen(true)}
-        isTransparent={true}
+       
       />
 
       {/* Hero Section */}

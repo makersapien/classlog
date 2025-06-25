@@ -1,6 +1,7 @@
 // src/app/api/classes/route.ts
 // Manual class logging API with enhanced validation + Chrome Extension Support
 
+import { TentativeSchedule } from '@/types/api'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -30,20 +31,23 @@ interface EndClassRequest {
 
 interface Enrollment {
   id: string
-  teacher_id: string
   student_id: string
-  google_meet_url: string
-  tentative_schedule: unknown
-  student_profile: {
-    full_name: string
+  class_id: string
+  status: string
+  google_meet_url: string | null
+  tentative_schedule: TentativeSchedule | null
+  // Joined data from profiles table
+  profiles: {
+    full_name: string | null
     email: string
   } | null
-  class_info: {
+  // Joined data from classes table  
+  classes: {
     subject: string
     name: string
+    teacher_id: string
   } | null
 }
-
 // Helper to extract teacher ID from extension auth header
 function extractTeacherIdFromAuth(authHeader: string | null, fallbackTeacherId?: string): string | null {
   if (authHeader && authHeader.includes('extension_')) {
@@ -62,9 +66,10 @@ export async function POST(request: NextRequest) {
     // Support extension format
     const authHeader = request.headers.get('authorization')
     const extractedTeacherId = extractTeacherIdFromAuth(authHeader, teacher_id)
-    if (extractedTeacherId) {
-      teacher_id = extractedTeacherId
-    }
+    let finalTeacherId = teacher_id
+if (extractedTeacherId) {
+  finalTeacherId = extractedTeacherId
+}
 
     // Support both google_meet_url and meetUrl (extension format)
     const meetUrlToUse = google_meet_url || meetUrl
@@ -86,19 +91,22 @@ export async function POST(request: NextRequest) {
         .from('enrollments')
         .select(`
           id,
-          teacher_id,
           student_id,
+          class_id,
+          status,
           google_meet_url,
           tentative_schedule,
-          student_profile:student_id (
+          profiles:student_id (
             full_name,
             email
           ),
-          class_info:class_id (
+          classes:class_id (
             subject,
-            name
+            name,
+            teacher_id
           )
         `)
+        
         .eq('id', enrollment_id)
         .eq('status', 'active')
         .single()
@@ -110,20 +118,21 @@ export async function POST(request: NextRequest) {
         .from('enrollments')
         .select(`
           id,
-          teacher_id,
           student_id,
+          class_id,
+          status,
           google_meet_url,
           tentative_schedule,
-          student_profile:student_id (
+          profiles:student_id (
             full_name,
             email
           ),
-          class_info:class_id (
+          classes:class_id (
             subject,
-            name
+            name,
+            teacher_id
           )
         `)
-        .eq('teacher_id', teacher_id)
         .eq('status', 'active')
 
       // For extension, try to find by Meet URL first, then by student email
@@ -132,18 +141,19 @@ export async function POST(request: NextRequest) {
           .eq('google_meet_url', meetUrlToUse)
           .single()
         
-        if (enrollmentByUrl) {
-          enrollment = enrollmentByUrl as Enrollment
-        }
+          if (enrollmentByUrl) {
+            enrollment = enrollmentByUrl as unknown as Enrollment
+          }
       }
 
       // If not found by URL, try by student email
       if (!enrollment) {
         const { data: enrollmentData } = await query
-          .eq('student_profile.email', student_email)
-          .single()
+        .eq('profiles.email', student_email)
+        .single()
 
-        enrollment = enrollmentData as Enrollment | null
+          enrollment = enrollmentData as unknown as Enrollment | null
+
       }
     }
 
@@ -155,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Validate teacher permissions
-    if (enrollment.teacher_id !== teacher_id) {
+    if (enrollment.classes?.teacher_id !== finalTeacherId) {
       return NextResponse.json({ 
         success: false,
         error: 'Unauthorized: You can only start classes for your own students' 
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
       .from('class_logs')
       .select('*')
       .eq('student_email', student_email)
-      .eq('teacher_id', teacher_id)
+      .eq('teacher_id', finalTeacherId)
       .eq('status', 'in_progress')
       .eq('date', today)
       .single()
@@ -196,15 +206,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Start the class
-    const classData = {
-      teacher_id,
-      student_name: enrollment.student_profile?.full_name || 'Unknown Student',
-      student_email,
-      google_meet_link: meetUrlToUse,
-      subject: enrollment.class_info?.subject || 'Unknown Subject',
-      enrollment_id: enrollment.id
-    }
-
+   // REPLACE the classData object:
+const classData = {
+  teacher_id: finalTeacherId,
+  student_name: enrollment.profiles?.full_name || 'Unknown Student',
+  student_email,
+  google_meet_link: meetUrlToUse,
+  subject: enrollment.classes?.subject || 'Unknown Subject',
+  enrollment_id: enrollment.id
+}
     const classLog = await startClassLog(classData, false, start_time) // false = manually started
 
     return NextResponse.json({
@@ -229,16 +239,17 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body: EndClassRequest = await request.json()
-    let { class_log_id, teacher_id, content, topics_covered, homework_assigned, end_time } = body
+    const { class_log_id, teacher_id, content, topics_covered, homework_assigned, end_time } = body
 
     // Support extension format
     const authHeader = request.headers.get('authorization')
     const extractedTeacherId = extractTeacherIdFromAuth(authHeader, teacher_id)
+    let finalTeacherId = teacher_id
     if (extractedTeacherId) {
-      teacher_id = extractedTeacherId
+      finalTeacherId = extractedTeacherId
     }
 
-    console.log('🔚 Class end requested:', { class_log_id, teacher_id, isExtension: !!authHeader?.includes('extension_') })
+    console.log('🔚 Class end requested:', { class_log_id, teacher_id: finalTeacherId, isExtension: !!authHeader?.includes('extension_') })
 
     // 1. Validate required fields
     if (!class_log_id) {
@@ -255,10 +266,9 @@ export async function PUT(request: NextRequest) {
       .eq('id', class_log_id)
 
     // If teacher_id is provided, validate ownership
-    if (teacher_id) {
-      query = query.eq('teacher_id', teacher_id)
+    if (finalTeacherId) {
+      query = query.eq('teacher_id', finalTeacherId)
     }
-
     const { data: classLog, error: fetchError } = await query.single()
 
     if (fetchError || !classLog) {
@@ -406,19 +416,16 @@ async function validateClassStart(enrollment: Enrollment, meetUrl: string): Prom
   return { valid: true }
 }
 
-function validateSchedule(schedule: unknown, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
-  // If schedule is an array of time slots
-  if (Array.isArray(schedule)) {
-    for (const slot of schedule) {
-      if (slot.day === currentDay || slot.dayOfWeek === currentDay) {
-        const slotStart = parseTime(slot.startTime || slot.start)
-        const slotEnd = parseTime(slot.endTime || slot.end)
-        
-        if (slotStart && slotEnd) {
-          // Allow starting 30 minutes before or after scheduled time
-          if (currentTime >= slotStart - 30 && currentTime <= slotEnd + 30) {
-            return { valid: true }
-          }
+function validateSchedule(schedule: TentativeSchedule | null, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
+  if (!schedule) return { valid: true }
+  
+  // Handle the days array structure from your schema
+  if (schedule.days && Array.isArray(schedule.days)) {
+    for (const slot of schedule.days) {
+      if (slot.day && slot.time) {
+        const slotTime = parseTime(slot.time)
+        if (slotTime && Math.abs(currentTime - slotTime) <= 30) {
+          return { valid: true }
         }
       }
     }
@@ -427,21 +434,9 @@ function validateSchedule(schedule: unknown, currentDay: number, currentTime: nu
       reason: 'Current time does not match any scheduled class slots'
     }
   }
-
-  // If schedule is an object with day-based structure
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-  const currentDayName = dayNames[currentDay]
   
-  if (schedule[currentDayName]) {
-    const daySchedule = schedule[currentDayName]
-    if (Array.isArray(daySchedule)) {
-      return validateSchedule(daySchedule, currentDay, currentTime)
-    }
-  }
-
-  return { valid: true } // If no specific schedule validation is possible, allow it
+  return { valid: true }
 }
-
 function parseTime(timeStr: string): number | null {
   if (!timeStr) return null
   

@@ -187,7 +187,7 @@ export default function OnboardingSuccessPage() {
               <div>
                 <h4 className="font-semibold mb-2">For Parents:</h4>
                 <ul className="space-y-1 list-disc list-inside">
-                  <li>Monitor your child's progress</li>
+                  <li>Monitor your child&aposs progress</li>
                   <li>View class logs and homework</li>
                   <li>Communicate with teachers</li>
                   <li>Track payments and attendance</li>

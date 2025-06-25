@@ -9,24 +9,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 interface HeaderProps {
   showAuthButton?: boolean
   onSignInClick?: () => void
-  isTransparent?: boolean
 }
 
 export default function Header({ 
   showAuthButton = true, 
   onSignInClick,
-  isTransparent = false 
 }: HeaderProps) {
-  const [scrollY, setScrollY] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  
 
   // Check if we're on the landing page
   const isLandingPage = pathname === '/'
@@ -50,31 +43,14 @@ export default function Header({
     }
   }, [isExpanded])
 
-  const containerVariants = {
-    collapsed: {
-      height: 5,
-      opacity: 0.3,
-      transition: {
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    },
-    expanded: {
-      height: "auto",
-      opacity: 1,
-      transition: {
-        duration: 0.4,
-        ease: "easeOutBack"
-      }
-    }
-  }
-
+  
   const contentVariants = {
     collapsed: {
       opacity: 0,
       y: -20,
       transition: {
-        duration: 0.2
+        duration: 0.2,
+        ease: "easeInOut" as const
       }
     },
     expanded: {
@@ -82,17 +58,18 @@ export default function Header({
       y: 0,
       transition: {
         duration: 0.3,
-        delay: 0.1
+        delay: 0.1,
+        ease: "easeOut" as const
       }
     }
   }
-
   const mobileMenuVariants = {
     closed: {
       opacity: 0,
       height: 0,
       transition: {
-        duration: 0.2
+        duration: 0.2,
+        ease: "easeInOut" as const
       }
     },
     open: {
@@ -100,7 +77,7 @@ export default function Header({
       height: "auto",
       transition: {
         duration: 0.3,
-        ease: "easeOut"
+        ease: "easeOut" as const
       }
     }
   }
@@ -108,7 +85,7 @@ export default function Header({
   return (
     <motion.nav 
       className="fixed top-0 w-full z-50"
-      variants={containerVariants}
+      variants={contentVariants}
       initial="collapsed"
       animate={isExpanded ? "expanded" : "collapsed"}
       onHoverStart={() => setIsExpanded(true)}

@@ -27,14 +27,7 @@ interface ClassWithEnrollments {
 }
 
 // Type for raw Supabase responses
-interface SupabaseQueryResult<T> {
-  data: T | null
-  error: {
-    message: string
-    details?: string
-    hint?: string
-  } | null
-}
+
 
 interface ClassLogWithDetails {
   id: string

@@ -117,15 +117,14 @@ interface ScheduleSlot {
   end?: string
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // Uncomment for production with proper cron secret
-    /*
+    
     const authHeader = request.headers.get('authorization')
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    */
+   
 
     console.log('🔍 Starting enhanced class detection...')
     const startTime = Date.now()
@@ -178,14 +177,14 @@ export async function GET(_request: NextRequest) {
         }
         
         // Extract the first student profile (should only be one)
-        const studentProfile = raw.student_profile[0] as any
-        return studentProfile && studentProfile.email
+        const studentProfile = raw.student_profile[0] as unknown
+        return studentProfile && (studentProfile as Record<string, unknown>).email
       })
       .map(raw => {
         // Extract student profile data safely
-        const studentProfile = (raw.student_profile as any[])[0] as any
+        const studentProfile = (raw.student_profile as unknown[])[0] as Record<string, unknown>
         const classInfo = raw.class_info && Array.isArray(raw.class_info) && raw.class_info.length > 0 
-          ? (raw.class_info[0] as any) 
+          ? (raw.class_info[0] as Record<string, unknown>) 
           : null
 
         return {
@@ -201,7 +200,7 @@ export async function GET(_request: NextRequest) {
           year_group: raw.year_group,
           student_profile: {
             full_name: String(studentProfile.full_name || 'Unknown Student'),
-            email: String(studentProfile.email)
+            email: String(studentProfile.email || '')
           },
           class_info: classInfo ? {
             subject: String(classInfo.subject || ''),

@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
 
     // Updated to match your frontend data structure
     const { 
-      invitation_id,
       invitation_token
     } = body;
 

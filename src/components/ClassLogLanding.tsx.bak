@@ -1,21 +1,22 @@
 "use client"
-import Header from '@/components/Header';
-import { supabase } from '@/lib/supabase-client'; // Use the browser-compatible client
+import React, { useState } from 'react'
+import Header from '@/components/Header'
+import { supabase } from '@/lib/supabase-client'
 
 const ClassLoggerLanding = () => {
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [loginType, setLoginType] = useState('student');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [loginType, setLoginType] = useState('student')
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      console.log('🔄 Starting Google sign-in for role:', loginType);
+      console.log('🔄 Starting Google sign-in for role:', loginType)
       
       // Get the current origin for redirect URL
-      const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`;
-      console.log('🔗 Redirect URL:', redirectUrl);
+      const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`
+      console.log('🔗 Redirect URL:', redirectUrl)
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -26,22 +27,25 @@ const ClassLoggerLanding = () => {
             prompt: 'consent',
           }
         }
-      });
+      })
+      
+      // Log the response data for debugging
+      console.log('Google sign-in response data:', data)
       
       if (error) {
-        console.error('❌ Google sign-in error:', error);
-        alert('Sign-in failed. Please try again.');
+        console.error('❌ Google sign-in error:', error)
+        alert('Sign-in failed. Please try again.')
       } else {
-        console.log('✅ Google sign-in initiated successfully');
+        console.log('✅ Google sign-in initiated successfully')
         // If successful, user will be redirected by the OAuth flow
       }
     } catch (error) {
-      console.error('💥 Google sign-in error:', error);
-      alert('Sign-in failed. Please try again.');
+      console.error('💥 Google sign-in error:', error)
+      alert('Sign-in failed. Please try again.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const LoginModal = () => (
     <div className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${isLoginOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}>
@@ -151,9 +155,9 @@ const ClassLoggerLanding = () => {
 
           <button 
             onClick={() => {
-              console.log('Email login clicked for:', loginType);
+              console.log('Email login clicked for:', loginType)
               // TODO: Implement email/password login
-              alert('Email login not implemented yet. Please use Google sign-in.');
+              alert('Email login not implemented yet. Please use Google sign-in.')
             }}
             className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
           >
@@ -162,12 +166,12 @@ const ClassLoggerLanding = () => {
         </div>
 
         <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account? 
+          Don&apos;t have an account? 
           <button className="text-emerald-600 hover:text-emerald-700 font-semibold ml-1 transition-colors duration-200">Sign up</button>
         </p>
       </div>
     </div>
-  );
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
@@ -175,7 +179,6 @@ const ClassLoggerLanding = () => {
       <Header 
         showAuthButton={true}
         onSignInClick={() => setIsLoginOpen(true)}
-        isTransparent={true}
       />
 
       {/* Hero Section */}
@@ -255,7 +258,7 @@ const ClassLoggerLanding = () => {
                   <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
                     <div>
                       <div className="text-4xl text-emerald-600 mb-3">📅</div>
-                      <h3 className="font-bold text-gray-900 text-lg">Today's Classes</h3>
+                      <h3 className="font-bold text-gray-900 text-lg">Today&apos;s Classes</h3>
                       <p className="text-sm text-gray-600 mt-1">Mathematics, Physics</p>
                     </div>
                     <div className="text-4xl font-bold text-emerald-600">4</div>
@@ -298,7 +301,7 @@ const ClassLoggerLanding = () => {
               {
                 icon: "📊",
                 title: "Transparent Class Logs",
-                description: "Create detailed class logs that parents can access instantly, ensuring complete transparency in their child's education.",
+                description: "Create detailed class logs that parents can access instantly, ensuring complete transparency in their child&apos;s education.",
                 color: "from-emerald-500 to-emerald-600",
                 bgColor: "from-emerald-50 to-emerald-100"
               },
@@ -378,7 +381,7 @@ const ClassLoggerLanding = () => {
       {/* Login Modal */}
       <LoginModal />
     </div>
-  );
-};
+  )
+}
 
-export default ClassLoggerLanding;
+export default ClassLoggerLanding
