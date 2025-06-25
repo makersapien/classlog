@@ -1,4 +1,5 @@
 "use client"
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { supabase } from '@/lib/supabase-client'; // Use the browser-compatible client
 

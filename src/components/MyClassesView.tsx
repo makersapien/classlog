@@ -256,7 +256,7 @@ export default function MyClassesView({ teacherId }: MyClassesViewProps) {
         const fileName = `${timestamp}_${file.name}`
         const filePath = `${classLogId}/${teacherId}/${fileName}`
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('class-files')
           .upload(filePath, file, {
             cacheControl: '3600',
@@ -327,7 +327,7 @@ export default function MyClassesView({ teacherId }: MyClassesViewProps) {
   }
 
   const deleteFile = async (file: ClassFile) => {
-    if (!confirm(`Are you sure you want to delete "${file.file_name}"?`)) return
+    if (!confirm(`Are you sure you want to delete &quot;${file.file_name}&quot;?`)) return
 
     try {
       const { error: storageError } = await supabase.storage
@@ -754,7 +754,7 @@ export default function MyClassesView({ teacherId }: MyClassesViewProps) {
                             {classLog.content || (
                               <span className="text-gray-500 italic flex items-center">
                                 <Sparkles className="w-4 h-4 mr-2" />
-                                No content added yet. Click "Edit" to add class notes.
+                                No content added yet. Click &ldquo;Edit&rdquo; to add class notes.
                               </span>
                             )}
                           </p>
@@ -819,7 +819,7 @@ export default function MyClassesView({ teacherId }: MyClassesViewProps) {
                                 <File className="w-8 h-8 text-gray-500" />
                               </div>
                               <p className="text-gray-600 font-medium mb-1">No files uploaded yet</p>
-                              <p className="text-gray-500 text-sm">Click "Upload Files" to add class materials</p>
+                              <p className="text-gray-500 text-sm">Click &ldquo;Upload Files&rdquo; to add class materials</p>
                             </div>
                           )}
                         </div>

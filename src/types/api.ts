@@ -113,9 +113,9 @@ export interface Teacher {
   }
   
   // Event handler types
-  export interface FormEvent extends React.FormEvent<HTMLFormElement> {}
-  export interface ChangeEvent extends React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> {}
-  export interface ClickEvent extends React.MouseEvent<HTMLButtonElement | HTMLDivElement> {}
+  export interface FormSubmitEvent extends React.FormEvent<HTMLFormElement> {}
+  export interface InputChangeEvent extends React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> {}
+  export interface ButtonClickEvent extends React.MouseEvent<HTMLButtonElement | HTMLDivElement> {}
   
   // Component prop types
   export interface ModalProps {

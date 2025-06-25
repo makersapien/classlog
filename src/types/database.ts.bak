@@ -1,20 +1,5 @@
 // types/database.ts
 
-// Type for schedule JSON data
-export interface ScheduleData {
-  [key: string]: unknown;
-}
-
-// Type for tentative schedule JSON data
-export interface TentativeScheduleData {
-  note?: string;
-  days?: Array<{
-    day: string;
-    time: string;
-  }>;
-  [key: string]: unknown;
-}
-
 export interface Database {
   public: {
     Tables: {
@@ -79,7 +64,7 @@ export interface Database {
           subject: string
           grade: string | null
           description: string | null
-          schedule: ScheduleData | null
+          schedule: any | null
           max_students: number | null
           fees_per_month: number | null
           status: 'active' | 'inactive' | 'completed'
@@ -93,7 +78,7 @@ export interface Database {
           subject: string
           grade?: string | null
           description?: string | null
-          schedule?: ScheduleData | null
+          schedule?: any | null
           max_students?: number | null
           fees_per_month?: number | null
           status?: 'active' | 'inactive' | 'completed'
@@ -107,7 +92,7 @@ export interface Database {
           subject?: string
           grade?: string | null
           description?: string | null
-          schedule?: ScheduleData | null
+          schedule?: any | null
           max_students?: number | null
           fees_per_month?: number | null
           status?: 'active' | 'inactive' | 'completed'
@@ -128,7 +113,7 @@ export interface Database {
           updated_at: string
           classes_per_week: number | null
           classes_per_recharge: number | null
-          tentative_schedule: TentativeScheduleData | null
+          tentative_schedule: any | null
           whatsapp_group_url: string | null
           google_meet_url: string | null
           setup_completed: boolean | null
@@ -145,7 +130,7 @@ export interface Database {
           updated_at?: string
           classes_per_week?: number | null
           classes_per_recharge?: number | null
-          tentative_schedule?: TentativeScheduleData | null
+          tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           setup_completed?: boolean | null
@@ -162,7 +147,7 @@ export interface Database {
           updated_at?: string
           classes_per_week?: number | null
           classes_per_recharge?: number | null
-          tentative_schedule?: TentativeScheduleData | null
+          tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           setup_completed?: boolean | null
@@ -180,7 +165,7 @@ export interface Database {
           year_group: string
           classes_per_week: number | null
           classes_per_recharge: number | null
-          tentative_schedule: TentativeScheduleData | null
+          tentative_schedule: any | null
           whatsapp_group_url: string | null
           google_meet_url: string | null
           status: 'pending' | 'completed' | 'expired' | 'cancelled' | null
@@ -201,7 +186,7 @@ export interface Database {
           year_group: string
           classes_per_week?: number | null
           classes_per_recharge?: number | null
-          tentative_schedule?: TentativeScheduleData | null
+          tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           status?: 'pending' | 'completed' | 'expired' | 'cancelled' | null
@@ -222,7 +207,7 @@ export interface Database {
           year_group?: string
           classes_per_week?: number | null
           classes_per_recharge?: number | null
-          tentative_schedule?: TentativeScheduleData | null
+          tentative_schedule?: any | null
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           status?: 'pending' | 'completed' | 'expired' | 'cancelled' | null
@@ -403,7 +388,7 @@ export interface Database {
           year_group: string
           classes_per_week: number
           classes_per_recharge: number
-          tentative_schedule: TentativeScheduleData
+          tentative_schedule: any
           whatsapp_group_url: string
           google_meet_url: string
           setup_completed: boolean

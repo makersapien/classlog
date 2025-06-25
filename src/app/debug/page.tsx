@@ -10,9 +10,9 @@ const APIDebugger = () => {
     google_meet_url: 'https://meet.google.com/test-meeting',
     setup_completed: true
   });
-  const [response, setResponse] = useState<any>(null);
-  const [beforeData, setBeforeData] = useState<any>(null);
-  const [afterData, setAfterData] = useState<any>(null);
+  const [response, setResponse] = useState<unknown>(null);
+  const [beforeData, setBeforeData] = useState<unknown>(null);
+  const [afterData, setAfterData] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchCurrentData = async (enrollmentId: string) => {

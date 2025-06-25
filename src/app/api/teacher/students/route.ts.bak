@@ -15,7 +15,7 @@ interface StudentData {
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
-  tentative_schedule: unknown
+  tentative_schedule: any
   whatsapp_group_url: string | null
   google_meet_url: string | null
   setup_completed: boolean
@@ -35,7 +35,7 @@ interface InvitationData {
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
-  tentative_schedule: unknown
+  tentative_schedule: any
   whatsapp_group_url: string | null
   google_meet_url: string | null
   status: string
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promise<StudentData[]> {
+async function fetchTeacherStudents(supabase: any, teacherId: string): Promise<StudentData[]> {
   try {
     console.log('👥 Fetching students for teacher:', teacherId)
 
@@ -135,7 +135,7 @@ async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promi
       return []
     }
 
-    const classIds = classes.map((c: unknown) => c.id)
+    const classIds = classes.map((c: any) => c.id)
     console.log('📚 Found classes:', classIds.length)
 
     // Get enrollments with student details
@@ -174,7 +174,7 @@ async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promi
     }
 
     // Get parent information for each student
-    const studentIds = enrollments.map((e: unknown) => e.student_id).filter(Boolean)
+    const studentIds = enrollments.map((e: any) => e.student_id).filter(Boolean)
     const parentMap = new Map()
 
     if (studentIds.length > 0) {
@@ -194,7 +194,7 @@ async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promi
         console.error('❌ Parent relations error:', parentError)
       } else if (parentRelations) {
         // Create a map of student to parent
-        parentRelations.forEach((relation: unknown) => {
+        parentRelations.forEach((relation: any) => {
           const parentProfile = relation.profiles
           if (parentProfile) {
             parentMap.set(relation.child_id, {
@@ -208,13 +208,13 @@ async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promi
     }
 
     // Transform data to match our interface
-    const students: StudentData[] = enrollments.map((enrollment: unknown) => {
+    const students: StudentData[] = enrollments.map((enrollment: any) => {
       const student = enrollment.profiles
       const parentInfo = parentMap.get(enrollment.student_id) || { 
         full_name: 'Parent Info Missing', 
         email: '' 
       }
-      const classInfo = classes.find((c: unknown) => c.id === enrollment.class_id)
+      const classInfo = classes.find((c: any) => c.id === enrollment.class_id)
 
       return {
         id: enrollment.id,
@@ -245,7 +245,7 @@ async function fetchTeacherStudents(supabase: unknown, teacherId: string): Promi
   }
 }
 
-async function fetchPendingInvitations(supabase: unknown, teacherId: string): Promise<InvitationData[]> {
+async function fetchPendingInvitations(supabase: any, teacherId: string): Promise<InvitationData[]> {
   try {
     console.log('📨 Fetching pending invitations for teacher:', teacherId)
 
@@ -310,7 +310,7 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
 }
 
 // 🔧 ENHANCED: Duplicate validation helper functions
-async function validateGoogleMeetUrl(supabase: unknown, teacherId: string, googleMeetUrl: string, excludeInvitationId?: string) {
+async function validateGoogleMeetUrl(supabase: any, teacherId: string, googleMeetUrl: string, excludeInvitationId?: string) {
   if (!googleMeetUrl || !googleMeetUrl.trim()) {
     return { isValid: true } // URL is optional, so empty is valid
   }
@@ -386,7 +386,7 @@ async function validateGoogleMeetUrl(supabase: unknown, teacherId: string, googl
   return { isValid: true }
 }
 
-async function validateStudentEmail(supabase: unknown, teacherId: string, studentEmail: string, parentEmail: string) {
+async function validateStudentEmail(supabase: any, teacherId: string, studentEmail: string, parentEmail: string) {
   if (!studentEmail || !studentEmail.trim()) {
     return { isValid: true } // Student email is optional in invitations
   }

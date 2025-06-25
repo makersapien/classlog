@@ -17,7 +17,7 @@ interface Enrollment {
   class_id: string
   google_meet_url: string
   status: string
-  tentative_schedule: unknown
+  tentative_schedule: any
   classes_per_week: number
   student_profile: {
     full_name: string
@@ -351,7 +351,7 @@ async function checkMeetingAccessibility(meetUrl: string): Promise<boolean> {
   }
 }
 
-async function checkMeetingMetadata(meetUrl: string): Promise<{hasIndicators: boolean, [key: string]: unknown}> {
+async function checkMeetingMetadata(meetUrl: string): Promise<{hasIndicators: boolean, [key: string]: any}> {
   try {
     // This is a placeholder for more advanced meeting detection
     // You could implement:
@@ -433,7 +433,7 @@ async function shouldProcessEnrollment(
   }
 }
 
-function validateScheduleForDetection(schedule: unknown, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
+function validateScheduleForDetection(schedule: any, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
   try {
     // If schedule is an array of time slots
     if (Array.isArray(schedule)) {

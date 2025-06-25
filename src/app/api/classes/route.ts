@@ -33,7 +33,7 @@ interface Enrollment {
   teacher_id: string
   student_id: string
   google_meet_url: string
-  tentative_schedule: any
+  tentative_schedule: unknown
   student_profile: {
     full_name: string
     email: string
@@ -406,7 +406,7 @@ async function validateClassStart(enrollment: Enrollment, meetUrl: string): Prom
   return { valid: true }
 }
 
-function validateSchedule(schedule: any, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
+function validateSchedule(schedule: unknown, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
   // If schedule is an array of time slots
   if (Array.isArray(schedule)) {
     for (const slot of schedule) {

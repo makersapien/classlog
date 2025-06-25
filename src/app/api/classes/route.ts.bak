@@ -33,7 +33,7 @@ interface Enrollment {
   teacher_id: string
   student_id: string
   google_meet_url: string
-  tentative_schedule: any
+  tentative_schedule: unknown
   student_profile: {
     full_name: string
     email: string
@@ -57,7 +57,7 @@ function extractTeacherIdFromAuth(authHeader: string | null, fallbackTeacherId?:
 export async function POST(request: NextRequest) {
   try {
     const body: StartClassRequest = await request.json()
-    let { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
+    const { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
 
     // Support extension format
     const authHeader = request.headers.get('authorization')
@@ -406,7 +406,7 @@ async function validateClassStart(enrollment: Enrollment, meetUrl: string): Prom
   return { valid: true }
 }
 
-function validateSchedule(schedule: any, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
+function validateSchedule(schedule: unknown, currentDay: number, currentTime: number): {valid: boolean, reason?: string} {
   // If schedule is an array of time slots
   if (Array.isArray(schedule)) {
     for (const slot of schedule) {
