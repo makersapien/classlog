@@ -33,10 +33,13 @@ export default function LiveDataTest() {
   // Auto-fetch data when component mounts - useful for testing
   useEffect(() => {
     // Auto-fetch with default values on component mount
-    if (teacherId && selectedDate) {
-      fetchRealData()
+    const autoFetch = async () => {
+      if (teacherId && selectedDate) {
+        await fetchRealData()
+      }
     }
-  }, []) // Empty dependency array means this runs once on mount
+    autoFetch()
+  }, [teacherId, selectedDate]) // Include dependencies
 
   const fetchRealData = async () => {
     setIsLoading(true)
