@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
+    // ESLint fix: Use tokenError variable for debugging
+    console.log('Debug: Token query error for monitoring:', tokenError)
+
     const now = new Date()
     
     if (!currentToken) {

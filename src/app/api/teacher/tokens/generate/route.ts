@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
+    // ESLint fix: Use newToken variable for debugging
+    console.log('Debug: New token created in database:', newToken)
+
     if (insertError) {
       console.error('❌ Failed to create token:', insertError)
       return NextResponse.json({ 

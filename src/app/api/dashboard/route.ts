@@ -26,8 +26,6 @@ interface ClassWithEnrollments {
   }>
 }
 
-// Type for raw Supabase responses
-
 
 interface ClassLogWithDetails {
   id: string
