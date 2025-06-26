@@ -19,14 +19,22 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PaymentRecord {
   id: string;
-  user_id: string;
+  student_id: string;
+  class_id: string;
   amount: number;
-  transaction_type: string;
-  description: string;
+  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_date: string;
+  due_date: string;
+  month_year: string;
+  notes: string;
   created_at: string;
   profiles?: {
     full_name: string;
     email: string;
+  };
+  classes?: {
+    name: string;
+    subject: string;
   };
 }
 
@@ -54,7 +62,7 @@ const PaymentCreditsPage: React.FC = () => {
   const [awardCreditsDialog, setAwardCreditsDialog] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
-  const [credits, setCredits] = useState<PaymentRecord[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   const supabase = createClientComponentClient();
@@ -68,17 +76,23 @@ const PaymentCreditsPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching payment data...');
+      
       const response = await fetch('/api/payments');
       const data = await response.json();
 
+      console.log('API Response:', data);
+
       if (response.ok) {
+        console.log('Profile data:', data.profile);
         setProfile(data.profile);
-        setCredits(data.credits || []);
+        setPayments(data.payments || []);
         setUpiId(data.profile?.upi_id || '');
         if (data.profile?.qr_code_url) {
           setQrCodePreview(data.profile.qr_code_url);
         }
       } else {
+        console.error('API Error:', data.error);
         toast({
           title: "Error",
           description: data.error || "Failed to fetch data",
@@ -99,29 +113,6 @@ const PaymentCreditsPage: React.FC = () => {
 
   const uploadToSupabase = async (file: File): Promise<string | null> => {
     try {
-      // Check if storage bucket exists, if not create it
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('Error listing buckets:', bucketsError);
-        throw new Error('Failed to access storage');
-      }
-
-      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-qr-codes');
-      
-      if (!bucketExists) {
-        const { error: createBucketError } = await supabase.storage.createBucket('payment-qr-codes', {
-          public: true,
-          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg'],
-          fileSizeLimit: 5242880 // 5MB
-        });
-
-        if (createBucketError) {
-          console.error('Error creating bucket:', createBucketError);
-          // If bucket creation fails, try to continue (bucket might exist but not visible)
-        }
-      }
-
       // Use user ID as filename to ensure one QR code per user
       const fileExt = file.name.split('.').pop() || 'png';
       const fileName = `qr_${profile?.id}.${fileExt}`; // Fixed filename based on user ID
@@ -188,9 +179,35 @@ const PaymentCreditsPage: React.FC = () => {
     }
   };
 
+  // Simple base64 upload - no storage bucket needed
+  const uploadAsBase64 = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          resolve(reader.result as string);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = () => reject(new Error('File reading failed'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleQrCodeUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Check if we have a valid profile first
+    if (!profile?.id) {
+      toast({
+        title: "Error",
+        description: "User profile not loaded. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate file type
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
@@ -214,37 +231,26 @@ const PaymentCreditsPage: React.FC = () => {
 
     setIsUploading(true);
     setQrCodeFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target?.result) {
-        setQrCodePreview(e.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
 
     try {
-      console.log('Starting upload process...');
+      console.log('Converting file to base64...');
+      console.log('Profile ID:', profile.id);
       
-      // Upload to Supabase
-      const publicUrl = await uploadToSupabase(file);
-      
-      if (!publicUrl) {
-        throw new Error('Failed to get public URL after upload');
-      }
+      // Convert to base64 (much simpler and more reliable)
+      const base64String = await uploadAsBase64(file);
+      setQrCodePreview(base64String);
 
-      console.log('Upload successful, updating profile...');
+      console.log('Updating profile with QR code data...');
       
-      // Update profile with QR code URL
+      // Update profile with base64 string
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ qr_code_url: publicUrl })
-        .eq('id', profile?.id);
+        .update({ qr_code_url: base64String })
+        .eq('id', profile.id);
 
       if (updateError) {
         console.error('Profile update error:', updateError);
-        throw new Error(`Failed to save QR code URL: ${updateError.message}`);
+        throw new Error(`Failed to save QR code: ${updateError.message}`);
       }
 
       toast({
@@ -253,7 +259,7 @@ const PaymentCreditsPage: React.FC = () => {
       });
       
       // Update local state
-      setProfile(prev => prev ? { ...prev, qr_code_url: publicUrl } : null);
+      setProfile(prev => prev ? { ...prev, qr_code_url: base64String } : null);
       
     } catch (error) {
       console.error('Error uploading QR code:', error);
@@ -384,32 +390,25 @@ const PaymentCreditsPage: React.FC = () => {
 
   const clearQrCode = async (): Promise<void> => {
     try {
-      if (!profile?.qr_code_url) return;
-
-      // Extract filename from URL to delete from storage
-      const existingUrl = profile.qr_code_url;
-      const urlParts = existingUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-
-      console.log('Deleting QR code from storage:', fileName);
-
-      // Delete from storage
-      const { error: deleteError } = await supabase.storage
-        .from('payment-qr-codes')
-        .remove([fileName]);
-
-      if (deleteError) {
-        console.warn('Storage delete error:', deleteError);
-        // Continue with database update even if storage delete fails
+      if (!profile?.qr_code_url || !profile?.id) {
+        toast({
+          title: "Error",
+          description: "No QR code to remove or profile not loaded",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Update database to remove QR code URL
+      console.log('Removing QR code for profile:', profile.id);
+
+      // Update database to remove QR code URL (base64 approach - no storage cleanup needed)
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ qr_code_url: null })
-        .eq('id', profile?.id);
+        .eq('id', profile.id);
 
       if (updateError) {
+        console.error('Clear QR error:', updateError);
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
 
@@ -432,18 +431,18 @@ const PaymentCreditsPage: React.FC = () => {
     }
   };
 
-  // Calculate stats from credits data
+  // Calculate stats from payments data
   const calculateStats = () => {
-    const totalEarnings = credits
-      .filter(c => c.transaction_type === 'purchase')
-      .reduce((sum, c) => sum + c.amount, 0);
+    const totalEarnings = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => sum + p.amount, 0);
     
-    const totalCreditsAwarded = credits
-      .filter(c => c.transaction_type === 'purchase')
+    const totalCreditsAwarded = payments
+      .filter(p => p.status === 'paid')
       .length;
     
-    const pendingPayments = credits
-      .filter(c => c.transaction_type === 'pending')
+    const pendingPayments = payments
+      .filter(p => p.status === 'pending')
       .length;
 
     return {
@@ -747,32 +746,39 @@ const PaymentCreditsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {credits.length === 0 ? (
+                {payments.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <CreditCard size={48} className="mx-auto mb-4 text-gray-300" />
                     <p>No payment history yet</p>
-                    <p className="text-sm">Credits awarded will appear here</p>
+                    <p className="text-sm">Payment records will appear here</p>
                   </div>
                 ) : (
-                  credits.map((credit: PaymentRecord) => (
-                    <div key={credit.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  payments.map((payment: PaymentRecord) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                            {credit.profiles?.full_name?.charAt(0) || 'U'}
+                            {payment.profiles?.full_name?.charAt(0) || 'S'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className="font-medium text-gray-900 text-sm">{credit.profiles?.full_name || 'Unknown'}</h4>
-                          <p className="text-xs text-gray-600">{credit.description}</p>
-                          <p className="text-xs text-gray-500">{credit.profiles?.email || ''}</p>
+                          <h4 className="font-medium text-gray-900 text-sm">{payment.profiles?.full_name || 'Student'}</h4>
+                          <p className="text-xs text-gray-600">{payment.classes?.subject || 'Subject'} • {payment.month_year}</p>
+                          <p className="text-xs text-gray-500">{payment.notes || payment.profiles?.email || ''}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">₹{credit.amount.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500">{new Date(credit.created_at).toLocaleDateString()}</p>
-                        <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                          ✅ Confirmed
+                        <p className="font-bold text-gray-900">₹{payment.amount.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</p>
+                        <Badge className={`text-xs ${
+                          payment.status === 'paid' ? 'bg-green-100 text-green-800 border-green-200' :
+                          payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          'bg-red-100 text-red-800 border-red-200'
+                        }`}>
+                          {payment.status === 'paid' && '✅ '}
+                          {payment.status === 'pending' && '⏳ '}
+                          {payment.status === 'failed' && '❌ '}
+                          {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                         </Badge>
                       </div>
                     </div>
