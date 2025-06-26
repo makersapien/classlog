@@ -77,7 +77,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
-      return <Image className="h-4 w-4"  />
+      return <Image className="h-4 w-4" />
     }
     return <FileIcon className="h-4 w-4" />
   }
