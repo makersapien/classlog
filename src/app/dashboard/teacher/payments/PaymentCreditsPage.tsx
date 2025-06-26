@@ -1,0 +1,866 @@
+// src/app/dashboard/teacher/payments/PaymentCreditsPage.tsx
+'use client'
+
+import React, { useState, ChangeEvent, useEffect } from 'react';
+import { Upload, QrCode, CreditCard, CheckCircle, AlertCircle, User, Mail, Clock, DollarSign, Camera, Trash2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useToast } from '@/hooks/use-toast';
+
+interface PaymentRecord {
+  id: string;
+  user_id: string;
+  amount: number;
+  transaction_type: string;
+  description: string;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+    email: string;
+  };
+}
+
+interface TeacherProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  upi_id?: string;
+  qr_code_url?: string;
+  role: string;
+}
+
+type UserRole = 'teacher' | 'parent';
+
+const PaymentCreditsPage: React.FC = () => {
+  const [userRole, setUserRole] = useState<UserRole>('teacher');
+  const [upiId, setUpiId] = useState<string>('');
+  const [qrCodeFile, setQrCodeFile] = useState<File | null>(null);
+  const [qrCodePreview, setQrCodePreview] = useState<string>('');
+  const [parentEmail, setParentEmail] = useState<string>('');
+  const [creditHours, setCreditHours] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentNote, setPaymentNote] = useState<string>('');
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [awardCreditsDialog, setAwardCreditsDialog] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [credits, setCredits] = useState<PaymentRecord[]>([]);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+
+  const supabase = createClientComponentClient();
+  const { toast } = useToast();
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/payments');
+      const data = await response.json();
+
+      if (response.ok) {
+        setProfile(data.profile);
+        setCredits(data.credits || []);
+        setUpiId(data.profile?.upi_id || '');
+        if (data.profile?.qr_code_url) {
+          setQrCodePreview(data.profile.qr_code_url);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch payment data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      // Check if storage bucket exists, if not create it
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error listing buckets:', bucketsError);
+        throw new Error('Failed to access storage');
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-qr-codes');
+      
+      if (!bucketExists) {
+        const { error: createBucketError } = await supabase.storage.createBucket('payment-qr-codes', {
+          public: true,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg'],
+          fileSizeLimit: 5242880 // 5MB
+        });
+
+        if (createBucketError) {
+          console.error('Error creating bucket:', createBucketError);
+          // If bucket creation fails, try to continue (bucket might exist but not visible)
+        }
+      }
+
+      // Use user ID as filename to ensure one QR code per user
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `qr_${profile?.id}.${fileExt}`; // Fixed filename based on user ID
+      const filePath = fileName;
+
+      console.log('Uploading/Replacing file:', fileName, 'Size:', file.size);
+
+      // Check if user already has a QR code and delete it first
+      if (profile?.qr_code_url) {
+        try {
+          // Extract filename from existing URL
+          const existingUrl = profile.qr_code_url;
+          const urlParts = existingUrl.split('/');
+          const existingFileName = urlParts[urlParts.length - 1];
+          
+          console.log('Removing existing QR code:', existingFileName);
+          
+          const { error: deleteError } = await supabase.storage
+            .from('payment-qr-codes')
+            .remove([existingFileName]);
+
+          if (deleteError) {
+            console.warn('Could not delete existing QR code:', deleteError);
+            // Continue with upload even if delete fails
+          }
+        } catch (deleteErr) {
+          console.warn('Error deleting existing QR code:', deleteErr);
+          // Continue with upload
+        }
+      }
+
+      // Upload new file (upsert: true will replace if exists)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payment-qr-codes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true // This will replace existing file with same name
+        });
+
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      if (!uploadData) {
+        throw new Error('No upload data returned');
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-qr-codes')
+        .getPublicUrl(filePath);
+
+      if (!publicUrl) {
+        throw new Error('Failed to generate public URL');
+      }
+
+      console.log('Public URL generated:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
+  const handleQrCodeUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Please upload a PNG or JPEG image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size should be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setQrCodeFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target?.result) {
+        setQrCodePreview(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      console.log('Starting upload process...');
+      
+      // Upload to Supabase
+      const publicUrl = await uploadToSupabase(file);
+      
+      if (!publicUrl) {
+        throw new Error('Failed to get public URL after upload');
+      }
+
+      console.log('Upload successful, updating profile...');
+      
+      // Update profile with QR code URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ qr_code_url: publicUrl })
+        .eq('id', profile?.id);
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw new Error(`Failed to save QR code URL: ${updateError.message}`);
+      }
+
+      toast({
+        title: "Success",
+        description: "QR code uploaded successfully",
+      });
+      
+      // Update local state
+      setProfile(prev => prev ? { ...prev, qr_code_url: publicUrl } : null);
+      
+    } catch (error) {
+      console.error('Error uploading QR code:', error);
+      
+      // Reset preview on error
+      setQrCodePreview('');
+      setQrCodeFile(null);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to upload QR code. Please try again.';
+      
+      toast({
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpiSave = async (): Promise<void> => {
+    if (!upiId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid UPI ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_upi',
+          upi_id: upiId
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "UPI ID saved successfully",
+        });
+        setProfile(prev => prev ? { ...prev, upi_id: upiId } : null);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error saving UPI:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save UPI ID",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreditAward = async (): Promise<void> => {
+    if (!parentEmail.trim() || !creditHours.trim() || !paymentAmount.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'award_credits',
+          parent_email: parentEmail,
+          credit_hours: creditHours,
+          payment_amount: paymentAmount,
+          payment_note: paymentNote
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+        
+        setAwardCreditsDialog(false);
+        setParentEmail('');
+        setCreditHours('');
+        setPaymentAmount('');
+        setPaymentNote('');
+        
+        // Refresh data
+        fetchData();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error awarding credits:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to award credits",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const triggerFileInput = (): void => {
+    const fileInput = document.getElementById('qr-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
+  const clearQrCode = async (): Promise<void> => {
+    try {
+      if (!profile?.qr_code_url) return;
+
+      // Extract filename from URL to delete from storage
+      const existingUrl = profile.qr_code_url;
+      const urlParts = existingUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+
+      console.log('Deleting QR code from storage:', fileName);
+
+      // Delete from storage
+      const { error: deleteError } = await supabase.storage
+        .from('payment-qr-codes')
+        .remove([fileName]);
+
+      if (deleteError) {
+        console.warn('Storage delete error:', deleteError);
+        // Continue with database update even if storage delete fails
+      }
+
+      // Update database to remove QR code URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ qr_code_url: null })
+        .eq('id', profile?.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+
+      // Update local state
+      setQrCodePreview('');
+      setQrCodeFile(null);
+      setProfile(prev => prev ? { ...prev, qr_code_url: undefined } : null);
+      
+      toast({
+        title: "Success",
+        description: "QR code removed successfully",
+      });
+    } catch (error) {
+      console.error('Error removing QR code:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove QR code",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Calculate stats from credits data
+  const calculateStats = () => {
+    const totalEarnings = credits
+      .filter(c => c.transaction_type === 'purchase')
+      .reduce((sum, c) => sum + c.amount, 0);
+    
+    const totalCreditsAwarded = credits
+      .filter(c => c.transaction_type === 'purchase')
+      .length;
+    
+    const pendingPayments = credits
+      .filter(c => c.transaction_type === 'pending')
+      .length;
+
+    return {
+      totalEarnings,
+      totalCreditsAwarded,
+      pendingPayments
+    };
+  };
+
+  const stats = calculateStats();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600" />
+          <p className="text-gray-600">Loading payment data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            💳 Payment & Credits
+          </h1>
+          <p className="text-gray-600 mt-1">Manage payments and class credits efficiently</p>
+        </div>
+        <Tabs value={userRole} onValueChange={(value: string) => setUserRole(value as UserRole)} className="w-auto">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="teacher" className="data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700">
+              👩‍🏫 Teacher
+            </TabsTrigger>
+            <TabsTrigger value="parent" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
+              👨‍👩‍👧‍👦 Parent
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <Tabs value={userRole} onValueChange={(value: string) => setUserRole(value as UserRole)}>
+        <TabsContent value="teacher" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-t-4 border-t-emerald-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Earnings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">₹{stats.totalEarnings.toLocaleString()}</div>
+                <p className="text-xs text-gray-500 mt-1">All time</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-t-4 border-t-blue-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">Credits Awarded</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{stats.totalCreditsAwarded}</div>
+                <p className="text-xs text-gray-500 mt-1">Total transactions</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-t-4 border-t-purple-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">Pending Payments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{stats.pendingPayments}</div>
+                <p className="text-xs text-gray-500 mt-1">Awaiting confirmation</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* UPI Setup Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <QrCode className="text-emerald-600" size={20} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">UPI Payment Setup</CardTitle>
+                    <CardDescription>Configure your payment details</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="upi-id">UPI ID</Label>
+                  <Input
+                    id="upi-id"
+                    placeholder="yourname@paytm"
+                    value={upiId}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setUpiId(e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>QR Code Upload</Label>
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-emerald-300 transition-colors">
+                    {qrCodePreview ? (
+                      <div className="space-y-3">
+                        <img 
+                          src={qrCodePreview} 
+                          alt="QR Code Preview" 
+                          className="w-24 h-24 mx-auto rounded-lg shadow-md object-contain"
+                        />
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={triggerFileInput}
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <Loader2 size={14} className="mr-2 animate-spin" />
+                            ) : (
+                              <Camera size={14} className="mr-2" />
+                            )}
+                            Change
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearQrCode}
+                            disabled={isUploading}
+                          >
+                            <Trash2 size={14} className="mr-2" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Upload QR Code</p>
+                          <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={triggerFileInput}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 size={14} className="mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Choose File'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    <input
+                      id="qr-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrCodeUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleUpiSave} 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!upiId.trim() || submitting}
+                >
+                  {submitting ? (
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle size={16} className="mr-2" />
+                  )}
+                  Save Payment Details
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Award Credits Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <CreditCard className="text-blue-600" size={20} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Award Credits</CardTitle>
+                    <CardDescription>Grant hours to parents after payment confirmation</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Dialog open={awardCreditsDialog} onOpenChange={setAwardCreditsDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      <DollarSign size={16} className="mr-2" />
+                      Award New Credits
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Award Class Credits</DialogTitle>
+                      <DialogDescription>
+                        Confirm payment received and award credits to parent
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="parent-email">Parent Email</Label>
+                        <Input
+                          id="parent-email"
+                          type="email"
+                          placeholder="parent@email.com"
+                          value={parentEmail}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => setParentEmail(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="credit-hours">Credit Hours</Label>
+                          <Input
+                            id="credit-hours"
+                            type="number"
+                            placeholder="4"
+                            value={creditHours}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setCreditHours(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-amount">Amount (₹)</Label>
+                          <Input
+                            id="payment-amount"
+                            type="number"
+                            placeholder="2000"
+                            value={paymentAmount}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="payment-note">Note (Optional)</Label>
+                        <Textarea
+                          id="payment-note"
+                          placeholder="Payment for Mathematics classes..."
+                          value={paymentNote}
+                          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPaymentNote(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setAwardCreditsDialog(false)}
+                          className="flex-1"
+                          disabled={submitting}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleCreditAward}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                          disabled={submitting}
+                        >
+                          {submitting ? (
+                            <Loader2 size={16} className="mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} className="mr-2" />
+                          )}
+                          Award Credits
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payment History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock size={20} />
+                Recent Payments
+              </CardTitle>
+              <CardDescription>Track payment confirmations and credits awarded</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {credits.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CreditCard size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p>No payment history yet</p>
+                    <p className="text-sm">Credits awarded will appear here</p>
+                  </div>
+                ) : (
+                  credits.map((credit: PaymentRecord) => (
+                    <div key={credit.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                            {credit.profiles?.full_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="font-medium text-gray-900 text-sm">{credit.profiles?.full_name || 'Unknown'}</h4>
+                          <p className="text-xs text-gray-600">{credit.description}</p>
+                          <p className="text-xs text-gray-500">{credit.profiles?.email || ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">₹{credit.amount.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">{new Date(credit.created_at).toLocaleDateString()}</p>
+                        <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                          ✅ Confirmed
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="parent" className="space-y-6">
+          {/* Teacher QR Code Display */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <Avatar className="w-12 h-12">
+                  <AvatarFallback className="bg-blue-100 text-blue-600">
+                    {profile?.full_name?.charAt(0) || 'T'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle>{profile?.full_name || 'Teacher'}</CardTitle>
+                  <CardDescription>Teacher</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="font-semibold">UPI ID</Label>
+                    <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+                      <p className="font-mono">{profile?.upi_id || 'Not set'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Payment Instructions</Label>
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <ul className="space-y-1 text-sm text-blue-800">
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">1️⃣</span>
+                          Scan the QR code or use the UPI ID above
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">2️⃣</span>
+                          Enter the amount and complete payment
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">3️⃣</span>
+                          Screenshot the payment confirmation
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">4️⃣</span>
+                          Send confirmation to teacher for credit approval
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <Label className="font-semibold mb-4">Scan to Pay</Label>
+                  <div className="w-40 h-40 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                    {profile?.qr_code_url ? (
+                      <img 
+                        src={profile.qr_code_url} 
+                        alt="Payment QR Code" 
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                    ) : (
+                      <div className="text-center space-y-2">
+                        <QrCode size={32} className="text-gray-400 mx-auto" />
+                        <p className="text-xs text-gray-500">QR Code not uploaded yet</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2 text-center">
+                    Use any UPI app to scan and pay
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default PaymentCreditsPage;
