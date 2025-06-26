@@ -3,6 +3,40 @@
 
 import type { ClassLog, ClassStats, LiveClassInfo, EnhancedClassLog } from '@/types/database-enhanced'
 
+// Define interfaces that match the actual database JSONB structure
+interface Screenshot {
+  timestamp: string
+  type: string
+  format: string
+  size: number
+}
+
+interface ManualNotes {
+  class_description?: string
+  topics_covered?: string
+  homework_assigned?: string
+  key_points?: string
+  classDescription?: string
+  topicsCovered?: string
+  homeworkAssigned?: string
+  keyPoints?: string
+}
+
+interface ExtensionData {
+  manual_notes?: ManualNotes
+  screenshots_taken?: number
+}
+
+interface ParsedAttachments {
+  screenshots?: Screenshot[]
+  manual_notes?: ManualNotes
+  extension_data?: ExtensionData
+  last_screenshot?: Screenshot
+  total_screenshots?: number
+  screenshots_taken?: number
+  features_used?: string[]
+}
+
 /**
  * Check if a class is currently live
  */
@@ -92,26 +126,26 @@ function parseTopicsCovered(topicsString: string[] | string | null): string[] {
 
 /**
  * Parse attachments field and extract data safely
+ * Handles the ClassLog attachments field which can be JSONB or null
  */
-function parseAttachments(attachments: any) {
+function parseAttachments(attachments: ClassLog['attachments']): ParsedAttachments | null {
   if (!attachments) return null
   
-  // If it's already an object, return it
-  if (typeof attachments === 'object') {
-    return attachments
-  }
-  
-  // If it's a string, try to parse it
-  if (typeof attachments === 'string') {
-    try {
-      return JSON.parse(attachments)
-    } catch (e) {
-      console.warn('Failed to parse attachments:', attachments, e)
-      return null
+  // The attachments field from ClassLog is already typed, so we can use it directly
+  // We need to map the ClassLog attachments type to our ParsedAttachments type
+  try {
+    // Handle case where attachments might be a string (shouldn't happen with JSONB but just in case)
+    if (typeof attachments === 'string') {
+      const parsed = JSON.parse(attachments) as ParsedAttachments
+      return parsed
     }
+    
+    // If it's already an object (which it should be from JSONB), cast it appropriately
+    return attachments as ParsedAttachments
+  } catch (e) {
+    console.warn('Failed to parse attachments:', attachments, e)
+    return null
   }
-  
-  return null
 }
 
 /**

@@ -1,5 +1,5 @@
 // src/components/MyClassesView.tsx
-// Enhanced with modern UI effects and vibrant design
+// Enhanced with modern UI effects, vibrant design, and sleek compact header
 
 'use client'
 
@@ -16,7 +16,6 @@ import {
   Plus,
   Upload,
   Sparkles,
-  UserCheck,
   Play,
   Brain,
   Target,
@@ -38,11 +37,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 // Custom components
 import ClassCard from './ClassCard'
-import LiveIndicator from './LiveIndicator'
 
 // Hooks and utilities
 import { useClassLogs } from '@/hooks/useClassLogs'
-import { formatFileSize } from '@/lib/class-utils'
 import type { MyClassesViewProps, StatsCardProps } from '@/types/database-enhanced'
 
 // Enhanced stats card with modern design
@@ -51,7 +48,6 @@ const StatsCard: React.FC<StatsCardProps> = ({
   value, 
   subtitle, 
   icon: Icon, 
-  className = "",
   isAnimated = false
 }) => {
   const gradients = [
@@ -148,6 +144,7 @@ const MyClassesView: React.FC<MyClassesViewProps> = ({ teacherId }) => {
   // Handle manual log submission
   const handleManualLogSubmit = async () => {
     try {
+
       console.log('Manual log submission:', manualLogForm)
       
       setManualLogForm({
@@ -162,6 +159,7 @@ const MyClassesView: React.FC<MyClassesViewProps> = ({ teacherId }) => {
       
       await refreshData()
     } catch (err) {
+    
       console.error('Error creating manual log:', err)
     }
   }
@@ -236,27 +234,30 @@ const MyClassesView: React.FC<MyClassesViewProps> = ({ teacherId }) => {
       </div>
 
       <div className="relative z-10 space-y-8 p-6">
-        {/* Enhanced Header */}
-        <div className="text-center space-y-4">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-xl opacity-30 animate-pulse" />
-            <div className="relative h-20 w-20 bg-gradient-to-br from-emerald-500 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-all duration-300">
-              <BookOpen className="h-10 w-10 text-white" />
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center animate-bounce">
-                <span className="text-white text-xs font-bold">{stats.liveClasses}</span>
+        {/* Sleek Compact Header */}
+        <div className="text-center py-4">
+          <div className="flex items-center justify-center gap-4">
+            <div className="relative">
+              <div className="h-12 w-12 bg-gradient-to-br from-emerald-500 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300">
+                <BookOpen className="h-6 w-6 text-white" />
+                {stats.liveClasses > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-bounce">
+                    <span className="text-white text-xs font-bold">{stats.liveClasses}</span>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
-              My Classes 🚀
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2 flex items-center justify-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
-              Auto-detected magic with live tracking
-              <Zap className="w-5 h-5 text-blue-500" />
-            </p>
+            
+            <div className="text-left">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
+                My Classes 🚀
+              </h1>
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                <Sparkles className="w-4 h-4 text-yellow-500 animate-spin" />
+                Auto-detected magic with live tracking
+                <Zap className="w-4 h-4 text-blue-500" />
+              </p>
+            </div>
           </div>
         </div>
 
@@ -471,7 +472,7 @@ const MyClassesView: React.FC<MyClassesViewProps> = ({ teacherId }) => {
                       Add Manual Class Log
                     </DialogTitle>
                     <DialogDescription>
-                      Record a class session that wasn't auto-detected
+                      Record a class session that wasn&apos;t auto-detected
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">

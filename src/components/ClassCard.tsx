@@ -77,7 +77,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
-      return <Image className="h-4 w-4" />
+      return <Image className="h-4 w-4"  />
     }
     return <FileIcon className="h-4 w-4" />
   }
@@ -360,7 +360,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
                   <div className="text-center py-8 text-muted-foreground">
                     <FileIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No files uploaded yet</p>
-                    <p className="text-sm">Click "Upload Files" to add materials</p>
+                    <p className="text-sm">Click &ldquo;Upload Files&rdquo; to add materials</p>
                   </div>
                 )}
               </TabsContent>

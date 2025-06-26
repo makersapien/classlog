@@ -25,18 +25,28 @@ interface TestResults {
 export default function LiveDataTest() {
   const [teacherId, setTeacherId] = useState('c9dbbf3f-0fb3-48e2-84a4-3816f574d20e') // Default from your data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [classLogs, setClassLogs] = useState<ClassLog[]>([])
   const [enhancedLogs, setEnhancedLogs] = useState<EnhancedClassLog[]>([])
   const [testResults, setTestResults] = useState<TestResults | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Auto-fetch data when component mounts - useful for testing
+  useEffect(() => {
+    // Auto-fetch with default values on component mount
+    if (teacherId && selectedDate) {
+      fetchRealData()
+    }
+  }, []) // Empty dependency array means this runs once on mount
 
   const fetchRealData = async () => {
     setIsLoading(true)
     setError(null)
     
     try {
-      console.log('🔄 Fetching real data for teacher:', teacherId, 'date:', selectedDate)
+      // Remove console.log for production or use proper logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Fetching real data for teacher:', teacherId, 'date:', selectedDate)
+      }
       
       // Fetch actual class logs from your database
       const { data, error } = await supabase
@@ -51,18 +61,19 @@ export default function LiveDataTest() {
       }
 
       const rawLogs = (data as ClassLog[]) || []
-      console.log('✅ Found', rawLogs.length, 'class logs')
+      // Remove console.log for production or use proper logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Found', rawLogs.length, 'class logs')
+      }
       
       if (rawLogs.length === 0) {
         setError(`No class logs found for teacher ${teacherId} on ${selectedDate}. Try a different date or teacher ID.`)
-        setClassLogs([])
         setEnhancedLogs([])
         setTestResults(null)
         return
       }
 
-      setClassLogs(rawLogs)
-
+      
       // Enhance the logs using your actual utility functions
       const enhanced = rawLogs.map(log => enhanceClassLog(log))
       setEnhancedLogs(enhanced)
@@ -103,16 +114,16 @@ export default function LiveDataTest() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data'
       setError(errorMessage)
-      console.error('❌ Error fetching real data:', err)
+      // Remove console.error for production or use proper logging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error fetching real data:', err)
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Auto-fetch on component mount
-  useEffect(() => {
-    fetchRealData()
-  }, [])
+  
 
   const allTestsPassed = testResults && Object.values(testResults).every(test => test.passed)
 

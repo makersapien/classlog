@@ -4,7 +4,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Play, Clock } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { calculateDuration, isClassLive } from '@/lib/class-utils'
 import type { LiveIndicatorProps } from '@/types/database-enhanced'

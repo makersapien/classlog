@@ -70,7 +70,6 @@ export default function StudentsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [invitationUrl, setInvitationUrl] = useState('')
-  const [error, setError] = useState<string | null>(null)
 
   // Modal state for student details
   const [showStudentModal, setShowStudentModal] = useState(false)
@@ -124,7 +123,6 @@ export default function StudentsPage() {
       }
     } catch (error) {
       console.error('💥 Error fetching students:', error)
-      setError('Failed to load students data')
     } finally {
       setLoading(false)
     }
@@ -353,7 +351,7 @@ export default function StudentsPage() {
                 <h2 className="text-2xl font-bold text-amber-800 flex items-center gap-3">
                   📧 Pending Invitations
                 </h2>
-                <p className="text-amber-700 mt-2">Students who haven't completed their enrollment yet</p>
+                <p className="text-amber-700 mt-2">Students who haven&apos;t completed their enrollment yet</p>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
@@ -796,7 +794,7 @@ export default function StudentsPage() {
                   <p className="text-sm text-amber-800 flex items-center gap-2">
                     <span className="text-xl">⏰</span>
                     <span>This link expires in 7 days. The parent will use it to confirm enrollment and provide additional details.</span>
-                  </p>
+                    </p>
                 </div>
 
                 <button
