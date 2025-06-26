@@ -7,9 +7,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Define proper types for the request body
+interface StartClassRequestBody {
+  meetUrl: string
+  student_email: string
+  enrollment_id: string
+  token?: string
+}
+
+interface TokenValidationResponse {
+  success: boolean
+  teacher?: {
+    id: string
+    name: string
+    email: string
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: StartClassRequestBody = await request.json()
     const { meetUrl, student_email, enrollment_id, token } = body
 
     console.log('🚀 Starting class for enrollment:', enrollment_id)
@@ -22,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate token if provided and get teacher info
-    let teacherId = null;
+    let teacherId: string | null = null;
     if (token) {
       try {
         const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/teacher/tokens/validate`, {
@@ -40,7 +57,7 @@ export async function POST(request: NextRequest) {
           }, { status: 401 })
         }
 
-        const tokenData = await tokenResponse.json()
+        const tokenData: TokenValidationResponse = await tokenResponse.json()
         if (!tokenData.success || !tokenData.teacher) {
           return NextResponse.json({ 
             success: false, 
@@ -166,9 +183,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Start class API error:', error);
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false,
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 });
   }
 }

@@ -2,23 +2,63 @@
 
 import React, { useState } from 'react';
 
-// Define types for better TypeScript support
+// Define proper TypeScript interfaces based on your project structure
 interface StudentData {
+  id?: string;
+  student_id?: string;
+  student_name?: string;
+  parent_name?: string;
+  parent_email?: string;
+  subject?: string;
+  year_group?: string;
+  classes_per_week?: number;
+  classes_per_recharge?: number;
+  tentative_schedule?: string | { note: string } | null;
   whatsapp_group_url?: string | null;
   google_meet_url?: string | null;
   setup_completed?: boolean;
-  [key: string]: any; // Allow for additional properties
+  enrollment_date?: string;
+  status?: string;
+  class_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface APIErrorResponse {
+  error: string;
+  details?: string;
+  message?: string;
+}
+
+interface APISuccessResponse {
+  student?: StudentData;
+  success?: boolean;
+  message?: string;
 }
 
 interface APIResponse {
   status: number | string;
   ok: boolean;
-  data: any;
+  data: APISuccessResponse | APIErrorResponse;
+}
+
+interface TestData {
+  whatsapp_group_url?: string;
+  google_meet_url?: string;
+  setup_completed?: boolean;
+  student_name?: string;
+  parent_name?: string;
+  parent_email?: string;
+  subject?: string;
+  year_group?: string;
+  classes_per_week?: number;
+  classes_per_recharge?: number;
+  tentative_schedule?: string;
 }
 
 const APIDebugger = () => {
   const [enrollmentId, setEnrollmentId] = useState('');
-  const [testData, setTestData] = useState({
+  const [testData, setTestData] = useState<TestData>({
     whatsapp_group_url: 'https://chat.whatsapp.com/test123',
     google_meet_url: 'https://meet.google.com/test-meeting',
     setup_completed: true
@@ -33,7 +73,7 @@ const APIDebugger = () => {
       const response = await fetch(`/api/teacher/students/${enrollmentId}`, {
         method: 'GET'
       });
-      const result = await response.json();
+      const result: APISuccessResponse = await response.json();
       return result.student || null;
     } catch (error) {
       console.error('Error fetching current data:', error);
@@ -65,7 +105,7 @@ const APIDebugger = () => {
         body: JSON.stringify(testData)
       });
 
-      const result = await response.json();
+      const result: APISuccessResponse | APIErrorResponse = await response.json();
       
       console.log('📊 API Response:', {
         status: response.status,
@@ -106,6 +146,15 @@ const APIDebugger = () => {
     }
   };
 
+  const handleTestDataChange = (value: string) => {
+    try {
+      const parsedData = JSON.parse(value) as TestData;
+      setTestData(parsedData);
+    } catch {
+      // Silently handle JSON parse errors
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
@@ -135,13 +184,7 @@ const APIDebugger = () => {
               </label>
               <textarea
                 value={JSON.stringify(testData, null, 2)}
-                onChange={(e) => {
-                  try {
-                    setTestData(JSON.parse(e.target.value));
-                  } catch {
-                    // Silently handle JSON parse errors
-                  }
-                }}
+                onChange={(e) => handleTestDataChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 rows={8}
               />

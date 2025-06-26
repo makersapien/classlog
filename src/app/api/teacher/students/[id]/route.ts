@@ -78,11 +78,18 @@ interface ClassUpdate {
   grade?: string
 }
 
+// Next.js 15 requires Promise<{ params }> type for route handlers
+interface RouteContext {
+  params: Promise<{ id: string }>
+}
+
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
-  console.log('🔄 PATCH: Updating student with ID:', params.id)
+  // Await the params Promise for Next.js 15
+  const { id } = await context.params
+  console.log('🔄 PATCH: Updating student with ID:', id)
   
   try {
     // Create Supabase client
@@ -105,7 +112,7 @@ export async function PATCH(
     const updateData: UpdateStudentData = body
 
     // Validate enrollment ID
-    const enrollmentId = params.id
+    const enrollmentId = id
     if (!enrollmentId) {
       console.error('❌ Invalid enrollment ID')
       return NextResponse.json({ error: 'Invalid enrollment ID' }, { status: 400 })
@@ -411,9 +418,11 @@ export async function PATCH(
 // GET method to fetch single student details (for debugging)
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
-  console.log('🔄 GET: Fetching student details for ID:', params.id)
+  // Await the params Promise for Next.js 15
+  const { id } = await context.params
+  console.log('🔄 GET: Fetching student details for ID:', id)
   
   try {
     const supabase = createRouteHandlerClient({ cookies })
@@ -425,7 +434,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    const enrollmentId = params.id
+    const enrollmentId = id
 
     // Fetch enrollment
     const { data: enrollment, error: fetchError } = await supabase

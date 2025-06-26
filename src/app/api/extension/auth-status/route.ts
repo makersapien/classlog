@@ -7,6 +7,23 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Define proper types for the API response
+interface TeacherProfile {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: 'teacher' | 'student' | 'parent'
+}
+
+interface TokenData {
+  id: string
+  teacher_id: string
+  token: string
+  is_active: boolean
+  expires_at: string
+  teacher: TeacherProfile | TeacherProfile[] | null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -40,7 +57,7 @@ export async function POST(request: NextRequest) {
       `)
       .eq('token', token)
       .eq('is_active', true)
-      .single()
+      .single() as { data: TokenData | null, error: unknown }
 
     if (tokenError || !tokenData) {
       console.log('❌ Invalid or expired token')
@@ -61,8 +78,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Fix: Handle the case where teacher might be an array due to Supabase join
+    // When using foreign key relationships in Supabase, sometimes the result can be an array
+    const teacherProfile = Array.isArray(tokenData.teacher) 
+      ? tokenData.teacher[0] 
+      : tokenData.teacher
+
     // Verify the user is a teacher
-    if (tokenData.teacher?.role !== 'teacher') {
+    if (!teacherProfile || teacherProfile.role !== 'teacher') {
       console.log('❌ User is not a teacher')
       return NextResponse.json({ 
         success: false, 
@@ -71,22 +94,26 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('✅ Valid teacher token for:', tokenData.teacher.full_name)
+    console.log('✅ Valid teacher token for:', teacherProfile.full_name)
 
     return NextResponse.json({
       success: true,
       loggedIn: true,
       teacherId: tokenData.teacher_id,
-      teacherName: tokenData.teacher?.full_name,
-      teacherEmail: tokenData.teacher?.email
+      teacherName: teacherProfile.full_name,
+      teacherEmail: teacherProfile.email
     })
 
   } catch (error) {
     console.error('❌ Auth status API Error:', error)
+    
+    // Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
       loggedIn: false,
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + errorMessage 
     })
   }
 }

@@ -7,9 +7,24 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Define proper types for the screenshot data
+interface ScreenshotMetadata {
+  timestamp: string
+  type: string
+  format: string
+  size: number
+}
+
+interface ScreenshotRequestBody {
+  class_log_id: string
+  screenshot_data: string
+  screenshot_type?: string
+  timestamp?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: ScreenshotRequestBody = await request.json()
     const { class_log_id, screenshot_data, screenshot_type = 'manual', timestamp } = body
 
     if (!class_log_id || !screenshot_data) {
@@ -37,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare screenshot metadata
-    const screenshotMetadata = {
+    const screenshotMetadata: ScreenshotMetadata = {
       timestamp: timestamp || new Date().toISOString(),
       type: screenshot_type,
       format: 'png',
@@ -46,7 +61,9 @@ export async function POST(request: NextRequest) {
 
     // Update class log attachments with screenshot info
     const existingAttachments = classLog.attachments || {}
-    const screenshots = existingAttachments.screenshots || []
+    const screenshots = Array.isArray(existingAttachments.screenshots) 
+      ? existingAttachments.screenshots 
+      : []
     
     screenshots.push(screenshotMetadata)
     
@@ -86,9 +103,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Screenshot API Error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

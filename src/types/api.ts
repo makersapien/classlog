@@ -1,6 +1,8 @@
 // src/types/api.ts
 // Comprehensive TypeScript types to replace 'any' usage
 
+import React from 'react';
+
 // Database row types
 export interface Teacher {
     id: string;
@@ -112,10 +114,10 @@ export interface Teacher {
     setup_completed: boolean;
   }
   
-  // Event handler types
-  export interface FormSubmitEvent extends React.FormEvent<HTMLFormElement> {}
-  export interface InputChangeEvent extends React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> {}
-  export interface ButtonClickEvent extends React.MouseEvent<HTMLButtonElement | HTMLDivElement> {}
+  // Event handler types - use type aliases instead of empty interfaces
+  export type FormSubmitEvent = React.FormEvent<HTMLFormElement>;
+  export type InputChangeEvent = React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+  export type ButtonClickEvent = React.MouseEvent<HTMLButtonElement | HTMLDivElement>;
   
   // Component prop types
   export interface ModalProps {

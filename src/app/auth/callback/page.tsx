@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const role = searchParams?.get('role') || 'student'
@@ -114,5 +114,37 @@ export default function AuthCallback() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl">
+                <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v6m0 6v6" />
+                </svg>
+              </div>
+              <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                ClassLogger
+              </span>
+            </div>
+          </div>
+          
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-6"></div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading authentication...</h2>
+          <p className="text-gray-600">Preparing your sign-in experience...</p>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   )
 }

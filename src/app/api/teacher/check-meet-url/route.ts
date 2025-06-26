@@ -7,9 +7,35 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Define proper types for the API
+interface StudentProfile {
+  id: string
+  email: string
+  full_name: string
+}
+
+interface EnrollmentData {
+  id: string
+  student_id: string
+  class_id: string
+  teacher_id: string
+  google_meet_url: string
+  status: string
+  subject?: string
+  year_group?: string
+  enrollment_date: string
+  created_at: string
+  student: StudentProfile | StudentProfile[] | null
+}
+
+interface CheckMeetUrlRequestBody {
+  meetUrl: string
+  teacherId: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: CheckMeetUrlRequestBody = await request.json()
     const { meetUrl, teacherId } = body
 
     if (!meetUrl || !teacherId) {
@@ -45,13 +71,13 @@ export async function POST(request: NextRequest) {
       .eq('google_meet_url', meetUrl)
       .eq('teacher_id', teacherId)
       .eq('status', 'active')
-      .order('created_at', { ascending: false }) // Get most recent first
+      .order('created_at', { ascending: false }) as { data: EnrollmentData[] | null, error: unknown }
 
     if (enrollmentError) {
       console.error('❌ Database error:', enrollmentError)
       return NextResponse.json({ 
         success: false, 
-        error: 'Database query failed: ' + enrollmentError.message 
+        error: 'Database query failed: ' + (enrollmentError instanceof Error ? enrollmentError.message : 'Unknown error')
       }, { status: 500 })
     }
 
@@ -72,8 +98,13 @@ export async function POST(request: NextRequest) {
       console.warn(`Found ${enrollments.length} enrollments for teacher ${teacherId} and URL ${meetUrl}`)
     }
 
+    // Fix: Handle the case where student might be an array due to Supabase join
+    const studentProfile = Array.isArray(enrollment.student) 
+      ? enrollment.student[0] 
+      : enrollment.student
+
     // Verify we have student data
-    if (!enrollment.student) {
+    if (!studentProfile) {
       console.error('❌ Incomplete enrollment data - missing student:', enrollment)
       return NextResponse.json({ 
         success: false, 
@@ -82,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Valid enrollment found:', {
-      student: enrollment.student.full_name,
+      student: studentProfile.full_name,
       subject: enrollment.subject || 'General Class',
       year_group: enrollment.year_group || 'Not specified'
     })
@@ -94,8 +125,8 @@ export async function POST(request: NextRequest) {
         id: enrollment.id,
         student_id: enrollment.student_id,
         class_id: enrollment.class_id,
-        student_name: enrollment.student.full_name,
-        student_email: enrollment.student.email,
+        student_name: studentProfile.full_name,
+        student_email: studentProfile.email,
         subject: enrollment.subject || 'General Class',
         year_group: enrollment.year_group || 'Grade 10',
         google_meet_url: enrollment.google_meet_url,
@@ -103,14 +134,18 @@ export async function POST(request: NextRequest) {
         status: enrollment.status,
         enrollment_date: enrollment.enrollment_date
       },
-      message: `Enrollment verified for ${enrollment.student.full_name}`
+      message: `Enrollment verified for ${studentProfile.full_name}`
     })
 
   } catch (error) {
     console.error('❌ Check Meet URL API Error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

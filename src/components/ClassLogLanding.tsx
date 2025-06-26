@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { supabase } from '@/lib/supabase-client'; // Use the browser-compatible client
 
@@ -18,7 +18,7 @@ const ClassLoggerLanding = () => {
       const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`;
       console.log('🔗 Redirect URL:', redirectUrl);
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -163,7 +163,7 @@ const ClassLoggerLanding = () => {
         </div>
 
         <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account? 
+          Don&apos;t have an account? 
           <button className="text-emerald-600 hover:text-emerald-700 font-semibold ml-1 transition-colors duration-200">Sign up</button>
         </p>
       </div>
@@ -256,7 +256,7 @@ const ClassLoggerLanding = () => {
                   <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
                     <div>
                       <div className="text-4xl text-emerald-600 mb-3">📅</div>
-                      <h3 className="font-bold text-gray-900 text-lg">Today's Classes</h3>
+                      <h3 className="font-bold text-gray-900 text-lg">Today&apos;s Classes</h3>
                       <p className="text-sm text-gray-600 mt-1">Mathematics, Physics</p>
                     </div>
                     <div className="text-4xl font-bold text-emerald-600">4</div>

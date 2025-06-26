@@ -9,9 +9,14 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Define proper types
+interface RevokeTokenRequestBody {
+  teacherId: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { teacherId } = await request.json()
+    const { teacherId }: RevokeTokenRequestBody = await request.json()
 
     if (!teacherId) {
       return NextResponse.json({ 
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
       console.error('❌ Failed to revoke tokens:', error)
       return NextResponse.json({ 
         success: false, 
-        error: 'Failed to revoke tokens' 
+        error: 'Failed to revoke tokens: ' + error.message 
       }, { status: 500 })
     }
 
@@ -52,9 +57,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Revoke token API error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

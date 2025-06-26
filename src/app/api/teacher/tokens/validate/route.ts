@@ -10,9 +10,31 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Define proper types for the token validation
+interface TeacherProfile {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: 'teacher' | 'student' | 'parent'
+}
+
+interface TokenData {
+  id: string
+  teacher_id: string
+  expires_at: string
+  is_active: boolean
+  usage_count: number
+  last_used_at: string | null
+  profiles: TeacherProfile | TeacherProfile[] | null
+}
+
+interface ValidateTokenRequestBody {
+  token: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json()
+    const { token }: ValidateTokenRequestBody = await request.json()
 
     if (!token) {
       return NextResponse.json({ 
@@ -45,7 +67,7 @@ export async function POST(request: NextRequest) {
       `)
       .eq('token_hash', tokenHash)
       .eq('is_active', true)
-      .single()
+      .single() as { data: TokenData | null, error: unknown }
 
     if (tokenError || !tokenData) {
       console.log('❌ Token not found or invalid')
@@ -74,6 +96,11 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
+    // Fix: Handle the case where profiles might be an array due to Supabase join
+    const teacherProfile = Array.isArray(tokenData.profiles) 
+      ? tokenData.profiles[0] 
+      : tokenData.profiles
+
     // Update last used timestamp and usage count
     await supabase
       .from('extension_tokens')
@@ -83,7 +110,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', tokenData.id)
 
-    console.log('✅ Token validated successfully for teacher:', tokenData.profiles?.full_name)
+    console.log('✅ Token validated successfully for teacher:', teacherProfile?.full_name)
 
     // Calculate days until expiry
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -92,9 +119,9 @@ export async function POST(request: NextRequest) {
       success: true,
       teacher: {
         id: tokenData.teacher_id,
-        name: tokenData.profiles?.full_name || 'Teacher',
-        email: tokenData.profiles?.email || '',
-        user_type: tokenData.profiles?.role
+        name: teacherProfile?.full_name || 'Teacher',
+        email: teacherProfile?.email || '',
+        user_type: teacherProfile?.role
       },
       token_info: {
         expires_at: tokenData.expires_at,
@@ -106,9 +133,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Validate token API error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

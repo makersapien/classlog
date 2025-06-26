@@ -7,10 +7,39 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Define proper types for the class content and update data
+interface ClassContent {
+  content_summary?: string
+  topics_covered?: string[]
+  homework_assigned?: string
+  duration_minutes?: number
+  max_participants?: number
+  features_used?: string[]
+  screenshots_taken?: number
+  manual_notes?: Record<string, unknown>
+}
+
+interface ClassLogUpdateData {
+  end_time: string
+  status: string
+  duration_minutes: number
+  updated_at: string
+  content?: string
+  topics_covered?: string[]
+  homework_assigned?: string | null
+  attachments?: Record<string, unknown>
+  attendance_count?: number
+  total_students?: number
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { class_log_id, classContent, token } = body
+    const { class_log_id, classContent, token }: {
+      class_log_id: string
+      classContent?: ClassContent
+      token?: string
+    } = body
 
     console.log('🛑 Ending class:', class_log_id)
 
@@ -79,8 +108,8 @@ export async function POST(request: NextRequest) {
     const endTime = new Date()
     const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
 
-    // Prepare the update data - using your actual column names
-    const updateData = {
+    // Prepare the update data - properly typed to include all possible fields
+    const updateData: ClassLogUpdateData = {
       end_time: endTime.toISOString(),
       status: 'completed',
       duration_minutes: durationMinutes,
@@ -149,9 +178,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ End class API error:', error)
+    
+    // Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

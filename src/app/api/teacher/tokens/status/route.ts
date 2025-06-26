@@ -9,6 +9,16 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Define proper types
+interface TokenStatusData {
+  id: string
+  expires_at: string
+  created_at: string
+  last_used_at: string | null
+  usage_count: number
+  is_active: boolean
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -38,10 +48,15 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle() as { data: TokenStatusData | null, error: unknown }
 
-    // ESLint fix: Use tokenError variable for debugging
-    console.log('Debug: Token query error for monitoring:', tokenError)
+    if (tokenError) {
+      console.error('❌ Database error checking token status:', tokenError)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database error: ' + (tokenError instanceof Error ? tokenError.message : 'Unknown error')
+      }, { status: 500 })
+    }
 
     const now = new Date()
     
@@ -110,9 +125,13 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Token status API error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

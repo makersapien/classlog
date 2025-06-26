@@ -10,9 +10,21 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Define proper types
+interface TeacherProfile {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: 'teacher' | 'student' | 'parent'
+}
+
+interface GenerateTokenRequestBody {
+  teacherId: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { teacherId } = await request.json()
+    const { teacherId }: GenerateTokenRequestBody = await request.json()
 
     if (!teacherId) {
       return NextResponse.json({ 
@@ -29,7 +41,7 @@ export async function POST(request: NextRequest) {
       .select('id, full_name, email, role')
       .eq('id', teacherId)
       .eq('role', 'teacher')
-      .single()
+      .single() as { data: TeacherProfile | null, error: unknown }
 
     if (teacherError || !teacher) {
       console.log('❌ Teacher verification failed:', teacherError)
@@ -75,9 +87,6 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    // ESLint fix: Use newToken variable for debugging
-    console.log('Debug: New token created in database:', newToken)
-
     if (insertError) {
       console.error('❌ Failed to create token:', insertError)
       return NextResponse.json({ 
@@ -86,7 +95,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('✅ Extension token generated successfully')
+    console.log('✅ Extension token generated successfully', {
+      tokenId: newToken?.id,
+      expiresAt: expiryDate.toISOString()
+    })
 
     return NextResponse.json({
       success: true,
@@ -100,9 +112,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Generate token API error:', error)
+    
+    // Fix: Proper error handling with type safety
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
   }
 }

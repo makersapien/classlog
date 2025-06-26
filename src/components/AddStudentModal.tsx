@@ -17,6 +17,11 @@ interface AddStudentModalProps {
   onSuccess: () => void
 }
 
+interface TentativeSchedule {
+  days: string[]
+  time: string
+}
+
 interface FormData {
   student_name: string
   parent_name: string
@@ -25,13 +30,16 @@ interface FormData {
   year_group: string
   classes_per_week: number
   classes_per_recharge: number
-  tentative_schedule: {
-    days: string[]
-    time: string
-  }
+  tentative_schedule: TentativeSchedule
   whatsapp_group_url: string
   google_meet_url: string
 }
+
+// Define union types for form field values
+type FormFieldValue = string | number | TentativeSchedule
+
+// Union type for schedule field values
+type ScheduleFieldValue = string[] | string
 
 const SUBJECTS = {
   mathematics: 'Mathematics',
@@ -87,7 +95,7 @@ export default function AddStudentModal({ isOpen, onClose, onSuccess }: AddStude
   const [copied, setCopied] = useState(false)
   const [step, setStep] = useState<'form' | 'success'>('form')
 
-  const handleInputChange = (field: keyof FormData, value: any) => {
+  const handleInputChange = (field: keyof FormData, value: FormFieldValue) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -95,7 +103,7 @@ export default function AddStudentModal({ isOpen, onClose, onSuccess }: AddStude
     setError(null)
   }
 
-  const handleScheduleChange = (field: 'days' | 'time', value: any) => {
+  const handleScheduleChange = (field: keyof TentativeSchedule, value: ScheduleFieldValue) => {
     setFormData(prev => ({
       ...prev,
       tentative_schedule: {
