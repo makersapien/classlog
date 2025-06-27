@@ -1,8 +1,8 @@
 // src/app/dashboard/teacher/payments/PaymentCreditsPage.tsx
 'use client'
 
-import React, { useState, ChangeEvent, useEffect } from 'react';
-import { Upload, QrCode, CreditCard, CheckCircle, AlertCircle, User, Mail, Clock, DollarSign, Camera, Trash2, Loader2 } from 'lucide-react';
+import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
+import { Upload, QrCode, CreditCard, CheckCircle, Clock, DollarSign, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface PaymentRecord {
   id: string;
@@ -52,7 +51,6 @@ type UserRole = 'teacher' | 'parent';
 const PaymentCreditsPage: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('teacher');
   const [upiId, setUpiId] = useState<string>('');
-  const [qrCodeFile, setQrCodeFile] = useState<File | null>(null);
   const [qrCodePreview, setQrCodePreview] = useState<string>('');
   const [parentEmail, setParentEmail] = useState<string>('');
   const [creditHours, setCreditHours] = useState<string>('');
@@ -69,11 +67,7 @@ const PaymentCreditsPage: React.FC = () => {
   const { toast } = useToast();
 
   // Fetch data on component mount
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       console.log('Fetching payment data...');
@@ -109,77 +103,14 @@ const PaymentCreditsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const uploadToSupabase = async (file: File): Promise<string | null> => {
-    try {
-      // Use user ID as filename to ensure one QR code per user
-      const fileExt = file.name.split('.').pop() || 'png';
-      const fileName = `qr_${profile?.id}.${fileExt}`; // Fixed filename based on user ID
-      const filePath = fileName;
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-      console.log('Uploading/Replacing file:', fileName, 'Size:', file.size);
+  // Remove the unused uploadToSupabase function since we're using base64
 
-      // Check if user already has a QR code and delete it first
-      if (profile?.qr_code_url) {
-        try {
-          // Extract filename from existing URL
-          const existingUrl = profile.qr_code_url;
-          const urlParts = existingUrl.split('/');
-          const existingFileName = urlParts[urlParts.length - 1];
-          
-          console.log('Removing existing QR code:', existingFileName);
-          
-          const { error: deleteError } = await supabase.storage
-            .from('payment-qr-codes')
-            .remove([existingFileName]);
-
-          if (deleteError) {
-            console.warn('Could not delete existing QR code:', deleteError);
-            // Continue with upload even if delete fails
-          }
-        } catch (deleteErr) {
-          console.warn('Error deleting existing QR code:', deleteErr);
-          // Continue with upload
-        }
-      }
-
-      // Upload new file (upsert: true will replace if exists)
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('payment-qr-codes')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true // This will replace existing file with same name
-        });
-
-      if (uploadError) {
-        console.error('Upload error details:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-
-      if (!uploadData) {
-        throw new Error('No upload data returned');
-      }
-
-      console.log('Upload successful:', uploadData);
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('payment-qr-codes')
-        .getPublicUrl(filePath);
-
-      if (!publicUrl) {
-        throw new Error('Failed to generate public URL');
-      }
-
-      console.log('Public URL generated:', publicUrl);
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
-  };
-
-  // Simple base64 upload - no storage bucket needed
   const uploadAsBase64 = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -230,7 +161,6 @@ const PaymentCreditsPage: React.FC = () => {
     }
 
     setIsUploading(true);
-    setQrCodeFile(file);
 
     try {
       console.log('Converting file to base64...');
@@ -266,7 +196,6 @@ const PaymentCreditsPage: React.FC = () => {
       
       // Reset preview on error
       setQrCodePreview('');
-      setQrCodeFile(null);
       
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -414,7 +343,6 @@ const PaymentCreditsPage: React.FC = () => {
 
       // Update local state
       setQrCodePreview('');
-      setQrCodeFile(null);
       setProfile(prev => prev ? { ...prev, qr_code_url: undefined } : null);
       
       toast({
@@ -844,9 +772,11 @@ const PaymentCreditsPage: React.FC = () => {
                   <Label className="font-semibold mb-4">Scan to Pay</Label>
                   <div className="w-40 h-40 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     {profile?.qr_code_url ? (
-                      <img 
+                      <Image 
                         src={profile.qr_code_url} 
                         alt="Payment QR Code" 
+                        width={160}
+                        height={160}
                         className="w-full h-full object-contain rounded-lg"
                       />
                     ) : (

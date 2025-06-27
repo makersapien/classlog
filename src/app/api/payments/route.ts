@@ -2,10 +2,51 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-export async function GET(request: NextRequest) {
+// Import your existing database types
+import { Database } from '@/types/database'
+
+type TypedSupabaseClient = SupabaseClient<Database>
+
+// Simple types for the UPI + manual credit flow
+interface ProfileData {
+  id: string
+  role: 'teacher' | 'parent' | 'student'
+  upi_id: string | null
+  qr_code_url: string | null  // base64 string
+  full_name: string | null
+  email: string
+}
+
+// Simple payment record for manual credits
+interface PaymentRecord {
+  id: string
+  student_id: string
+  amount: number
+  status: 'paid'  // Always paid since teacher manually confirms
+  payment_date: string
+  month_year: string
+  notes: string
+  created_at: string
+  profiles: {
+    full_name: string | null
+    email: string
+  } | null
+  classes: {
+    name: string
+    subject: string
+  } | null
+}
+
+interface ResponseData {
+  profile: ProfileData
+  payments: PaymentRecord[]
+}
+
+export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
@@ -16,10 +57,10 @@ export async function GET(request: NextRequest) {
 
     console.log('Fetching profile for user:', user.id);
 
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
+    // Get user profile - cast result to handle missing UPI fields
+    const { data: rawProfile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, role, upi_id, qr_code_url, full_name, email')
+      .select('*')
       .eq('id', user.id)
       .single()
 
@@ -31,17 +72,27 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    if (!profile) {
+    if (!rawProfile) {
       console.error('No profile found for user:', user.id);
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Safely extract profile data including UPI fields
+    const profile: ProfileData = {
+      id: rawProfile.id as string,
+      role: rawProfile.role as 'teacher' | 'parent' | 'student',
+      full_name: rawProfile.full_name as string | null,
+      email: rawProfile.email as string,
+      upi_id: (rawProfile as Record<string, unknown>).upi_id as string | null || null,
+      qr_code_url: (rawProfile as Record<string, unknown>).qr_code_url as string | null || null
     }
 
     console.log('Profile found:', profile);
 
     // Initialize response data
-    const responseData = {
+    const responseData: ResponseData = {
       profile,
-      payments: [] as any[]
+      payments: []
     };
 
     // Fetch payments based on user role
@@ -49,23 +100,10 @@ export async function GET(request: NextRequest) {
       try {
         console.log('Fetching payments for teacher...');
         
-        // For teachers, get payments from their classes
-        const { data: payments, error: paymentsError } = await supabase
+        // For teachers, get their manual payment records (simplified)
+        const { data: rawPayments, error: paymentsError } = await supabase
           .from('payments')
-          .select(`
-            id,
-            student_id,
-            class_id,
-            amount,
-            status,
-            payment_date,
-            due_date,
-            month_year,
-            notes,
-            created_at,
-            profiles!payments_student_id_fkey(full_name, email),
-            classes(name, subject)
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(20)
 
@@ -73,8 +111,21 @@ export async function GET(request: NextRequest) {
           console.error('Payments fetch error:', paymentsError);
           responseData.payments = [];
         } else {
-          console.log('Payments found:', payments?.length || 0);
-          responseData.payments = payments || [];
+          console.log('Payments found:', rawPayments?.length || 0);
+          
+          // Transform to simple format for manual credits
+          responseData.payments = (rawPayments || []).map((payment: Record<string, unknown>) => ({
+            id: payment.id as string,
+            student_id: payment.student_id as string,
+            amount: Number(payment.amount) || 0,
+            status: 'paid' as const,
+            payment_date: payment.paid_date as string || payment.created_at as string,
+            month_year: payment.created_at ? new Date(payment.created_at as string).toISOString().slice(0, 7) : '',
+            notes: `Manual credit award - Payment confirmed by teacher`,
+            created_at: payment.created_at as string,
+            profiles: null, // Will be populated by frontend if needed
+            classes: null   // Will be populated by frontend if needed
+          }));
         }
       } catch (paymentsErr) {
         console.error('Payments fetch exception:', paymentsErr);
@@ -94,28 +145,27 @@ export async function GET(request: NextRequest) {
         if (!childrenError && children && children.length > 0) {
           const childIds = children.map(child => child.id);
           
-          const { data: payments, error: paymentsError } = await supabase
+          // For parents, get their children's payment records
+          const { data: rawPayments, error: paymentsError } = await supabase
             .from('payments')
-            .select(`
-              id,
-              student_id,
-              class_id,
-              amount,
-              status,
-              payment_date,
-              due_date,
-              month_year,
-              notes,
-              created_at,
-              profiles!payments_student_id_fkey(full_name, email),
-              classes(name, subject)
-            `)
+            .select('*')
             .in('student_id', childIds)
             .order('created_at', { ascending: false })
             .limit(20)
 
-          if (!paymentsError) {
-            responseData.payments = payments || [];
+          if (!paymentsError && rawPayments) {
+            responseData.payments = rawPayments.map((payment: Record<string, unknown>) => ({
+              id: payment.id as string,
+              student_id: payment.student_id as string,
+              amount: Number(payment.amount) || 0,
+              status: 'paid' as const,
+              payment_date: payment.paid_date as string || payment.created_at as string,
+              month_year: payment.created_at ? new Date(payment.created_at as string).toISOString().slice(0, 7) : '',
+              notes: `Payment received - Credit hours awarded`,
+              created_at: payment.created_at as string,
+              profiles: null,
+              classes: null
+            }));
           }
         }
       } catch (paymentsErr) {
@@ -134,9 +184,19 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface PostRequestBody {
+  action: 'save_upi' | 'award_credits'
+  upi_id?: string
+  qr_code_url?: string  // base64 string
+  parent_email?: string
+  credit_hours?: number
+  payment_amount?: number
+  payment_note?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
@@ -144,7 +204,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as PostRequestBody
     const { action, ...data } = body
 
     console.log('Payment API POST:', action, data);
@@ -154,8 +214,6 @@ export async function POST(request: NextRequest) {
         return await handleUpiSave(supabase, user.id, data)
       case 'award_credits':
         return await handleAwardCredits(supabase, user.id, data)
-      case 'create_payment':
-        return await handleCreatePayment(supabase, user.id, data)
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -165,26 +223,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleUpiSave(supabase: any, userId: string, data: any) {
-  const { upi_id } = data
+async function handleUpiSave(
+  supabase: TypedSupabaseClient, 
+  userId: string, 
+  data: Partial<PostRequestBody>
+) {
+  const { upi_id, qr_code_url } = data
 
-  console.log('Saving UPI ID for user:', userId, 'UPI:', upi_id);
+  if (!upi_id) {
+    return NextResponse.json({ error: 'UPI ID is required' }, { status: 400 })
+  }
+
+  console.log('Saving UPI data for user:', userId);
+
+  // Update both UPI ID and QR code (base64) if provided
+  const updateData: Record<string, unknown> = { upi_id }
+  if (qr_code_url) {
+    updateData.qr_code_url = qr_code_url
+  }
 
   const { error } = await supabase
     .from('profiles')
-    .update({ upi_id })
+    .update(updateData)
     .eq('id', userId)
 
   if (error) {
     console.error('UPI save error:', error);
-    return NextResponse.json({ error: 'Failed to save UPI ID' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to save UPI data' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, message: 'UPI ID saved successfully' })
+  return NextResponse.json({ success: true, message: 'UPI data saved successfully' })
 }
 
-async function handleAwardCredits(supabase: any, teacherId: string, data: any) {
-  const { parent_email, credit_hours, payment_amount, payment_note } = data
+async function handleAwardCredits(
+  supabase: TypedSupabaseClient, 
+  teacherId: string, 
+  data: Partial<PostRequestBody>
+) {
+  const { parent_email, credit_hours, payment_amount } = data
+
+  if (!parent_email || !credit_hours || !payment_amount) {
+    return NextResponse.json({ 
+      error: 'Parent email, credit hours, and payment amount are required' 
+    }, { status: 400 })
+  }
 
   console.log('Creating payment record:', { parent_email, credit_hours, payment_amount });
 
@@ -216,21 +298,17 @@ async function handleAwardCredits(supabase: any, teacherId: string, data: any) {
   // For now, use the first child (you might want to modify this logic)
   const studentId = children[0].id;
 
-  // Create payment record
+  // Create simple payment record for manual credit award
   const currentDate = new Date();
-  const monthYear = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
 
   const { error: paymentError } = await supabase
     .from('payments')
     .insert({
       student_id: studentId,
-      amount: parseFloat(payment_amount),
-      status: 'paid',
-      payment_method: 'UPI',
-      payment_date: currentDate.toISOString().split('T')[0],
-      due_date: currentDate.toISOString().split('T')[0],
-      month_year: monthYear,
-      notes: `${credit_hours} hours credited - ${payment_note || 'Payment confirmed by teacher'}`
+      class_id: '', // Required field, use empty string
+      amount: payment_amount.toString(),
+      status: 'paid', // Always paid since teacher manually confirms
+      paid_date: currentDate.toISOString().split('T')[0]
     })
 
   if (paymentError) {
@@ -240,28 +318,6 @@ async function handleAwardCredits(supabase: any, teacherId: string, data: any) {
 
   return NextResponse.json({ 
     success: true, 
-    message: `Successfully recorded payment of ₹${payment_amount} for ${parent_email}` 
+    message: `Successfully awarded ${credit_hours} hours (₹${payment_amount}) to ${parent_email}` 
   })
-}
-
-async function handleCreatePayment(supabase: any, userId: string, data: any) {
-  const { student_id, class_id, amount, due_date, month_year, notes } = data
-
-  const { error } = await supabase
-    .from('payments')
-    .insert({
-      student_id,
-      class_id,
-      amount: parseFloat(amount),
-      due_date,
-      month_year,
-      notes
-    })
-
-  if (error) {
-    console.error('Payment creation error:', error);
-    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true, message: 'Payment created successfully' })
 }
