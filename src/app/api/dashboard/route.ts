@@ -26,6 +26,56 @@ interface ClassWithEnrollments {
   }>
 }
 
+// Enhanced class log types for the new view
+interface EnhancedClassLog {
+  id: string
+  class_id: string | null
+  teacher_id: string | null
+  date: string
+  content: string
+  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'in_progress'
+  attendance_count: number | null
+  total_students: number | null
+  created_at: string
+  updated_at: string
+  start_time: string | null
+  end_time: string | null
+  duration_minutes: number | null
+  google_meet_link: string | null
+  detected_automatically: boolean | null
+  student_name: string | null
+  student_email: string | null
+  enrollment_id: string | null
+  
+  // New content fields from the enhanced view
+  topic_1: string | null
+  topic_2: string | null
+  topic_3: string | null
+  topic_4: string | null
+  topic_5: string | null
+  homework_title: string | null
+  homework_description: string | null
+  homework_due_date: string | null
+  teacher_notes: string | null
+  student_performance: string | null
+  key_points: string | null
+  content_duration_minutes: number | null
+  participants_count: number | null
+  features_used: string | null
+  
+  // Computed fields from the view
+  topics_array: string[] | null
+  homework_summary: string | null
+}
+
+interface ProcessedClassLog extends EnhancedClassLog {
+  topics_display: string
+  topics_count: number
+  has_homework: boolean
+  homework_display: string
+  duration_display: string
+  features_display: string
+}
 
 interface ClassLogWithDetails {
   id: string
@@ -209,35 +259,139 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
 
     if (classesError) {
       console.error('❌ Classes query error:', classesError)
-      // Don't throw, just use empty array
     }
 
     const typedClasses = classes as ClassWithEnrollments[] | null
     console.log('✅ Classes fetched:', typedClasses?.length || 0)
 
-    // Get today's class logs with better error handling
+    // 🔧 UPDATED: Use the enhanced view for class logs
     const today = new Date().toISOString().split('T')[0]
-    console.log('📅 Fetching today\'s logs for date:', today)
+    console.log('📅 Fetching enhanced logs for date:', today)
     
-    const { data: todayLogs, error: logsError } = await supabase
-      .from('class_logs')
-      .select(`
-        *,
-        classes(name, subject, grade)
-      `)
+    const { data: enhancedLogs, error: logsError } = await supabase
+      .from('class_logs_enhanced')
+      .select('*')
       .eq('teacher_id', teacherId)
-      .eq('date', today)
+      .order('date', { ascending: false })
+      .limit(50)
 
     if (logsError) {
-      console.error('❌ Logs query error:', logsError)
-      // Don't throw, just use empty array
+      console.error('❌ Enhanced logs query error:', logsError)
+      console.log('🔄 Falling back to regular class_logs...')
+      
+      // Fallback to regular class_logs if enhanced view doesn't exist yet
+      const { data: regularLogs, error: regularLogsError } = await supabase
+        .from('class_logs')
+        .select(`
+          *,
+          classes(name, subject, grade)
+        `)
+        .eq('teacher_id', teacherId)
+        .order('date', { ascending: false })
+        .limit(50)
+
+      if (regularLogsError) {
+        console.error('❌ Regular logs query error:', regularLogsError)
+      }
+
+      // Process regular logs for backward compatibility
+      const processedRegularLogs: ProcessedClassLog[] = (regularLogs as ClassLogWithDetails[] || []).map((log: ClassLogWithDetails) => ({
+        // Core required fields from EnhancedClassLog
+        id: log.id,
+        class_id: log.class_id,
+        teacher_id: log.teacher_id,
+        date: log.date,
+        content: log.notes || '', // Map notes to content for compatibility
+        status: 'completed' as const, // Default status
+        attendance_count: log.attendance_count,
+        created_at: log.created_at,
+        updated_at: log.updated_at,
+        
+        // Enhanced fields (set to null for regular logs)
+        total_students: null,
+        start_time: null,
+        end_time: null,
+        duration_minutes: null,
+        google_meet_link: null,
+        detected_automatically: null,
+        student_name: null,
+        student_email: null,
+        enrollment_id: null,
+        topic_1: null,
+        topic_2: null,
+        topic_3: null,
+        topic_4: null,
+        topic_5: null,
+        homework_title: null,
+        homework_description: null,
+        homework_due_date: null,
+        teacher_notes: log.notes,
+        student_performance: null,
+        key_points: null,
+        content_duration_minutes: null,
+        participants_count: null,
+        features_used: null,
+        topics_array: null,
+        homework_summary: null,
+        
+        // Processed fields
+        topics_display: 'No topics recorded',
+        topics_count: 0,
+        has_homework: false,
+        homework_display: 'No homework assigned',
+        duration_display: 'Unknown duration',
+        features_display: 'Standard session'
+      }))
+
+      const todayRegularLogs = processedRegularLogs.filter((log: ProcessedClassLog) => log.date === today)
+
+      return NextResponse.json({
+        stats: {
+          totalClasses: typedClasses?.length || 0,
+          totalStudents: 0,
+          pendingPayments: 0,
+          totalRevenue: 0,
+          classesToday: todayRegularLogs.length,
+          attendanceToday: 0
+        },
+        classes: typedClasses || [],
+        classLogs: processedRegularLogs,
+        todaySchedule: todayRegularLogs,
+        recentMessages: [],
+        upcomingPayments: []
+      })
     }
 
-    const typedTodayLogs = todayLogs as ClassLogWithDetails[] | null
-    console.log('✅ Today\'s logs fetched:', typedTodayLogs?.length || 0)
+    const typedEnhancedLogs = enhancedLogs as EnhancedClassLog[] | null
+    console.log('✅ Enhanced logs fetched:', typedEnhancedLogs?.length || 0)
+
+    // Process enhanced logs for display with proper typing
+    const processedLogs: ProcessedClassLog[] = (typedEnhancedLogs || []).map((log: EnhancedClassLog) => ({
+      ...log,
+      // Topics are now readily available as topics_array
+      topics_display: log.topics_array?.join(', ') || 'No topics recorded',
+      topics_count: log.topics_array?.length || 0,
+      
+      // Homework is now readily available
+      has_homework: Boolean(log.homework_summary),
+      homework_display: log.homework_summary || 'No homework assigned',
+      
+      // Duration with fallback
+      duration_display: log.content_duration_minutes 
+        ? `${Math.floor(log.content_duration_minutes/60)}h ${log.content_duration_minutes%60}m`
+        : log.duration_minutes 
+        ? `${Math.floor(log.duration_minutes/60)}h ${log.duration_minutes%60}m`
+        : 'Unknown duration',
+        
+      // Features used
+      features_display: log.features_used || 'Standard session'
+    }))
+
+    // Filter today's logs with proper typing
+    const todayLogs: ProcessedClassLog[] = processedLogs.filter((log: ProcessedClassLog) => log.date === today)
 
     // Get payment statistics for teacher's classes with better error handling
-    const classIds = typedClasses?.map((c) => c.id) || []
+    const classIds = typedClasses?.map((c: ClassWithEnrollments) => c.id) || []
     let payments: Payment[] = []
     
     if (classIds.length > 0) {
@@ -249,7 +403,6 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
 
       if (paymentsError) {
         console.error('❌ Payments query error:', paymentsError)
-        // Don't throw, just use empty array
       } else {
         payments = paymentsData as Payment[] || []
       }
@@ -273,25 +426,25 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
 
     if (messagesError) {
       console.error('❌ Messages query error:', messagesError)
-      // Don't throw, just use empty array
     }
 
     const typedMessages = messages as MessageWithDetails[] | null
     console.log('✅ Messages fetched:', typedMessages?.length || 0)
 
     // Calculate statistics safely
-    const totalStudents = typedClasses?.reduce((sum: number, cls) => {
+    const totalStudents = typedClasses?.reduce((sum: number, cls: ClassWithEnrollments) => {
       const activeEnrollments = cls.enrollments?.filter((e) => e.status === 'active') || []
       return sum + activeEnrollments.length
     }, 0) || 0
 
-    const pendingPayments = payments?.filter((p) => p.status === 'pending').length || 0
-    const totalRevenue = payments?.filter((p) => p.status === 'paid')
-      .reduce((sum: number, p) => sum + parseFloat(p.amount || '0'), 0) || 0
+    const pendingPayments = payments.filter((p: Payment) => p.status === 'pending').length
+    const totalRevenue = payments
+      .filter((p: Payment) => p.status === 'paid')
+      .reduce((sum: number, p: Payment) => sum + parseFloat(p.amount || '0'), 0)
 
-    const classesToday = typedTodayLogs?.length || 0
-    const attendanceToday = typedTodayLogs?.reduce((sum: number, log) => 
-      sum + (log.attendance_count || 0), 0) || 0
+    const classesToday = todayLogs.length
+    const attendanceToday = todayLogs.reduce((sum: number, log: ProcessedClassLog) => 
+      sum + (log.attendance_count || 0), 0)
 
     const responseData = {
       stats: {
@@ -303,12 +456,15 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
         attendanceToday
       },
       classes: typedClasses || [],
-      todaySchedule: typedTodayLogs || [],
+      classLogs: processedLogs, // 👈 Enhanced logs with topics/homework ready
+      todaySchedule: todayLogs,
       recentMessages: typedMessages || [],
-      upcomingPayments: payments?.filter((p) => p.status === 'pending').slice(0, 5) || []
+      upcomingPayments: payments.filter((p: Payment) => p.status === 'pending').slice(0, 5)
     }
 
     console.log('✅ Teacher dashboard data prepared successfully')
+    console.log('📊 Sample enhanced log:', processedLogs[0]) // Debug first log
+
     return NextResponse.json(responseData)
 
   } catch (error) {

@@ -1,5 +1,5 @@
 // src/lib/class-utils.ts
-// Fixed utility functions for class management with proper data parsing
+// Fixed utility functions with improved PostgreSQL array parsing
 
 import type { ClassLog, ClassStats, LiveClassInfo, EnhancedClassLog } from '@/types/database-enhanced'
 
@@ -92,31 +92,54 @@ export function calculateDuration(startTime: string | null, endTime: string | nu
 }
 
 /**
- * Parse topics_covered field that comes as PostgreSQL array string
+ * Parse topics_covered field - FIXED for your database format
  */
-function parseTopicsCovered(topicsString: string[] | string | null): string[] {
-  if (!topicsString) return []
+function parseTopicsCovered(topicsData: string[] | string | null): string[] {
+  if (!topicsData) return []
   
   // If it's already an array, return it
-  if (Array.isArray(topicsString)) {
-    return topicsString
+  if (Array.isArray(topicsData)) {
+    return topicsData.filter(topic => topic && topic.trim().length > 0)
   }
   
-  // If it's a string that looks like PostgreSQL array format: '{"Topic 1","Topic 2"}'
-  if (typeof topicsString === 'string') {
+  // If it's a string, handle different PostgreSQL array formats
+  if (typeof topicsData === 'string') {
     try {
-      // Remove outer quotes and braces, then split
-      const cleaned = topicsString.replace(/^["\{]+|["\}]+$/g, '')
+      // Handle empty cases
+      if (!topicsData.trim() || topicsData === '{}' || topicsData === '[]') {
+        return []
+      }
+
+      // Try to parse as JSON first (if it's a valid JSON array)
+      try {
+        const jsonParsed = JSON.parse(topicsData)
+        if (Array.isArray(jsonParsed)) {
+          return jsonParsed.filter(topic => topic && topic.trim().length > 0)
+        }
+      } catch {
+        // Not JSON, continue with PostgreSQL array parsing
+      }
+
+      // Handle PostgreSQL array format: {topic1,topic2} or {"topic1","topic2"}
+      let cleaned = topicsData.trim()
+      
+      // Remove outer braces
+      if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+        cleaned = cleaned.slice(1, -1)
+      }
+      
       if (!cleaned) return []
       
       // Split by comma and clean each topic
-      const topics = cleaned.split('","').map(topic => 
-        topic.replace(/^"|"$/g, '').trim()
-      ).filter(topic => topic.length > 0)
+      const topics = cleaned.split(',').map(topic => {
+        // Remove quotes and trim
+        return topic.replace(/^"?(.*?)"?$/, '$1').trim()
+      }).filter(topic => topic.length > 0)
       
       return topics
-    } catch (e) {
-      console.warn('Failed to parse topics_covered:', topicsString, e)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Parse failed'
+      console.warn('Failed to parse topics_covered:', topicsData, errorMessage)
       return []
     }
   }
@@ -126,13 +149,10 @@ function parseTopicsCovered(topicsString: string[] | string | null): string[] {
 
 /**
  * Parse attachments field and extract data safely
- * Handles the ClassLog attachments field which can be JSONB or null
  */
 function parseAttachments(attachments: ClassLog['attachments']): ParsedAttachments | null {
   if (!attachments) return null
   
-  // The attachments field from ClassLog is already typed, so we can use it directly
-  // We need to map the ClassLog attachments type to our ParsedAttachments type
   try {
     // Handle case where attachments might be a string (shouldn't happen with JSONB but just in case)
     if (typeof attachments === 'string') {
@@ -142,8 +162,9 @@ function parseAttachments(attachments: ClassLog['attachments']): ParsedAttachmen
     
     // If it's already an object (which it should be from JSONB), cast it appropriately
     return attachments as ParsedAttachments
-  } catch (e) {
-    console.warn('Failed to parse attachments:', attachments, e)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Parse failed'
+    console.warn('Failed to parse attachments:', attachments, errorMessage)
     return null
   }
 }
@@ -165,7 +186,7 @@ export function extractTopics(classLog: ClassLog): string[] {
     const extensionTopics = attachments.extension_data?.manual_notes?.topicsCovered
     if (extensionTopics && typeof extensionTopics === 'string') {
       const manualTopics = extensionTopics
-        .split('\n')
+        .split(/[\n,]/) // Split by newline OR comma
         .map(topic => topic.trim())
         .filter(topic => topic.length > 0)
       topics.push(...manualTopics)
@@ -175,7 +196,7 @@ export function extractTopics(classLog: ClassLog): string[] {
     const directTopics = attachments.manual_notes?.topics_covered
     if (directTopics && typeof directTopics === 'string') {
       const manualTopics = directTopics
-        .split('\n')
+        .split(/[\n,]/) // Split by newline OR comma
         .map(topic => topic.trim())
         .filter(topic => topic.length > 0)
       topics.push(...manualTopics)
@@ -400,3 +421,5 @@ export function formatRelativeTime(timestamp: string): string {
     return `${diffDays} days ago`
   }
 }
+
+

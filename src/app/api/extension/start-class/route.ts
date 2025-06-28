@@ -1,5 +1,5 @@
 // src/app/api/extension/start-class/route.ts
-// Simplified version with separate queries instead of complex joins
+// Fixed version with proper teacher_id extraction from token
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📥 Request body:', body)
     
-    const { meetUrl, student_email, enrollment_id, teacher_id } = body
+    const { meetUrl, student_email, enrollment_id, teacher_id, token } = body
 
     // Validate required fields
     if (!meetUrl || !student_email) {
@@ -25,6 +25,38 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Missing required fields: meetUrl and student_email' 
       }, { status: 400 })
+    }
+
+    // 🔧 FIX: Extract teacher_id from token if provided
+    let validatedTeacherId = teacher_id // Use provided teacher_id as fallback
+
+    if (token) {
+      console.log('🔐 Validating token to get teacher ID...')
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('extension_tokens')
+        .select('teacher_id')
+        .eq('token', token)
+        .eq('is_active', true)
+        .single()
+
+      if (tokenError || !tokenData) {
+        console.error('❌ Invalid token:', tokenError)
+        return NextResponse.json({ 
+          success: false,
+          error: 'Invalid authentication token' 
+        }, { status: 401 })
+      }
+
+      validatedTeacherId = tokenData.teacher_id
+      console.log('✅ Teacher ID extracted from token:', validatedTeacherId)
+    }
+
+    if (!validatedTeacherId) {
+      console.error('❌ No teacher ID found')
+      return NextResponse.json({ 
+        success: false,
+        error: 'Authentication required - no teacher ID found' 
+      }, { status: 401 })
     }
 
     // Step 1: Find enrollment (simplified approach)
@@ -64,12 +96,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!enrollment && teacher_id) {
+    if (!enrollment && validatedTeacherId) {
       console.log('🔍 Looking up enrollment by teacher and Google Meet URL')
       const { data: enrollmentByTeacher, error: teacherError } = await supabase
         .from('enrollments')
         .select('*')
-        .eq('teacher_id', teacher_id)
+        .eq('teacher_id', validatedTeacherId)
         .eq('google_meet_url', meetUrl)
         .eq('status', 'active')
         .single()
@@ -141,13 +173,26 @@ export async function POST(request: NextRequest) {
     if (existingClass) {
       console.log('🔄 Resuming existing active class:', existingClass.id)
       
-      // Update the class to mark it as resumed
+      // Update the class to mark it as resumed AND fix teacher_id if null
+// Update the class to mark it as resumed AND fix teacher_id if null
+const updateData: {
+  status: string;
+  updated_at: string;
+  teacher_id?: string;
+} = { 
+  status: 'in_progress',
+  updated_at: new Date().toISOString()
+}
+
+// 🔧 FIX: Update teacher_id if it's null
+if (!existingClass.teacher_id) {
+  updateData.teacher_id = validatedTeacherId
+  console.log('🔧 Fixing null teacher_id in existing class')
+}
+
       const { error: updateError } = await supabase
         .from('class_logs')
-        .update({ 
-          status: 'in_progress',
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', existingClass.id)
 
       if (updateError) {
@@ -162,7 +207,7 @@ export async function POST(request: NextRequest) {
         student_name: existingClass.student_name,
         subject: subject,
         start_time: existingClass.start_time,
-        class_data: existingClass
+        class_data: { ...existingClass, teacher_id: validatedTeacherId }
       })
     }
 
@@ -178,6 +223,16 @@ export async function POST(request: NextRequest) {
 
     if (recentClass) {
       console.log('🔄 Using recent class session:', recentClass.id)
+      
+      // 🔧 FIX: Update teacher_id if it's null in recent class too
+      if (!recentClass.teacher_id) {
+        await supabase
+          .from('class_logs')
+          .update({ teacher_id: validatedTeacherId })
+          .eq('id', recentClass.id)
+        console.log('🔧 Fixed null teacher_id in recent class')
+      }
+      
       return NextResponse.json({
         success: true,
         class_log_id: recentClass.id,
@@ -185,7 +240,7 @@ export async function POST(request: NextRequest) {
         resumed: true,
         student_name: recentClass.student_name,
         subject: subject,
-        class_data: recentClass
+        class_data: { ...recentClass, teacher_id: validatedTeacherId }
       })
     }
 
@@ -198,7 +253,7 @@ export async function POST(request: NextRequest) {
       .from('class_logs')
       .insert({
         enrollment_id: enrollment.id,
-        teacher_id: enrollment.teacher_id,
+        teacher_id: validatedTeacherId,  // 🔧 FIX: Use validated teacher ID from token
         class_id: enrollment.class_id,
         student_email: student_email,
         student_name: studentName,
@@ -227,7 +282,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('✅ New class started:', classLog.id)
+    console.log('✅ New class started with teacher_id:', validatedTeacherId, 'class_id:', classLog.id)
     
     return NextResponse.json({
       success: true,

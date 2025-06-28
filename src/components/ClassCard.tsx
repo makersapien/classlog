@@ -55,7 +55,15 @@ const ClassCard: React.FC<ClassCardProps> = ({
     onEditContent(contentText)
     setEditingContent(false)
   }
-
+// Add this right after line 50 in ClassCard.tsx (after useState declarations)
+console.log('🔍 ClassCard Debug Data:', {
+  classId: classLog.id,
+  topics_covered_raw: classLog.topics_covered,
+  topics_type: typeof classLog.topics_covered,
+  extractedTopics: topics,
+  topicsLength: topics.length,
+  homework: homework
+})
   const handleContentCancel = () => {
     setContentText(classLog.content || '')
     setEditingContent(false)
