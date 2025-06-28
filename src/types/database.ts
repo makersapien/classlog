@@ -1,4 +1,4 @@
-// types/database.ts
+// types/database.ts - COMPLETE UPDATE to match your actual schemas
 
 // Type for schedule JSON data
 export interface ScheduleData {
@@ -12,6 +12,60 @@ export interface TentativeScheduleData {
     day: string;
     time: string;
   }>;
+  [key: string]: unknown;
+}
+
+// Type for class_logs attachments JSONB field
+export interface ClassLogAttachments {
+  auto_detected?: boolean;
+  features_used?: string[];
+  session_type?: string;
+  detection_timestamp?: string;
+  duration_minutes?: number;
+  manual_notes?: {
+    class_description?: string | null;
+    topics_covered?: string | null;
+    homework_assigned?: string | null;
+    key_points?: string | null;
+    notes_last_saved?: string | null;
+  };
+  screenshots?: Array<{
+    timestamp: string;
+    type: 'manual' | 'auto';
+    format: string;
+    size: number;
+  }>;
+  last_screenshot?: {
+    timestamp: string;
+    type: 'manual' | 'auto';
+    format: string;
+    size: number;
+  };
+  total_screenshots?: number;
+  [key: string]: unknown;
+}
+
+// Type for auto_detected_classes meeting_data JSONB field
+export interface MeetingData {
+  participants?: Array<{
+    name?: string;
+    email?: string;
+    join_time?: string;
+    leave_time?: string;
+  }>;
+  duration_minutes?: number;
+  recording_available?: boolean;
+  screen_sharing_used?: boolean;
+  chat_messages?: Array<{
+    sender?: string;
+    message?: string;
+    timestamp?: string;
+  }>;
+  meeting_quality?: {
+    audio_quality?: 'good' | 'fair' | 'poor';
+    video_quality?: 'good' | 'fair' | 'poor';
+    connection_issues?: number;
+  };
   [key: string]: unknown;
 }
 
@@ -35,6 +89,8 @@ export interface Database {
           school: string | null
           emergency_contact: string | null
           status: 'active' | 'inactive'
+          upi_id: string | null
+          qr_code_url: string | null
         }
         Insert: {
           id: string
@@ -52,6 +108,8 @@ export interface Database {
           school?: string | null
           emergency_contact?: string | null
           status?: 'active' | 'inactive'
+          upi_id?: string | null
+          qr_code_url?: string | null
         }
         Update: {
           id?: string
@@ -69,12 +127,14 @@ export interface Database {
           school?: string | null
           emergency_contact?: string | null
           status?: 'active' | 'inactive'
+          upi_id?: string | null
+          qr_code_url?: string | null
         }
       }
       classes: {
         Row: {
           id: string
-          teacher_id: string
+          teacher_id: string | null
           name: string
           subject: string
           grade: string | null
@@ -88,7 +148,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          teacher_id: string
+          teacher_id?: string | null
           name: string
           subject: string
           grade?: string | null
@@ -102,7 +162,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          teacher_id?: string
+          teacher_id?: string | null
           name?: string
           subject?: string
           grade?: string | null
@@ -118,8 +178,8 @@ export interface Database {
       enrollments: {
         Row: {
           id: string
-          student_id: string
-          class_id: string
+          student_id: string | null
+          class_id: string | null
           status: 'active' | 'inactive' | 'completed' | 'dropped'
           enrollment_date: string | null
           completion_date: string | null
@@ -132,11 +192,14 @@ export interface Database {
           whatsapp_group_url: string | null
           google_meet_url: string | null
           setup_completed: boolean | null
+          teacher_id: string | null
+          subject: string | null
+          year_group: string | null
         }
         Insert: {
           id?: string
-          student_id: string
-          class_id: string
+          student_id?: string | null
+          class_id?: string | null
           status?: 'active' | 'inactive' | 'completed' | 'dropped'
           enrollment_date?: string | null
           completion_date?: string | null
@@ -149,11 +212,14 @@ export interface Database {
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           setup_completed?: boolean | null
+          teacher_id?: string | null
+          subject?: string | null
+          year_group?: string | null
         }
         Update: {
           id?: string
-          student_id?: string
-          class_id?: string
+          student_id?: string | null
+          class_id?: string | null
           status?: 'active' | 'inactive' | 'completed' | 'dropped'
           enrollment_date?: string | null
           completion_date?: string | null
@@ -166,6 +232,138 @@ export interface Database {
           whatsapp_group_url?: string | null
           google_meet_url?: string | null
           setup_completed?: boolean | null
+          teacher_id?: string | null
+          subject?: string | null
+          year_group?: string | null
+        }
+      }
+      class_logs: {
+        Row: {
+          id: string
+          class_id: string | null
+          teacher_id: string | null
+          date: string
+          content: string
+          topics_covered: string[] | null
+          homework_assigned: string | null
+          attendance_count: number | null
+          total_students: number | null
+          status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'in_progress'
+          attachments: ClassLogAttachments | null
+          created_at: string
+          updated_at: string
+          start_time: string | null
+          end_time: string | null
+          duration_minutes: number | null
+          google_meet_link: string | null
+          detected_automatically: boolean | null
+          student_name: string | null
+          student_email: string | null
+          enrollment_id: string | null
+        }
+        Insert: {
+          id?: string
+          class_id?: string | null
+          teacher_id?: string | null
+          date: string
+          content: string
+          topics_covered?: string[] | null
+          homework_assigned?: string | null
+          attendance_count?: number | null
+          total_students?: number | null
+          status?: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'in_progress'
+          attachments?: ClassLogAttachments | null
+          created_at?: string
+          updated_at?: string
+          start_time?: string | null
+          end_time?: string | null
+          duration_minutes?: number | null
+          google_meet_link?: string | null
+          detected_automatically?: boolean | null
+          student_name?: string | null
+          student_email?: string | null
+          enrollment_id?: string | null
+        }
+        Update: {
+          id?: string
+          class_id?: string | null
+          teacher_id?: string | null
+          date?: string
+          content?: string
+          topics_covered?: string[] | null
+          homework_assigned?: string | null
+          attendance_count?: number | null
+          total_students?: number | null
+          status?: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'in_progress'
+          attachments?: ClassLogAttachments | null
+          created_at?: string
+          updated_at?: string
+          start_time?: string | null
+          end_time?: string | null
+          duration_minutes?: number | null
+          google_meet_link?: string | null
+          detected_automatically?: boolean | null
+          student_name?: string | null
+          student_email?: string | null
+          enrollment_id?: string | null
+        }
+      }
+      extension_tokens: {
+        Row: {
+          id: string
+          teacher_id: string
+          token_hash: string
+          expires_at: string
+          created_at: string | null
+          last_used_at: string | null
+          usage_count: number | null
+          is_active: boolean | null
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          token_hash: string
+          expires_at: string
+          created_at?: string | null
+          last_used_at?: string | null
+          usage_count?: number | null
+          is_active?: boolean | null
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          token_hash?: string
+          expires_at?: string
+          created_at?: string | null
+          last_used_at?: string | null
+          usage_count?: number | null
+          is_active?: boolean | null
+        }
+      }
+      attendance: {
+        Row: {
+          id: string
+          student_id: string | null
+          class_log_id: string | null
+          status: 'present' | 'absent' | 'late'
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          student_id?: string | null
+          class_log_id?: string | null
+          status?: 'present' | 'absent' | 'late'
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          student_id?: string | null
+          class_log_id?: string | null
+          status?: 'present' | 'absent' | 'late'
+          notes?: string | null
+          created_at?: string | null
         }
       }
       student_invitations: {
@@ -233,36 +431,162 @@ export interface Database {
           student_email?: string | null
         }
       }
-      class_logs: {
+      class_files: {
         Row: {
           id: string
-          class_id: string
-          teacher_id: string
-          date: string
-          attendance_count: number | null
-          notes: string | null
-          created_at: string
-          updated_at: string
+          class_log_id: string | null
+          teacher_id: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          uploaded_by: string | null
+          uploaded_by_role: 'teacher' | 'student' | 'parent'
+          description: string | null
+          is_homework: boolean | null
+          is_public: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
-          class_id: string
-          teacher_id: string
-          date: string
-          attendance_count?: number | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
+          class_log_id?: string | null
+          teacher_id?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          uploaded_by?: string | null
+          uploaded_by_role: 'teacher' | 'student' | 'parent'
+          description?: string | null
+          is_homework?: boolean | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
-          class_id?: string
-          teacher_id?: string
-          date?: string
-          attendance_count?: number | null
+          class_log_id?: string | null
+          teacher_id?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          uploaded_by?: string | null
+          uploaded_by_role?: 'teacher' | 'student' | 'parent'
+          description?: string | null
+          is_homework?: boolean | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      credit_transactions: {
+        Row: {
+          id: string
+          credit_account_id: string
+          transaction_type: 'purchase' | 'deduction' | 'adjustment' | 'refund'
+          hours_amount: number
+          balance_after: number
+          description: string
+          reference_id: string | null
+          reference_type: 'payment' | 'class_log' | 'manual_adjustment' | 'system' | null
+          performed_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          credit_account_id: string
+          transaction_type: 'purchase' | 'deduction' | 'adjustment' | 'refund'
+          hours_amount: number
+          balance_after: number
+          description: string
+          reference_id?: string | null
+          reference_type?: 'payment' | 'class_log' | 'manual_adjustment' | 'system' | null
+          performed_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          credit_account_id?: string
+          transaction_type?: 'purchase' | 'deduction' | 'adjustment' | 'refund'
+          hours_amount?: number
+          balance_after?: number
+          description?: string
+          reference_id?: string | null
+          reference_type?: 'payment' | 'class_log' | 'manual_adjustment' | 'system' | null
+          performed_by?: string | null
+          created_at?: string | null
+        }
+      }
+      credits: {
+        Row: {
+          id: string
+          parent_id: string | null
+          teacher_id: string | null
+          student_id: string | null
+          balance_hours: number | null
+          total_purchased: number | null
+          total_used: number | null
+          created_at: string | null
+          updated_at: string | null
+          rate_per_hour: number | null
+          subject: string | null
+          notes: string | null
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          parent_id?: string | null
+          teacher_id?: string | null
+          student_id?: string | null
+          balance_hours?: number | null
+          total_purchased?: number | null
+          total_used?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          rate_per_hour?: number | null
+          subject?: string | null
           notes?: string | null
-          created_at?: string
-          updated_at?: string
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          parent_id?: string | null
+          teacher_id?: string | null
+          student_id?: string | null
+          balance_hours?: number | null
+          total_purchased?: number | null
+          total_used?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          rate_per_hour?: number | null
+          subject?: string | null
+          notes?: string | null
+          is_active?: boolean
+        }
+      }
+      parent_child_relationships: {
+        Row: {
+          id: string
+          parent_id: string | null
+          child_id: string | null
+          relationship_type: 'parent' | 'guardian' | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          parent_id?: string | null
+          child_id?: string | null
+          relationship_type?: 'parent' | 'guardian' | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          parent_id?: string | null
+          child_id?: string | null
+          relationship_type?: 'parent' | 'guardian' | null
+          created_at?: string | null
         }
       }
       payments: {
@@ -296,35 +620,6 @@ export interface Database {
           status?: 'pending' | 'paid' | 'failed' | 'cancelled'
           due_date?: string | null
           paid_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      attendance: {
-        Row: {
-          id: string
-          student_id: string
-          class_log_id: string
-          status: 'present' | 'absent' | 'late'
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          student_id: string
-          class_log_id: string
-          status: 'present' | 'absent' | 'late'
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          student_id?: string
-          class_log_id?: string
-          status?: 'present' | 'absent' | 'late'
-          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -364,29 +659,56 @@ export interface Database {
           updated_at?: string
         }
       }
-      parent_child_relationships: {
-        Row: {
-          id: string
-          parent_id: string
-          child_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          parent_id: string
-          child_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          parent_id?: string
-          child_id?: string
-          created_at?: string
-        }
-      }
     }
     Views: {
-      [_ in never]: never
+      class_files_with_info: {
+        Row: {
+          id: string
+          class_log_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          uploaded_by: string
+          uploaded_by_role: string
+          description: string | null
+          is_homework: boolean
+          created_at: string
+          uploaded_by_name: string | null
+          class_date: string | null
+          student_name: string | null
+          teacher_name: string | null
+        }
+      }
+      credit_balances: {
+        Row: {
+          id: string
+          teacher_id: string
+          student_id: string
+          enrollment_id: string
+          current_balance: number
+          total_purchased: number
+          total_used: number
+          last_recharge_date: string | null
+          created_at: string
+          updated_at: string
+        }
+      }
+      auto_detected_classes: {
+        Row: {
+          id: string
+          teacher_id: string
+          student_email: string
+          google_meet_url: string
+          detected_at: string
+          confidence_score: number
+          status: 'pending' | 'processed' | 'ignored'
+          class_log_id: string | null
+          meeting_data: MeetingData | null
+          processed_at: string | null
+          created_at: string
+        }
+      }
     }
     Functions: {
       get_teacher_students: {
