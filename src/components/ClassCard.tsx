@@ -1,9 +1,9 @@
 // src/components/ClassCard.tsx
-// Individual class session card component using shadcn/ui
+// Patched version with class_content integration - keeping all existing functionality
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Clock, 
   Users, 
@@ -16,7 +16,9 @@ import {
   Trash2,
   CheckCircle,
   FileIcon,
-  Image
+  Image,
+  Save,
+  X
 } from 'lucide-react'
 
 // shadcn/ui components
@@ -30,10 +32,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
 
 import LiveIndicator from './LiveIndicator'
 import { extractTopics, getHomeworkAssigned, formatFileSize } from '@/lib/class-utils'
 import type { ClassCardProps } from '@/types/database-enhanced'
+
+// NEW: Interface for class_content table data
+interface ClassContent {
+  id: string
+  class_log_id: string
+  topic_1?: string | null
+  topic_2?: string | null
+  topic_3?: string | null
+  topic_4?: string | null
+  topic_5?: string | null
+  homework_title?: string | null
+  homework_description?: string | null
+  homework_due_date?: string | null
+  teacher_notes?: string | null
+  student_performance?: string | null
+  key_points?: string | null
+  duration_minutes?: number | null
+  participants_count?: number | null
+  features_used?: string | null
+  created_at: string
+  updated_at: string
+}
 
 const ClassCard: React.FC<ClassCardProps> = ({
   classLog,
@@ -47,23 +72,97 @@ const ClassCard: React.FC<ClassCardProps> = ({
 }) => {
   const [editingContent, setEditingContent] = useState(false)
   const [contentText, setContentText] = useState(classLog.content || '')
+  
+  // NEW: State for class_content data
+  const [classContent, setClassContent] = useState<ClassContent | null>(null)
+  const [isLoadingContent, setIsLoadingContent] = useState(false)
+  const [editingStructuredContent, setEditingStructuredContent] = useState(false)
+  const [structuredContentEdit, setStructuredContentEdit] = useState<Partial<ClassContent>>({})
 
-  const topics = extractTopics(classLog)
+  // NEW: Load class_content data on component mount
+  useEffect(() => {
+    loadClassContent()
+  }, [classLog.id])
+
+  // NEW: Function to load structured content from class_content table
+  const loadClassContent = async () => {
+    try {
+      setIsLoadingContent(true)
+      const response = await fetch(`/api/class-content/${classLog.id}`)
+      
+      if (response.ok) {
+        const content = await response.json()
+        if (content) {
+          setClassContent(content)
+          setStructuredContentEdit(content)
+        }
+      } else if (response.status === 404) {
+        // No content exists yet - this is normal
+        console.log('No structured content found for class:', classLog.id)
+      }
+    } catch (error) {
+      console.error('Failed to load class content:', error)
+    } finally {
+      setIsLoadingContent(false)
+    }
+  }
+
+  // NEW: Function to save structured content
+  const saveStructuredContent = async () => {
+    try {
+      const response = await fetch(`/api/class-content/${classLog.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(structuredContentEdit)
+      })
+
+      if (response.ok) {
+        const updatedContent = await response.json()
+        setClassContent(updatedContent)
+        setEditingStructuredContent(false)
+        console.log('✅ Structured content saved successfully')
+      } else {
+        console.error('Failed to save structured content')
+      }
+    } catch (error) {
+      console.error('Error saving structured content:', error)
+    }
+  }
+
+  // NEW: Get structured topics from class_content table
+  const getStructuredTopics = (): string[] => {
+    if (!classContent) return []
+    
+    return [
+      classContent.topic_1,
+      classContent.topic_2,
+      classContent.topic_3,
+      classContent.topic_4,
+      classContent.topic_5
+    ].filter(Boolean) as string[]
+  }
+
+  // Use structured topics if available, fallback to existing extraction
+  const topics = classContent ? getStructuredTopics() : extractTopics(classLog)
   const homework = getHomeworkAssigned(classLog)
+
+  // Add this right after line 50 in ClassCard.tsx (after useState declarations)
+  console.log('🔍 ClassCard Debug Data:', {
+    classId: classLog.id,
+    topics_covered_raw: classLog.topics_covered,
+    topics_type: typeof classLog.topics_covered,
+    extractedTopics: topics,
+    topicsLength: topics.length,
+    homework: homework,
+    hasClassContent: !!classContent,
+    structuredTopics: getStructuredTopics()
+  })
 
   const handleContentSave = () => {
     onEditContent(contentText)
     setEditingContent(false)
   }
-// Add this right after line 50 in ClassCard.tsx (after useState declarations)
-console.log('🔍 ClassCard Debug Data:', {
-  classId: classLog.id,
-  topics_covered_raw: classLog.topics_covered,
-  topics_type: typeof classLog.topics_covered,
-  extractedTopics: topics,
-  topicsLength: topics.length,
-  homework: homework
-})
+
   const handleContentCancel = () => {
     setContentText(classLog.content || '')
     setEditingContent(false)
@@ -121,6 +220,12 @@ console.log('🔍 ClassCard Debug Data:', {
                   {classLog.student_name || 'Class Session'}
                   <LiveIndicator classLog={classLog} />
                   {getStatusBadge()}
+                  {/* NEW: Indicator for structured content */}
+                  {classContent && (
+                    <Badge variant="outline" className="text-xs">
+                      Enhanced
+                    </Badge>
+                  )}
                 </CardTitle>
               </div>
 
@@ -156,21 +261,24 @@ console.log('🔍 ClassCard Debug Data:', {
                 <Clock className="h-4 w-4 mr-1" />
                 {classLog.timeDisplay}
               </span>
-              {classLog.formattedDuration && (
+              {(classContent?.duration_minutes || classLog.formattedDuration) && (
                 <span className="flex items-center">
                   <BookOpen className="h-4 w-4 mr-1" />
-                  {classLog.formattedDuration}
+                  {classContent?.duration_minutes ? 
+                    `${classContent.duration_minutes}m` : 
+                    classLog.formattedDuration
+                  }
                 </span>
               )}
-              {(classLog.attendance_count || 0) > 0 && (
+              {(classContent?.participants_count || classLog.attendance_count || 0) > 0 && (
                 <span className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {classLog.attendance_count} students
+                  {classContent?.participants_count || classLog.attendance_count} students
                 </span>
               )}
             </div>
 
-            {/* Content Preview */}
+            {/* Content Preview - Enhanced with structured content */}
             <div className="mt-4">
               {editingContent ? (
                 <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -192,7 +300,7 @@ console.log('🔍 ClassCard Debug Data:', {
               ) : (
                 <div className="flex items-start justify-between">
                   <p className="text-sm text-muted-foreground">
-                    {classLog.content || 'No description available'}
+                    {classContent?.teacher_notes || classLog.content || 'No description available'}
                   </p>
                   <Button
                     variant="ghost"
@@ -200,7 +308,7 @@ console.log('🔍 ClassCard Debug Data:', {
                     onClick={(e) => {
                       e.stopPropagation()
                       setEditingContent(true)
-                      setContentText(classLog.content || '')
+                      setContentText(classContent?.teacher_notes || classLog.content || '')
                     }}
                   >
                     <Edit3 className="h-4 w-4" />
@@ -216,9 +324,10 @@ console.log('🔍 ClassCard Debug Data:', {
             <Separator className="mb-6" />
             
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="topics">Topics ({topics.length})</TabsTrigger>
+                <TabsTrigger value="structured">Enhanced</TabsTrigger>
                 <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
                 <TabsTrigger value="details">Details</TabsTrigger>
               </TabsList>
@@ -238,44 +347,53 @@ console.log('🔍 ClassCard Debug Data:', {
                   </div>
                 )}
 
-                {/* Homework */}
-                {homework && (
+                {/* Enhanced Homework from class_content */}
+                {(classContent?.homework_title || classContent?.homework_description || homework) && (
                   <div>
                     <Label className="text-base font-semibold">Homework Assigned</Label>
                     <Card className="mt-2">
                       <CardContent className="p-4">
-                        <p className="text-sm">{homework}</p>
+                        {classContent?.homework_title && (
+                          <h4 className="font-medium mb-2">{classContent.homework_title}</h4>
+                        )}
+                        <p className="text-sm">
+                          {classContent?.homework_description || homework}
+                        </p>
+                        {classContent?.homework_due_date && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Due: {new Date(classContent.homework_due_date).toLocaleDateString()}
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
                 )}
 
-                {/* Manual Notes */}
-                {classLog.hasManualNotes && classLog.attachments?.manual_notes && (
+                {/* Enhanced Teacher Notes */}
+                {(classContent?.teacher_notes || classLog.hasManualNotes) && (
                   <div>
                     <Label className="text-base font-semibold">Teacher Notes</Label>
-                    <div className="space-y-3 mt-2">
-                      {classLog.attachments.manual_notes.class_description && (
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Class Description</CardTitle>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <p className="text-sm">{classLog.attachments.manual_notes.class_description}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      {classLog.attachments.manual_notes.key_points && (
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Key Points</CardTitle>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <p className="text-sm">{classLog.attachments.manual_notes.key_points}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
+                    <Card className="mt-2">
+                      <CardContent className="p-4">
+                        <p className="text-sm">
+                          {classContent?.teacher_notes || 
+                           classLog.attachments?.manual_notes?.class_description || 
+                           'No notes available'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Key Points */}
+                {classContent?.key_points && (
+                  <div>
+                    <Label className="text-base font-semibold">Key Points</Label>
+                    <Card className="mt-2">
+                      <CardContent className="p-4">
+                        <p className="text-sm">{classContent.key_points}</p>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
               </TabsContent>
@@ -298,6 +416,226 @@ console.log('🔍 ClassCard Debug Data:', {
                   <div className="text-center py-8 text-muted-foreground">
                     <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No topics recorded for this class</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* NEW: Enhanced Structured Content Tab */}
+              <TabsContent value="structured" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-semibold">Structured Class Content</Label>
+                  {!editingStructuredContent && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingStructuredContent(true)
+                        setStructuredContentEdit(classContent || {
+                          class_log_id: classLog.id,
+                          topic_1: '',
+                          topic_2: '',
+                          topic_3: '',
+                          topic_4: '',
+                          topic_5: '',
+                          homework_title: '',
+                          homework_description: '',
+                          homework_due_date: '',
+                          teacher_notes: '',
+                          student_performance: '',
+                          key_points: ''
+                        })
+                      }}
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+
+                {editingStructuredContent ? (
+                  <div className="space-y-4">
+                    {/* Topics Section */}
+                    <div>
+                      <Label className="text-sm font-medium">Topics (up to 5)</Label>
+                      <div className="grid grid-cols-1 gap-2 mt-2">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <Input
+                            key={num}
+                            placeholder={`Topic ${num}`}
+                            value={(structuredContentEdit as any)[`topic_${num}`] || ''}
+                            onChange={(e) => setStructuredContentEdit({
+                              ...structuredContentEdit,
+                              [`topic_${num}`]: e.target.value
+                            })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Homework Section */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Homework</Label>
+                      <Input
+                        placeholder="Homework title"
+                        value={structuredContentEdit.homework_title || ''}
+                        onChange={(e) => setStructuredContentEdit({
+                          ...structuredContentEdit,
+                          homework_title: e.target.value
+                        })}
+                      />
+                      <Textarea
+                        placeholder="Homework description"
+                        value={structuredContentEdit.homework_description || ''}
+                        onChange={(e) => setStructuredContentEdit({
+                          ...structuredContentEdit,
+                          homework_description: e.target.value
+                        })}
+                        rows={2}
+                      />
+                      <Input
+                        type="date"
+                        placeholder="Due date"
+                        value={structuredContentEdit.homework_due_date || ''}
+                        onChange={(e) => setStructuredContentEdit({
+                          ...structuredContentEdit,
+                          homework_due_date: e.target.value
+                        })}
+                      />
+                    </div>
+
+                    {/* Notes Section */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Teacher Notes</Label>
+                      <Textarea
+                        placeholder="Class description and notes"
+                        value={structuredContentEdit.teacher_notes || ''}
+                        onChange={(e) => setStructuredContentEdit({
+                          ...structuredContentEdit,
+                          teacher_notes: e.target.value
+                        })}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">Key Points</Label>
+                        <Textarea
+                          placeholder="Important points to remember"
+                          value={structuredContentEdit.key_points || ''}
+                          onChange={(e) => setStructuredContentEdit({
+                            ...structuredContentEdit,
+                            key_points: e.target.value
+                          })}
+                          rows={2}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Student Performance</Label>
+                        <Textarea
+                          placeholder="Student engagement and performance"
+                          value={structuredContentEdit.student_performance || ''}
+                          onChange={(e) => setStructuredContentEdit({
+                            ...structuredContentEdit,
+                            student_performance: e.target.value
+                          })}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button onClick={saveStructuredContent}>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingStructuredContent(false)
+                          setStructuredContentEdit(classContent || {})
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {isLoadingContent ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Loading structured content...</p>
+                      </div>
+                    ) : classContent ? (
+                      <div className="space-y-4">
+                        {/* Display structured content */}
+                        {getStructuredTopics().length > 0 && (
+                          <div>
+                            <Label className="text-sm font-medium">Topics Covered</Label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {getStructuredTopics().map((topic, index) => (
+                                <Badge key={index} variant="secondary">{topic}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {classContent.teacher_notes && (
+                          <div>
+                            <Label className="text-sm font-medium">Teacher Notes</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {classContent.teacher_notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {classContent.homework_title && (
+                          <div>
+                            <Label className="text-sm font-medium">Homework</Label>
+                            <div className="mt-1">
+                              <h4 className="font-medium">{classContent.homework_title}</h4>
+                              {classContent.homework_description && (
+                                <p className="text-sm text-muted-foreground">
+                                  {classContent.homework_description}
+                                </p>
+                              )}
+                              {classContent.homework_due_date && (
+                                <p className="text-xs text-muted-foreground">
+                                  Due: {new Date(classContent.homework_due_date).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {classContent.key_points && (
+                            <div>
+                              <Label className="text-sm font-medium">Key Points</Label>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {classContent.key_points}
+                              </p>
+                            </div>
+                          )}
+
+                          {classContent.student_performance && (
+                            <div>
+                              <Label className="text-sm font-medium">Student Performance</Label>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {classContent.student_performance}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No structured content available</p>
+                        <p className="text-sm">Click &ldquo;Edit&rdquo; to add structured class details</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -389,7 +727,10 @@ console.log('🔍 ClassCard Debug Data:', {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Duration:</span>
                         <span className="font-medium">
-                          {classLog.formattedDuration || 'Ongoing'}
+                          {classContent?.duration_minutes ? 
+                            `${classContent.duration_minutes}m` : 
+                            (classLog.formattedDuration || 'Ongoing')
+                          }
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -399,7 +740,15 @@ console.log('🔍 ClassCard Debug Data:', {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Total Students:</span>
                         <span className="font-medium">
-                          {classLog.total_students || classLog.attendance_count || 'N/A'}
+                          {classContent?.participants_count || 
+                           classLog.total_students || 
+                           classLog.attendance_count || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Content Type:</span>
+                        <span className="font-medium">
+                          {classContent ? 'Enhanced' : 'Basic'}
                         </span>
                       </div>
                     </CardContent>
@@ -426,19 +775,27 @@ console.log('🔍 ClassCard Debug Data:', {
                     </Card>
                   )}
 
-                  {/* Features Used */}
-                  {classLog.attachments?.features_used && classLog.attachments.features_used.length > 0 && (
+                  {/* Enhanced Features Used */}
+                  {(classContent?.features_used || 
+                    (classLog.attachments?.features_used && classLog.attachments.features_used.length > 0)) && (
                     <Card className="md:col-span-2">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm">Features Used During Class</CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="flex flex-wrap gap-2">
-                          {classLog.attachments.features_used.map((feature, index) => (
-                            <Badge key={index} variant="outline">
-                              {feature}
-                            </Badge>
-                          ))}
+                          {classContent?.features_used ? 
+                            classContent.features_used.split(',').map((feature, index) => (
+                              <Badge key={index} variant="outline">
+                                {feature.replace('_', ' ')}
+                              </Badge>
+                            )) :
+                            classLog.attachments?.features_used?.map((feature, index) => (
+                              <Badge key={index} variant="outline">
+                                {feature}
+                              </Badge>
+                            ))
+                          }
                         </div>
                       </CardContent>
                     </Card>
@@ -476,10 +833,33 @@ console.log('🔍 ClassCard Debug Data:', {
                         <div>
                           <span className="text-muted-foreground">Duration:</span>
                           <p className="font-medium">
-                            {classLog.formattedDuration || 'Ongoing'}
+                            {classContent?.duration_minutes ? 
+                              `${classContent.duration_minutes}m` : 
+                              (classLog.formattedDuration || 'Ongoing')
+                            }
                           </p>
                         </div>
                       </div>
+                      
+                      {/* Enhanced Content Update Info */}
+                      {classContent && (
+                        <div className="mt-4 pt-4 border-t border-muted">
+                          <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                            <div>
+                              <span>Content Created:</span>
+                              <p className="font-medium">
+                                {new Date(classContent.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div>
+                              <span>Last Updated:</span>
+                              <p className="font-medium">
+                                {new Date(classContent.updated_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

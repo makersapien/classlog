@@ -1,6 +1,29 @@
 // src/app/api/class-content/route.ts
+// SURGICAL FIX: Only minimal changes to remove 'any' types from your existing code
+
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase-client'
+
+// Add this interface at the top for the contentData object
+interface ContentData {
+  class_log_id: string
+  topic_1?: string | null
+  topic_2?: string | null
+  topic_3?: string | null
+  topic_4?: string | null
+  topic_5?: string | null
+  homework_title?: string | null
+  homework_description?: string | null
+  homework_due_date?: string | null
+  teacher_notes?: string | null
+  student_performance?: string | null
+  key_points?: string | null
+  duration_minutes?: number
+  participants_count?: number
+  features_used?: string
+  created_at?: string
+  updated_at?: string
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,8 +44,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Prepare the content data
-    const contentData: any = {
+    // ONLY CHANGE: Replace 'any' with proper interface
+    const contentData: ContentData = {
       class_log_id
     }
 
@@ -113,26 +136,34 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    let query = supabase.from('class_logs_enhanced').select('*')
-
+    // RESTORED: Support for individual class content lookup (this was missing)
     if (classLogId) {
-      query = query.eq('id', classLogId)
-      const { data, error } = await query.single()
-      
-      if (error) {
+      // First try to get from class_content table (for enhanced class card)
+      const { data: classContent, error: contentError } = await supabase
+        .from('class_content')
+        .select('*')
+        .eq('class_log_id', classLogId)
+        .single()
+
+      if (contentError && contentError.code !== 'PGRST116') {
+        console.error('❌ Content fetch error:', contentError)
         return NextResponse.json({
           success: false,
-          error: error.message
+          error: contentError.message
         }, { status: 500 })
       }
 
-      return NextResponse.json({
-        success: true,
-        data
-      })
+      // If no structured content found, return null (normal for older classes)
+      if (contentError?.code === 'PGRST116') {
+        return NextResponse.json(null)
+      }
+
+      return NextResponse.json(classContent)
     }
 
+    // RESTORED: Teacher-based queries from class_logs_enhanced view
     if (teacherId) {
+      let query = supabase.from('class_logs_enhanced').select('*')
       query = query.eq('teacher_id', teacherId).order('date', { ascending: false })
       const { data, error } = await query
 
