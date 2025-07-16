@@ -30,7 +30,7 @@ export const signInWithGoogle = async (role: string) => {
   // Get the current origin for redirect URL
   const redirectUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/auth/callback?role=${role}`
-    : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?role=${role}`
+    : `${process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?role=${role}`
   
   console.log('🔗 Redirect URL:', redirectUrl)
 
