@@ -27,12 +27,25 @@ export interface Profile {
 export const signInWithGoogle = async (role: string) => {
   console.log('🔄 Starting Google sign-in for role:', role)
   
-  // Get the current origin for redirect URL
-  const redirectUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/auth/callback?role=${role}`
-    : `${process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?role=${role}`
+  // Get the current origin for redirect URL - prioritize client-side detection
+  let redirectUrl: string
   
-  console.log('🔗 Redirect URL:', redirectUrl)
+  if (typeof window !== 'undefined') {
+    // Client-side: use the actual current origin (localhost or production)
+    redirectUrl = `${window.location.origin}/auth/callback?role=${role}`
+    console.log('🌐 Client-side redirect URL:', redirectUrl)
+  } else {
+    // Server-side: determine based on environment
+    const isProduction = process.env.NODE_ENV === 'production'
+    const baseUrl = isProduction 
+      ? (process.env.NEXT_PUBLIC_BASE_URL || 'https://classlogger.com')
+      : 'http://localhost:3000'
+    
+    redirectUrl = `${baseUrl}/auth/callback?role=${role}`
+    console.log('🖥️ Server-side redirect URL:', redirectUrl, '(production:', isProduction, ')')
+  }
+  
+  console.log('🔗 Final redirect URL:', redirectUrl)
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
