@@ -286,78 +286,110 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
     })
   }
 
-  // Fixed transformClassesToStudents function with debug logging
+  // Fixed transformClassesToStudents function with fallback to mock data
 const transformClassesToStudents = (classes: ClassData[]): StudentData[] => {
   console.log('🔍 DEBUGGING: transformClassesToStudents called with:', classes)
   
   const students: StudentData[] = []
+  const processedStudentIds = new Set() // To avoid duplicates
   
   if (!classes || !Array.isArray(classes)) {
     console.log('❌ Classes is not an array or is null:', classes)
-    return students
+    return []
   }
   
+  // Process each class
   classes.forEach((cls, classIndex) => {
-    console.log(`🔍 Processing class ${classIndex}:`, cls)
+    console.log(`🔍 Processing class ${classIndex}:`, cls.name, cls.id)
+    
+    // Check if this is a synthetic class (from direct enrollments)
+    const isSyntheticClass = typeof cls.id === 'string' && cls.id.startsWith('synthetic-')
     
     if (!cls.enrollments || !Array.isArray(cls.enrollments)) {
       console.log(`❌ Class ${classIndex} has no enrollments or enrollments is not an array:`, cls.enrollments)
       return
     }
     
+    // Process each enrollment in the class
     cls.enrollments.forEach((enrollment, enrollmentIndex) => {
-      console.log(`🔍 Processing enrollment ${enrollmentIndex}:`, enrollment)
-      console.log(`   - Status: ${enrollment.status}`)
-      console.log(`   - Profiles: ${JSON.stringify(enrollment.profiles)}`)
-      
-      // Check if enrollment is active
-      if (enrollment.status !== 'active') {
-        console.log(`   ❌ Skipping - not active status: ${enrollment.status}`)
-        return
+      try {
+        // For synthetic classes, the enrollment structure might be different
+        const studentId = enrollment.student_id || (enrollment as any).id
+        
+        // Skip if we've already processed this student
+        if (processedStudentIds.has(studentId)) {
+          return
+        }
+        
+        // Check if enrollment is active
+        if (enrollment.status !== 'active') {
+          console.log(`   ❌ Skipping - not active status: ${enrollment.status}`)
+          return
+        }
+        
+        // Get profile data - handle both regular and synthetic classes
+        const profile = enrollment.profiles || (enrollment as any).profiles
+        
+        // Check if profiles exists and has full_name
+        if (!profile) {
+          console.log(`   ❌ Skipping - no profiles object`)
+          return
+        }
+        
+        if (!profile.full_name) {
+          console.log(`   ❌ Skipping - no full_name in profiles:`, profile)
+          return
+        }
+        
+        // Get credit information from the API if available
+        const creditData = (enrollment as any).creditData || null
+        
+        // Get classes per week/recharge from enrollment
+        const classesPerWeek = isSyntheticClass 
+          ? (enrollment as any).classes_per_week || 1
+          : enrollment.classes_per_week || 1
+          
+        const classesPerRecharge = isSyntheticClass
+          ? (enrollment as any).classes_per_recharge || 4
+          : enrollment.classes_per_recharge || 4
+        
+        // Get setup information
+        const setupCompleted = isSyntheticClass
+          ? (enrollment as any).setup_completed === true
+          : enrollment.setup_completed === true
+        
+        // Create student object with real credit data if available
+        const student: StudentData = {
+          id: studentId,
+          name: profile.full_name || 'Unknown Student',
+          grade: cls.grade || (isSyntheticClass ? (enrollment as any).year_group : '') || 'Grade TBD',
+          subject: cls.subject || (isSyntheticClass ? (enrollment as any).subject : '') || 'Unknown Subject',
+          lastClass: 'Today',
+          status: 'active',
+          paymentStatus: 'paid',
+          // Use real credit data if available, otherwise use enrollment data
+          creditsRemaining: creditData ? creditData.balance_hours : classesPerRecharge,
+          totalCredits: creditData ? (creditData.total_purchased || classesPerRecharge) : classesPerRecharge,
+          attendanceRate: 90,
+          performance: 'good',
+          nextClass: 'Tomorrow 4:00 PM',
+          subjects: [cls.subject || (isSyntheticClass ? (enrollment as any).subject : '') || 'Unknown Subject'],
+          monthlyFee: 2500,
+          lastPayment: '15 Dec 2024'
+        }
+        
+        students.push(student)
+        processedStudentIds.add(studentId)
+        console.log(`   ✅ Added student to array: ${student.name} with credits: ${student.creditsRemaining}/${student.totalCredits}`)
+      } catch (error) {
+        console.error(`   ❌ Error processing enrollment ${enrollmentIndex}:`, error)
       }
-      
-      // Check if profiles exists and has full_name
-      if (!enrollment.profiles) {
-        console.log(`   ❌ Skipping - no profiles object`)
-        return
-      }
-      
-      if (!enrollment.profiles.full_name) {
-        console.log(`   ❌ Skipping - no full_name in profiles:`, enrollment.profiles)
-        return
-      }
-      
-      console.log(`   ✅ Valid enrollment found for: ${enrollment.profiles.full_name}`)
-      
-      // Create student object
-      const student: StudentData = {
-        id: enrollment.student_id || `student-${enrollmentIndex}`,
-        name: enrollment.profiles.full_name || 'Unknown Student',
-        grade: cls.grade || 'Grade TBD',
-        subject: cls.subject || 'Unknown Subject',
-        lastClass: 'Today',
-        status: 'active',
-        paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending',
-        // Add enhanced mock data based on your student cards
-        creditsRemaining: Math.floor(Math.random() * 15) + 5, // 5-20 credits
-        totalCredits: 16,
-        attendanceRate: Math.floor(Math.random() * 30) + 70, // 70-100%
-        performance: ['excellent', 'good', 'needs-attention'][Math.floor(Math.random() * 3)] as 'excellent' | 'good' | 'needs-attention',
-        nextClass: 'Tomorrow 4:00 PM',
-        subjects: [cls.subject || 'Unknown Subject'],
-        monthlyFee: 2500,
-        lastPayment: '15 Dec 2024'
-      }
-      
-      students.push(student)
-      console.log(`   ✅ Added student to array: ${student.name}`)
     })
   })
   
   console.log(`🎯 Final students array length: ${students.length}`)
-  console.log(`🎯 Final students:`, students.map(s => s.name))
   
-  return students.slice(0, 10) // Limit to 10 for display
+  return students
 }
 // Also add this debug function to check what your API is actually returning
 const debugApiResponse = (data: DashboardData | null) => {

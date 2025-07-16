@@ -93,46 +93,16 @@ interface InvitationData {
   updated_at: string
 }
 
-// ESLint fixes: Use types for debugging - we might need these types in future
-console.log('Debug: EnrollmentQueryResult interface available for future use:', {} as EnrollmentQueryResult)
-console.log('Debug: ParentRelationQueryResult interface available for future use:', {} as ParentRelationQueryResult)
-console.log('Debug: EnrollmentRow type available for future use:', {} as EnrollmentRow)
-console.log('Debug: ProfileRow type available for future use:', {} as ProfileRow)
-console.log('Debug: ParentChildRelationshipRow type available for future use:', {} as ParentChildRelationshipRow)
+// Types are properly defined and available for use
 
 export async function GET(request: Request) {
-  console.log('🔄 Students API called')
-  
   try {
-    // Add debugging for the request
-    console.log('🔍 Request headers:', Object.fromEntries(request.headers.entries()))
-    console.log('🔍 Request URL:', request.url)
-    
-    // Fix for Next.js 15 - properly handle cookies
     const supabase = createRouteHandlerClient<Database>({ 
       cookies 
     })
     
-    // Debug the session
-    console.log('🔍 Getting user session...')
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    console.log('🔍 Session debug:', {
-      hasSession: !!session,
-      sessionError: sessionError,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email
-    })
-    
     // Get current user (teacher)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    console.log('🔍 User debug:', {
-      hasUser: !!user,
-      authError: authError,
-      userId: user?.id,
-      userEmail: user?.email
-    })
     
     if (authError) {
       console.error('❌ Auth error:', authError)
@@ -143,8 +113,6 @@ export async function GET(request: Request) {
       console.error('❌ No user found')
       return NextResponse.json({ error: 'No authenticated user' }, { status: 401 })
     }
-
-    console.log('✅ Teacher authenticated:', user.id)
 
     // Fetch data
     const studentsData = await fetchTeacherStudents(supabase, user.id)
@@ -171,8 +139,6 @@ export async function GET(request: Request) {
 
 async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string): Promise<StudentData[]> {
   try {
-    console.log('👥 Fetching students for teacher:', teacherId)
-
     // Get all classes for this teacher
     const { data: classes, error: classesError } = await supabase
       .from('classes')
@@ -186,14 +152,13 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
     }
 
     if (!classes || classes.length === 0) {
-      console.log('📚 No classes found for teacher')
       return []
     }
 
     const classIds = (classes as ClassRow[]).map((c) => c.id)
-    console.log('📚 Found classes:', classIds.length)
 
     // Get enrollments with student details
+    // Use a more direct approach to ensure we only get enrollments for this teacher's classes
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
       .select(`
@@ -213,9 +178,14 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
           id,
           full_name,
           email
+        ),
+        classes!inner(
+          id,
+          teacher_id
         )
       `)
       .in('class_id', classIds)
+      .eq('classes.teacher_id', teacherId) // Ensure we only get enrollments for this teacher
       .eq('status', 'active')
 
     if (enrollmentsError) {
@@ -224,7 +194,6 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
     }
 
     if (!enrollments || enrollments.length === 0) {
-      console.log('👥 No enrollments found')
       return []
     }
 
@@ -258,37 +227,47 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
       }
     }
 
-    // Transform data to match our interface
+    // Transform data to match our interface with improved error handling and data validation
     const students: StudentData[] = (enrollments as unknown as EnrollmentQueryResult[]).map((enrollment) => {
+      // Validate student profile data
       const student = enrollment.profiles
+      if (!student) {
+        console.error('❌ Missing student profile data for enrollment:', enrollment.id)
+      }
+      
+      // Validate parent information with better fallbacks
       const parentInfo = parentMap.get(enrollment.student_id) || { 
         id: '',
         full_name: 'Parent Info Missing', 
         email: ''
       }
+      
+      // Validate class information
       const classInfo = (classes as ClassRow[]).find((c) => c.id === enrollment.class_id)
+      if (!classInfo) {
+        console.error('❌ Missing class information for enrollment:', enrollment.id, 'class_id:', enrollment.class_id)
+      }
 
       return {
         id: enrollment.id,
         student_id: enrollment.student_id,
         student_name: student?.full_name || 'Unknown Student',
         parent_name: parentInfo.full_name || 'Parent Info Missing',
-        parent_email: parentInfo.email,
+        parent_email: parentInfo.email || '',
         subject: classInfo?.subject || 'Unknown Subject',
         year_group: classInfo?.grade || 'Unknown Year',
         classes_per_week: enrollment.classes_per_week || 1,
         classes_per_recharge: enrollment.classes_per_recharge || 4,
-        tentative_schedule: enrollment.tentative_schedule,
-        whatsapp_group_url: enrollment.whatsapp_group_url,
-        google_meet_url: enrollment.google_meet_url,
-        setup_completed: enrollment.setup_completed || false,
+        tentative_schedule: enrollment.tentative_schedule || null,
+        whatsapp_group_url: enrollment.whatsapp_group_url || null,
+        google_meet_url: enrollment.google_meet_url || null,
+        setup_completed: enrollment.setup_completed === true, // Ensure boolean value
         enrollment_date: enrollment.created_at || enrollment.enrollment_date || '',
-        status: enrollment.status,
+        status: enrollment.status || 'active',
         class_name: classInfo?.name || 'Unknown Class'
       }
     })
 
-    console.log('✅ Students processed:', students.length)
     return students
 
   } catch (error) {
@@ -299,8 +278,6 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
 
 async function fetchPendingInvitations(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string): Promise<InvitationData[]> {
   try {
-    console.log('📨 Fetching pending invitations for teacher:', teacherId)
-
     const { data: invitations, error: invitationsError } = await supabase
       .from('student_invitations')
       .select('*')
@@ -312,27 +289,31 @@ async function fetchPendingInvitations(supabase: ReturnType<typeof createRouteHa
       console.error('❌ Invitations error:', invitationsError)
       return []
     }
-
-    console.log('📨 Found pending invitations:', invitations?.length || 0)
+    
+    if (!invitations || invitations.length === 0) {
+      return []
+    }
+    
+    // Transform data with proper validation and fallbacks
     return (invitations as StudentInvitationRow[]).map(inv => ({
       id: inv.id,
       teacher_id: inv.teacher_id || '',
       invitation_token: inv.invitation_token,
-      student_name: inv.student_name,
-      parent_name: inv.parent_name,
-      parent_email: inv.parent_email,
-      subject: inv.subject,
-      year_group: inv.year_group,
+      student_name: inv.student_name || 'Unnamed Student',
+      parent_name: inv.parent_name || 'Unnamed Parent',
+      parent_email: inv.parent_email || '',
+      subject: inv.subject || 'General',
+      year_group: inv.year_group || 'Not Specified',
       classes_per_week: inv.classes_per_week || 1,
       classes_per_recharge: inv.classes_per_recharge || 4,
-      tentative_schedule: inv.tentative_schedule,
-      whatsapp_group_url: inv.whatsapp_group_url,
-      google_meet_url: inv.google_meet_url,
+      tentative_schedule: inv.tentative_schedule || null,
+      whatsapp_group_url: inv.whatsapp_group_url || null,
+      google_meet_url: inv.google_meet_url || null,
       status: inv.status || 'pending',
-      expires_at: inv.expires_at || '',
-      completed_at: inv.completed_at,
-      created_at: inv.created_at || '',
-      updated_at: inv.updated_at || ''
+      expires_at: inv.expires_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      completed_at: inv.completed_at || null,
+      created_at: inv.created_at || new Date().toISOString(),
+      updated_at: inv.updated_at || new Date().toISOString()
     })) || []
 
   } catch (error) {
@@ -359,19 +340,6 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
   
   const pendingInvitations = invitations.length
 
-  console.log('📊 Stats Debug:', {
-    totalStudents,
-    completeSetup,
-    incompleteSetup,
-    pendingInvitations,
-    studentsData: students.map(s => ({
-      name: s.student_name,
-      setup_completed: s.setup_completed,
-      whatsapp_url: !!s.whatsapp_group_url,
-      google_meet_url: !!s.google_meet_url
-    }))
-  })
-
   return {
     totalStudents,
     completeSetup,
@@ -388,19 +356,24 @@ async function validateGoogleMeetUrl(supabase: ReturnType<typeof createRouteHand
 
   const cleanUrl = googleMeetUrl.trim()
 
-  // Check existing enrollments
+  // Check existing enrollments with proper teacher_id validation
   const { data: existingEnrollments, error: enrollmentError } = await supabase
     .from('enrollments')
     .select(`
       id,
       student_id,
+      class_id,
       google_meet_url,
       profiles!enrollments_student_id_fkey (
         full_name,
         email
+      ),
+      classes!inner(
+        id,
+        teacher_id
       )
     `)
-    .eq('teacher_id', teacherId)
+    .eq('classes.teacher_id', teacherId) // Ensure we only check enrollments for this teacher
     .eq('google_meet_url', cleanUrl)
     .eq('status', 'active')
 
@@ -458,7 +431,6 @@ async function validateGoogleMeetUrl(supabase: ReturnType<typeof createRouteHand
 }
 
 async function validateStudentEmail(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string, studentEmail: string, parentEmail: string) {
-  console.log('Debug: parentEmail parameter for monitoring:', parentEmail)
 
   if (!studentEmail || !studentEmail.trim()) {
     return { isValid: true } // Student email is optional in invitations
@@ -477,9 +449,13 @@ async function validateStudentEmail(supabase: ReturnType<typeof createRouteHandl
         id,
         full_name,
         email
+      ),
+      classes!inner(
+        id,
+        teacher_id
       )
     `)
-    .eq('teacher_id', teacherId)
+    .eq('classes.teacher_id', teacherId)
     .eq('status', 'active')
 
   if (enrollmentError) {
@@ -519,8 +495,6 @@ async function validateStudentEmail(supabase: ReturnType<typeof createRouteHandl
 
 // POST endpoint for creating new student invitations - ENHANCED with duplicate prevention
 export async function POST(request: Request) {
-  console.log('🔄 Creating new student invitation with duplicate prevention')
-  
   try {
     // Fix for Next.js 15 - properly handle cookies
     const supabase = createRouteHandlerClient<Database>({ 
@@ -549,15 +523,39 @@ export async function POST(request: Request) {
       google_meet_url
     } = body
 
-    // Validate required fields
-    if (!student_name || !parent_name || !parent_email || !subject || !year_group) {
+    // Validate required fields with more detailed error messages
+    const missingFields = [];
+    if (!student_name) missingFields.push('student_name');
+    if (!parent_name) missingFields.push('parent_name');
+    if (!parent_email) missingFields.push('parent_email');
+    if (!subject) missingFields.push('subject');
+    if (!year_group) missingFields.push('year_group');
+    
+    if (missingFields.length > 0) {
       return NextResponse.json({ 
-        error: 'Missing required fields',
-        required: ['student_name', 'parent_name', 'parent_email', 'subject', 'year_group']
+        error: `Missing required fields: ${missingFields.join(', ')}`,
+        required: ['student_name', 'parent_name', 'parent_email', 'subject', 'year_group'],
+        missing: missingFields
+      }, { status: 400 })
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (parent_email && !emailRegex.test(parent_email)) {
+      return NextResponse.json({
+        error: 'Invalid parent email format',
+        field: 'parent_email'
+      }, { status: 400 })
+    }
+    
+    if (student_email && !emailRegex.test(student_email)) {
+      return NextResponse.json({
+        error: 'Invalid student email format',
+        field: 'student_email'
       }, { status: 400 })
     }
 
-    console.log('📝 Creating invitation for:', student_name)
+
 
     // 🔧 ENHANCED: Validate Google Meet URL for duplicates
     if (google_meet_url) {
@@ -603,7 +601,7 @@ export async function POST(request: Request) {
     }
 
     // Generate a simple invitation token
-    const invitation_token = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const invitation_token = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 
     // Parse tentative_schedule if it's a string
     let scheduleData: TentativeScheduleData | null = null
@@ -664,7 +662,7 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    console.log('✅ Invitation created successfully:', invitation?.id)
+
 
     // Generate invitation URL
     const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/${invitation_token}`

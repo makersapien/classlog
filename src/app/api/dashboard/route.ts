@@ -242,27 +242,163 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     console.log('🧑‍🏫 Fetching teacher dashboard data for:', teacherId)
 
     // Get teacher's classes with better error handling
-    console.log('📚 Fetching classes...')
-    const { data: classes, error: classesError } = await supabase
-      .from('classes')
+    console.log('📚 Fetching classes and enrollments...')
+    
+    // First check if there are any enrollments directly associated with the teacher
+    const { data: directEnrollments, error: enrollmentsError } = await supabase
+      .from('enrollments')
       .select(`
-        *,
-        enrollments(
+        id,
+        student_id,
+        class_id,
+        status,
+        teacher_id,
+        subject,
+        year_group,
+        classes_per_week,
+        classes_per_recharge,
+        tentative_schedule,
+        whatsapp_group_url,
+        google_meet_url,
+        setup_completed,
+        profiles!enrollments_student_id_fkey(
           id,
-          student_id,
-          status,
-          profiles(full_name, email)
+          full_name,
+          email
         )
       `)
       .eq('teacher_id', teacherId)
       .eq('status', 'active')
+      .is('class_id', null) // Only get enrollments not associated with a class
+    
+    if (enrollmentsError) {
+      console.error('❌ Direct enrollments query error:', enrollmentsError)
+    }
+    
+    console.log('✅ Direct enrollments found:', directEnrollments?.length || 0)
+    
+    // If we have direct enrollments, create synthetic classes for them
+    let syntheticClasses = [];
+    if (directEnrollments && directEnrollments.length > 0) {
+      // Group enrollments by subject and year_group
+      const groupedEnrollments = directEnrollments.reduce((acc, enrollment) => {
+        const key = `${enrollment.subject || 'General'}-${enrollment.year_group || 'All'}`;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(enrollment);
+        return acc;
+      }, {});
+      
+      // Create synthetic classes
+      syntheticClasses = Object.entries(groupedEnrollments).map(([key, groupEnrollments]) => {
+        const [subject, grade] = key.split('-');
+        return {
+          id: `synthetic-${key}`,
+          name: `${subject} for ${grade}`,
+          subject,
+          grade,
+          teacher_id: teacherId,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          enrollments: groupEnrollments
+        };
+      });
+      
+      console.log('✅ Created synthetic classes:', syntheticClasses.length)
+    }
+    
+    // Now get regular classes with their enrollments
+    const { data: classes, error: classesError } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        enrollments!inner(
+          id,
+          student_id,
+          status,
+          classes_per_week,
+          classes_per_recharge,
+          tentative_schedule,
+          whatsapp_group_url,
+          google_meet_url,
+          setup_completed,
+          profiles!enrollments_student_id_fkey(
+            id,
+            full_name,
+            email
+          )
+        )
+      `)
+      .eq('teacher_id', teacherId)
+      .eq('status', 'active')
+      .eq('enrollments.status', 'active')
 
     if (classesError) {
       console.error('❌ Classes query error:', classesError)
     }
+    
+    console.log('✅ Regular classes found:', classes?.length || 0)
+    
+    // Combine regular classes with synthetic classes
+    const combinedClasses = [
+      ...(classes || []),
+      ...syntheticClasses
+    ];
 
-    const typedClasses = classes as ClassWithEnrollments[] | null
-    console.log('✅ Classes fetched:', typedClasses?.length || 0)
+    const typedClasses = combinedClasses as ClassWithEnrollments[] | null
+    console.log('✅ Total classes (regular + synthetic):', typedClasses?.length || 0)
+    
+    // Get all student IDs from enrollments
+    const studentIds = new Set<string>();
+    typedClasses?.forEach(cls => {
+      cls.enrollments?.forEach(enrollment => {
+        if (enrollment.student_id) {
+          studentIds.add(enrollment.student_id);
+        }
+      });
+    });
+    
+    // Fetch credit information for all students
+    let creditData: Record<string, { balance_hours: number, total_purchased: number, total_used: number }> = {};
+    
+    if (studentIds.size > 0) {
+      console.log('💰 Fetching credit data for students:', Array.from(studentIds));
+      
+      const { data: credits, error: creditsError } = await supabase
+        .from('credits')
+        .select('*')
+        .eq('teacher_id', teacherId)
+        .in('student_id', Array.from(studentIds))
+        .eq('is_active', true);
+      
+      if (creditsError) {
+        console.error('❌ Credits query error:', creditsError);
+      } else if (credits) {
+        // Create a map of student_id to credit data
+        credits.forEach(credit => {
+          if (credit.student_id) {
+            creditData[credit.student_id] = {
+              balance_hours: credit.balance_hours || 0,
+              total_purchased: credit.total_purchased || 0,
+              total_used: credit.total_used || 0
+            };
+          }
+        });
+        
+        console.log('✅ Credit data fetched for students:', Object.keys(creditData).length);
+      }
+    }
+    
+    // Attach credit data to classes and enrollments
+    typedClasses?.forEach(cls => {
+      cls.enrollments?.forEach(enrollment => {
+        if (enrollment.student_id && creditData[enrollment.student_id]) {
+          (enrollment as any).creditData = creditData[enrollment.student_id];
+        }
+      });
+    });
 
     // 🔧 UPDATED: Use the enhanced view for class logs
     const today = new Date().toISOString().split('T')[0]
