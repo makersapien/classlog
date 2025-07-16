@@ -56,6 +56,35 @@ function AuthCallbackContent() {
             console.log('✅ Profile created/updated successfully:', profileResult)
           }
 
+          // 🔥 NEW: Create JWT cookie after successful OAuth
+          console.log('🔄 Creating JWT cookie after OAuth...')
+          
+          try {
+            const jwtResponse = await fetch('/api/auth/create-jwt', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include', // Important for cookies
+              body: JSON.stringify({
+                userId: user.id,
+                email: user.email,
+                name: profileData.full_name,
+                role: role
+              })
+            })
+
+            if (jwtResponse.ok) {
+              const jwtData = await jwtResponse.json()
+              console.log('✅ JWT cookie created successfully:', jwtData)
+            } else {
+              const errorText = await jwtResponse.text()
+              console.error('❌ Failed to create JWT cookie:', errorText)
+            }
+          } catch (jwtError) {
+            console.error('❌ JWT creation error:', jwtError)
+          }
+
           // Wait a moment for everything to settle
           console.log('⏳ Waiting for session to stabilize...')
           await new Promise(resolve => setTimeout(resolve, 1500))
@@ -110,6 +139,7 @@ function AuthCallbackContent() {
         <div className="text-xs text-gray-500 space-y-1">
           <div>🔄 Processing authentication...</div>
           <div>📝 Creating your profile...</div>
+          <div>🔐 Setting up secure session...</div>
           <div>🎯 Redirecting to dashboard...</div>
         </div>
       </div>
@@ -129,7 +159,7 @@ export default function AuthCallback() {
                   <rect x="3" y="4" width="18" height="16" rx="2" />
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 1v6m0 6v6" />
-                </svg>
+              </svg>
               </div>
               <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 ClassLogger

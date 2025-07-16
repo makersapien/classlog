@@ -16,7 +16,7 @@ import {
   Trash2,
   CheckCircle,
   FileIcon,
-  Image,
+  Image as ImageIcon,
   Save,
   X
 } from 'lucide-react'
@@ -81,31 +81,30 @@ const ClassCard: React.FC<ClassCardProps> = ({
 
   // NEW: Load class_content data on component mount
   useEffect(() => {
+    const loadClassContent = async () => {
+      try {
+        setIsLoadingContent(true)
+        const response = await fetch(`/api/class-content/${classLog.id}`)
+        
+        if (response.ok) {
+          const content = await response.json()
+          if (content) {
+            setClassContent(content)
+            setStructuredContentEdit(content)
+          }
+        } else if (response.status === 404) {
+          // No content exists yet - this is normal
+          console.log('No structured content found for class:', classLog.id)
+        }
+      } catch (error) {
+        console.error('Failed to load class content:', error)
+      } finally {
+        setIsLoadingContent(false)
+      }
+    }
+
     loadClassContent()
   }, [classLog.id])
-
-  // NEW: Function to load structured content from class_content table
-  const loadClassContent = async () => {
-    try {
-      setIsLoadingContent(true)
-      const response = await fetch(`/api/class-content/${classLog.id}`)
-      
-      if (response.ok) {
-        const content = await response.json()
-        if (content) {
-          setClassContent(content)
-          setStructuredContentEdit(content)
-        }
-      } else if (response.status === 404) {
-        // No content exists yet - this is normal
-        console.log('No structured content found for class:', classLog.id)
-      }
-    } catch (error) {
-      console.error('Failed to load class content:', error)
-    } finally {
-      setIsLoadingContent(false)
-    }
-  }
 
   // NEW: Function to save structured content
   const saveStructuredContent = async () => {
@@ -184,7 +183,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
-      return <Image className="h-4 w-4" />
+      return <ImageIcon className="h-4 w-4" />
     }
     return <FileIcon className="h-4 w-4" />
   }
@@ -462,7 +461,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
                           <Input
                             key={num}
                             placeholder={`Topic ${num}`}
-                            value={(structuredContentEdit as any)[`topic_${num}`] || ''}
+                            value={(structuredContentEdit as Record<string, string | null | undefined>)[`topic_${num}`] || ''}
                             onChange={(e) => setStructuredContentEdit({
                               ...structuredContentEdit,
                               [`topic_${num}`]: e.target.value

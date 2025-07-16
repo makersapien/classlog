@@ -39,7 +39,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-yellow-100 border-b border-yellow-300 p-2 text-center text-sm">
+            🧪 JWT Test Mode - Visit <a href="/test-jwt" className="underline">/test-jwt</a> to check authentication
+          </div>
+        )}
+                <Header />
         <main className="min-h-screen">
           {children}
         </main>
