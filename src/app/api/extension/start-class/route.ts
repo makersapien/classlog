@@ -1,31 +1,71 @@
 // src/app/api/extension/start-class/route.ts
-// Simplified version - removed unnecessary token validation since auth-status already validates
+// Fixed version with proper CORS handling for Chrome extension
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getCorsHeaders, createOptionsResponse, addCorsHeaders } from '@/lib/cors'
+import { verifyJWT } from '@/lib/jwt'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Handle preflight OPTIONS requests
+export async function OPTIONS(request: NextRequest) {
+  return createOptionsResponse(request)
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Extension start-class API called')
     
+    // Get teacher info from Bearer token
+    let teacher_id: string | null = null
+    let teacherInfo: any = null
+    
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      const decoded = verifyJWT(token)
+      
+      if (decoded && decoded.type === 'extension') {
+        teacher_id = decoded.userId
+        teacherInfo = decoded
+        console.log('✅ Authenticated teacher from Bearer token:', decoded.email)
+      } else {
+        console.error('❌ Invalid or non-extension Bearer token')
+        const response = NextResponse.json({ 
+          success: false,
+          error: 'Invalid authentication token' 
+        }, { status: 401 })
+        return addCorsHeaders(response, request)
+      }
+    } else {
+      console.error('❌ No Bearer token provided')
+      const response = NextResponse.json({ 
+        success: false,
+        error: 'Authentication required - Bearer token missing' 
+      }, { status: 401 })
+      return addCorsHeaders(response, request)
+    }
+    
     const body = await request.json()
     console.log('📥 Request body:', body)
     
-    const { meetUrl, student_email, enrollment_id, teacher_id } = body
+    const { meetUrl, platform, title, student_email, enrollment_id } = body
 
-    // Validate required fields
-    if (!meetUrl || !student_email || !teacher_id) {
-      console.error('❌ Missing required fields')
-      return NextResponse.json({ 
+    // Validate required fields (now only meetUrl is required from extension)
+    if (!meetUrl) {
+      console.error('❌ Missing required field: meetUrl')
+      const response = NextResponse.json({ 
         success: false,
-        error: 'Missing required fields: meetUrl, student_email, and teacher_id' 
+        error: 'Missing required field: meetUrl' 
       }, { status: 400 })
+      return addCorsHeaders(response, request)
     }
+
+    console.log('🎯 Starting class for teacher:', teacherInfo.email, 'meetUrl:', meetUrl)
 
     // Step 1: Find enrollment using your existing check-meet-url logic
     let enrollment = null
@@ -58,7 +98,26 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (teacherError) {
-        console.log('⚠️ No enrollment found by teacher and URL')
+        console.log('⚠️ No enrollment found by teacher and URL, trying partial URL match...')
+        
+        // Try partial URL matching in case of URL variations
+        const { data: enrollmentsByTeacher, error: partialError } = await supabase
+          .from('enrollments')
+          .select('*')
+          .eq('teacher_id', teacher_id)
+          .eq('status', 'active')
+        
+        if (!partialError && enrollmentsByTeacher) {
+          // Look for enrollments where the meet URL contains the same meeting ID
+          const meetId = meetUrl.split('/').pop() // Extract meeting ID from URL
+          enrollment = enrollmentsByTeacher.find(e => 
+            e.google_meet_url && e.google_meet_url.includes(meetId)
+          )
+          
+          if (enrollment) {
+            console.log('✅ Found enrollment by partial URL match:', enrollment.id)
+          }
+        }
       } else {
         enrollment = enrollmentByTeacher
         console.log('✅ Found enrollment by teacher and URL:', enrollment?.id)
@@ -66,15 +125,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (!enrollment) {
-      console.error('❌ No active enrollment found')
-      return NextResponse.json({ 
+      console.error('❌ No active enrollment found for meetUrl:', meetUrl)
+      const response = NextResponse.json({ 
         success: false,
-        error: 'No active enrollment found for this Meet URL. Please check the URL matches exactly with your ClassLogger dashboard.' 
+        error: 'No active enrollment found for this Meet URL. Please ensure you have an active student enrollment with this Google Meet link in your ClassLogger dashboard.',
+        meetUrl: meetUrl,
+        teacher: teacherInfo.email
       }, { status: 404 })
+      return addCorsHeaders(response, request)
     }
 
     // Step 2: Get student info
     let studentName = 'Unknown Student'
+    let studentEmail = student_email || 'unknown@example.com'
+    
     const { data: studentProfile } = await supabase
       .from('profiles')
       .select('full_name, email')
@@ -83,11 +147,15 @@ export async function POST(request: NextRequest) {
 
     if (studentProfile) {
       studentName = studentProfile.full_name || 'Unknown Student'
-      // Verify email matches if provided
+      studentEmail = studentProfile.email || studentEmail
+      
+      // Verify email matches if provided by extension
       if (student_email && studentProfile.email !== student_email) {
         console.log('⚠️ Email mismatch - provided:', student_email, 'found:', studentProfile.email)
       }
     }
+    
+    console.log('👤 Student info:', studentName, studentEmail)
 
     // Step 3: Get class info  
     let subject = 'Unknown Subject'
@@ -114,10 +182,11 @@ export async function POST(request: NextRequest) {
 
     if (checkError && checkError.code !== 'PGRST116') {
       console.error('❌ Database check error:', checkError)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false, 
         error: 'Database error checking existing classes' 
       }, { status: 500 })
+      return addCorsHeaders(response, request)
     }
 
     // If there's an active class, return it instead of creating new one
@@ -137,7 +206,7 @@ export async function POST(request: NextRequest) {
         console.error('⚠️ Failed to update existing class:', updateError)
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         class_log_id: existingClass.id,
         message: 'Resumed existing class session',
@@ -147,6 +216,7 @@ export async function POST(request: NextRequest) {
         start_time: existingClass.start_time,
         class_data: existingClass
       })
+      return addCorsHeaders(response, request)
     }
 
     // Step 5: Check for recent classes (within 10 minutes) to prevent duplicates
@@ -162,7 +232,7 @@ export async function POST(request: NextRequest) {
     if (recentClass) {
       console.log('🔄 Using recent class session:', recentClass.id)
       
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         class_log_id: recentClass.id,
         message: 'Using recent class session',
@@ -171,6 +241,7 @@ export async function POST(request: NextRequest) {
         subject: subject,
         class_data: recentClass
       })
+      return addCorsHeaders(response, request)
     }
 
     // Step 6: Create new class log
@@ -184,13 +255,13 @@ export async function POST(request: NextRequest) {
         enrollment_id: enrollment.id,
         teacher_id: teacher_id,
         class_id: enrollment.class_id,
-        student_email: student_email,
+        student_email: studentEmail,
         student_name: studentName,
         google_meet_link: meetUrl,
         start_time: now.toISOString(),
         date: today,
         status: 'in_progress',
-        content: `Class with ${studentName} - ${subject}`,
+        content: title || `Class with ${studentName} - ${subject}`,
         topics_covered: [],
         homework_assigned: null,
         attachments: null,
@@ -205,15 +276,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('❌ Insert error:', insertError)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false,
         error: 'Failed to create class log: ' + insertError.message 
       }, { status: 500 })
+      return addCorsHeaders(response, request)
     }
 
     console.log('✅ New class started with teacher_id:', teacher_id, 'class_id:', classLog.id)
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       class_log_id: classLog.id,
       message: 'Class started successfully',
@@ -223,12 +295,14 @@ export async function POST(request: NextRequest) {
       start_time: classLog.start_time,
       class_data: classLog
     })
+    return addCorsHeaders(response, request)
 
   } catch (error) {
     console.error('❌ Start class error:', error)
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: false,
       error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error')
     }, { status: 500 })
+    return addCorsHeaders(response, request)
   }
 }

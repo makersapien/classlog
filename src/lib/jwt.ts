@@ -9,12 +9,13 @@ export interface JWTPayload {
   email: string
   role: 'teacher' | 'student' | 'parent'
   name: string
+  type?: string // Optional type field for extension tokens
   iat?: number
   exp?: number
 }
 
-export function signJWT(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+export function signJWT(payload: Omit<JWTPayload, 'iat' | 'exp'>, expiresIn?: string): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn || JWT_EXPIRES_IN })
 }
 
 export function verifyJWT(token: string): JWTPayload | null {

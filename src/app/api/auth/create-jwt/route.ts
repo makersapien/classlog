@@ -1,8 +1,7 @@
 // src/app/api/auth/create-jwt/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { signJWT } from '@/lib/jwt'
 import { setAuthCookie } from '@/lib/cookies'
 
@@ -10,26 +9,44 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Creating JWT cookie for OAuth user...')
     
-    // Verify user is authenticated with Supabase
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      console.error('❌ User not authenticated:', authError)
-      return NextResponse.json(
-        { error: 'User not authenticated' },
-        { status: 401 }
-      )
-    }
-
     // Get data from request
     const { userId, email, name, role } = await request.json()
     
-    // Verify the user ID matches the authenticated user
-    if (userId !== user.id) {
-      console.error('❌ User ID mismatch')
+    // Validate required fields
+    if (!userId || !email || !role) {
+      console.error('❌ Missing required fields')
       return NextResponse.json(
-        { error: 'User ID mismatch' },
+        { error: 'Missing required fields: userId, email, role' },
+        { status: 400 }
+      )
+    }
+    
+    // Create Supabase client with service role for verification
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    // Verify the user exists in the database
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, role')
+      .eq('id', userId)
+      .single()
+    
+    if (profileError || !profile) {
+      console.error('❌ User not found in database:', profileError)
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Verify the email matches
+    if (profile.email !== email) {
+      console.error('❌ Email mismatch')
+      return NextResponse.json(
+        { error: 'Email mismatch' },
         { status: 401 }
       )
     }

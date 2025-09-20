@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import Header from '@/components/Header';
+import ExtensionBridge from './extension-bridge';
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "ClassLogger",
@@ -26,6 +16,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Font loading via CDN - fixes Turbopack issue */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+        
         {/* Meticulous.ai Script - Must be first script to load */}
         {(process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "preview") && (
           // eslint-disable-next-line @next/next/no-sync-scripts
@@ -37,14 +35,18 @@ export default function RootLayout({
         )}
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="font-sans antialiased"
+        style={{
+          fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        }}
       >
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-yellow-100 border-b border-yellow-300 p-2 text-center text-sm">
             🧪 JWT Test Mode - Visit <a href="/test-jwt" className="underline">/test-jwt</a> to check authentication
           </div>
         )}
-                <Header />
+        <Header />
+        <ExtensionBridge />
         <main className="min-h-screen">
           {children}
         </main>

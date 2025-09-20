@@ -33,8 +33,20 @@
   - Ensure proper error handling for missing data
   - _Requirements: 1.1, 1.2_
 
-- [-] 4. Add credit management functionality
+- [x] 4. Add credit management functionality
   - Create endpoints for credit management
   - Implement class completion tracking
   - Add credit deduction on class completion
   - _Requirements: 2.2, 2.3, 2.4_
+
+- [x] 5. Fix Next.js 15 cookie handling compatibility
+  - Update all API routes to use async cookie handling pattern
+  - Replace synchronous cookie patterns with `cookies: async () => await cookies()`
+  - Ensure consistent cookie handling across all createRouteHandlerClient calls
+  - _Requirements: 4.1, 4.2, 4.3, 4.4_
+
+- [x] 6. Fix linting errors
+  - Fix TypeScript linting errors in dashboard API
+  - Fix unused variables and imports in components
+  - Fix React-specific linting errors
+  - _Requirements: 1.1, 3.1_

@@ -1,16 +1,13 @@
 // src/app/api/teacher/students/route.ts - Fixed with proper database types
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Database, TentativeScheduleData } from '@/types/database'
 
 // Use proper database types from schema
 type ClassRow = Database['public']['Tables']['classes']['Row']
-type EnrollmentRow = Database['public']['Tables']['enrollments']['Row']
-type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type StudentInvitationRow = Database['public']['Tables']['student_invitations']['Row']
-type ParentChildRelationshipRow = Database['public']['Tables']['parent_child_relationships']['Row']
 
 // Extended types for joined queries - match actual Supabase query results
 interface EnrollmentQueryResult {
@@ -95,16 +92,15 @@ interface InvitationData {
 
 // Types are properly defined and available for use
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const supabase = createRouteHandlerClient<Database>({ 
-      cookies 
-    })
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
     
-    // Get current user (teacher)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
     
-    if (authError) {
+    if (!user) {
       console.error('❌ Auth error:', authError)
       return NextResponse.json({ error: 'Authentication failed', details: authError.message }, { status: 401 })
     }
@@ -137,7 +133,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string): Promise<StudentData[]> {
+async function fetchTeacherStudents(supabase: ReturnType<typeof createClient<Database>>, teacherId: string): Promise<StudentData[]> {
   try {
     // Get all classes for this teacher
     const { data: classes, error: classesError } = await supabase
@@ -276,7 +272,7 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createRouteHandl
   }
 }
 
-async function fetchPendingInvitations(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string): Promise<InvitationData[]> {
+async function fetchPendingInvitations(supabase: ReturnType<typeof createClient<Database>>, teacherId: string): Promise<InvitationData[]> {
   try {
     const { data: invitations, error: invitationsError } = await supabase
       .from('student_invitations')
@@ -330,9 +326,9 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
     // Must have BOTH URLs AND setup_completed flag
     return student.setup_completed === true && 
            student.whatsapp_group_url && 
-           student.google_meet_url &&
+           student.google_meet_link &&
            student.whatsapp_group_url.trim() !== '' &&
-           student.google_meet_url.trim() !== ''
+           student.google_meet_link.trim() !== ''
   }).length
   
   // Students who don't meet the complete setup criteria
@@ -349,7 +345,7 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
 }
 
 // 🔧 ENHANCED: Duplicate validation helper functions
-async function validateGoogleMeetUrl(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string, googleMeetUrl: string, excludeInvitationId?: string) {
+async function validateGoogleMeetUrl(supabase: ReturnType<typeof createClient<Database>>, teacherId: string, googleMeetUrl: string, excludeInvitationId?: string) {
   if (!googleMeetUrl || !googleMeetUrl.trim()) {
     return { isValid: true } // URL is optional, so empty is valid
   }
@@ -430,7 +426,7 @@ async function validateGoogleMeetUrl(supabase: ReturnType<typeof createRouteHand
   return { isValid: true }
 }
 
-async function validateStudentEmail(supabase: ReturnType<typeof createRouteHandlerClient<Database>>, teacherId: string, studentEmail: string, parentEmail: string) {
+async function validateStudentEmail(supabase: ReturnType<typeof createClient<Database>>, teacherId: string, studentEmail: string) {
 
   if (!studentEmail || !studentEmail.trim()) {
     return { isValid: true } // Student email is optional in invitations
@@ -494,21 +490,20 @@ async function validateStudentEmail(supabase: ReturnType<typeof createRouteHandl
 }
 
 // POST endpoint for creating new student invitations - ENHANCED with duplicate prevention
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    // Fix for Next.js 15 - properly handle cookies
-    const supabase = createRouteHandlerClient<Database>({ 
-      cookies 
-    })
+    // Use Next.js 15 compatible helper
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
     
-    // Get current user (teacher)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
     
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await Request.json()
     const {
       student_name,
       student_email,
@@ -555,8 +550,6 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-
-
     // 🔧 ENHANCED: Validate Google Meet URL for duplicates
     if (google_meet_url) {
       try {
@@ -582,7 +575,7 @@ export async function POST(request: Request) {
     // 🔧 ENHANCED: Validate student email for duplicates
     if (student_email) {
       try {
-        const studentEmailValidation = await validateStudentEmail(supabase, user.id, student_email, parent_email)
+        const studentEmailValidation = await validateStudentEmail(supabase, user.id, student_email)
         if (!studentEmailValidation.isValid) {
           return NextResponse.json({
             success: false,
@@ -661,8 +654,6 @@ export async function POST(request: Request) {
         details: invitationError.message
       }, { status: 500 })
     }
-
-
 
     // Generate invitation URL
     const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/${invitation_token}`

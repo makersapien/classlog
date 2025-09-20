@@ -1,4 +1,6 @@
-// src/app/api/teacher/check-meet-url/route.ts - Updated to match your actual table structure
+// src/app/api/teacher/check-meet-url/route.ts
+// Complete fixed version with proper TypeScript CORS handling
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -6,6 +8,48 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Fixed CORS helper with proper TypeScript compatibility
+function getCorsHeaders(request: NextRequest): Record<string, string> {
+  const origin = request.headers.get('origin')
+  
+  if (origin && origin.startsWith('chrome-extension://')) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  if (origin && (
+    origin.includes('meet.google.com') || 
+    origin.includes('zoom.us') || 
+    origin.includes('teams.microsoft.com')
+  )) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+  }
+}
 
 // Define proper types for the API
 interface StudentProfile {
@@ -33,16 +77,32 @@ interface CheckMeetUrlRequestBody {
   teacherId: string
 }
 
+// Handle preflight OPTIONS requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: getCorsHeaders(request),
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: CheckMeetUrlRequestBody = await request.json()
     const { meetUrl, teacherId } = body
 
     if (!meetUrl || !teacherId) {
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false, 
         error: 'Missing required fields: meetUrl and teacherId' 
       }, { status: 400 })
+      
+      // Add CORS headers with proper typing
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     console.log('🔍 Checking Meet URL:', meetUrl, 'for teacher:', teacherId)
@@ -75,18 +135,34 @@ export async function POST(request: NextRequest) {
 
     if (enrollmentError) {
       console.error('❌ Database error:', enrollmentError)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false, 
         error: 'Database query failed: ' + (enrollmentError instanceof Error ? enrollmentError.message : 'Unknown error')
       }, { status: 500 })
+      
+      // Add CORS headers
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     if (!enrollments || enrollments.length === 0) {
       console.log('❌ No enrollments found for this Meet URL and teacher')
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false, 
         error: 'No active enrollment found for this Google Meet URL. Please check the URL matches exactly with your ClassLogger dashboard.' 
       }, { status: 404 })
+      
+      // Add CORS headers
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     // Single enrollment found - this is the expected case
@@ -106,10 +182,18 @@ export async function POST(request: NextRequest) {
     // Verify we have student data
     if (!studentProfile) {
       console.error('❌ Incomplete enrollment data - missing student:', enrollment)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false, 
         error: 'Incomplete enrollment data - missing student information' 
       }, { status: 500 })
+      
+      // Add CORS headers
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     console.log('✅ Valid enrollment found:', {
@@ -119,7 +203,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Return the enrollment data in the format expected by the extension
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       enrollment: {
         id: enrollment.id,
@@ -136,6 +220,14 @@ export async function POST(request: NextRequest) {
       },
       message: `Enrollment verified for ${studentProfile.full_name}`
     })
+    
+    // Add CORS headers
+    const corsHeaders = getCorsHeaders(request)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
 
   } catch (error) {
     console.error('❌ Check Meet URL API Error:', error)
@@ -143,9 +235,17 @@ export async function POST(request: NextRequest) {
     // Fix: Proper error handling with type safety
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: false, 
       error: 'Internal server error: ' + errorMessage 
     }, { status: 500 })
+    
+    // Add CORS headers
+    const corsHeaders = getCorsHeaders(request)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
   }
 }

@@ -27,11 +27,11 @@ interface TokenStatus {
 }
 
 interface ExtensionTokenManagerProps {
-  teacherId: string
-  teacherName: string
+  userId: string
+  teacherName?: string
 }
 
-export default function ExtensionTokenManager({ teacherId }: ExtensionTokenManagerProps) {
+export default function ExtensionTokenManager({ userId }: ExtensionTokenManagerProps) {
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null)
   const [currentToken, setCurrentToken] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
@@ -40,7 +40,7 @@ export default function ExtensionTokenManager({ teacherId }: ExtensionTokenManag
   const fetchTokenStatus = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/teacher/tokens/status?teacherId=${teacherId}`)
+      const response = await fetch(`/api/teacher/tokens/status?teacherId=${userId}`)
       const data = await response.json()
       
       if (data.success) {
@@ -53,7 +53,7 @@ export default function ExtensionTokenManager({ teacherId }: ExtensionTokenManag
     } finally {
       setIsLoading(false)
     }
-  }, [teacherId])
+  }, [userId])
 
   useEffect(() => {
     fetchTokenStatus()
@@ -67,7 +67,7 @@ export default function ExtensionTokenManager({ teacherId }: ExtensionTokenManag
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ teacherId })
+        body: JSON.stringify({ teacherId: userId })
       })
 
       const data = await response.json()

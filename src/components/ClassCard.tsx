@@ -18,7 +18,8 @@ import {
   FileIcon,
   Image as ImageIcon,
   Save,
-  X
+  X,
+  Plus
 } from 'lucide-react'
 
 // shadcn/ui components
@@ -224,6 +225,28 @@ const ClassCard: React.FC<ClassCardProps> = ({
                     <Badge variant="outline" className="text-xs">
                       Enhanced
                     </Badge>
+                  )}
+                  {/* Award Credits Button */}
+                  {classLog.student_id && classLog.status === 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto text-xs text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Dispatch a custom event that the parent component can listen for
+                        const event = new CustomEvent('award-credits', { 
+                          detail: { 
+                            studentId: classLog.student_id,
+                            studentName: classLog.student_name
+                          }
+                        });
+                        window.dispatchEvent(event);
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Award Credits
+                    </Button>
                   )}
                 </CardTitle>
               </div>

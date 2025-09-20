@@ -1,8 +1,7 @@
 // src/app/api/dashboard/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { Database } from '@/types/database'
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 
 // Type definitions for better type safety
 interface ClassWithEnrollments {
@@ -10,7 +9,7 @@ interface ClassWithEnrollments {
   name: string
   subject: string
   grade: string | null
-  description: string | null
+  description: string | null // Added this required field
   teacher_id: string
   status: string
   created_at: string
@@ -183,7 +182,9 @@ interface Profile {
   updated_at: string
 }
 
-type SupabaseClient = ReturnType<typeof createRouteHandlerClient<Database>>
+import { createClient } from '@supabase/supabase-js'
+
+type SupabaseClient = ReturnType<typeof createClient<Database>>
 
 export async function GET(request: Request) {
   console.log('🔄 Dashboard API called')
@@ -194,15 +195,8 @@ export async function GET(request: Request) {
     
     console.log('📝 Role requested:', role)
     
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError) {
-      console.error('❌ Auth error:', authError)
-      return NextResponse.json({ error: 'Authentication failed', details: authError.message }, { status: 401 })
-    }
+    // Use the new Next.js 15 compatible helper
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
 
     if (!user) {
       console.error('❌ No user found')
@@ -230,10 +224,34 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     console.error('💥 Dashboard API error:', error)
+    
+    // Provide more specific error messages based on the error type
+    let errorMessage = 'Internal server error';
+    let errorDetails = error instanceof Error ? error.message : 'Unknown error';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('cookies')) {
+        errorMessage = 'Cookie handling error';
+        errorDetails = 'Failed to process authentication cookies';
+      } else if (error.message.includes('auth')) {
+        errorMessage = 'Authentication error';
+        statusCode = 401;
+      } else if (error.message.includes('permission') || error.message.includes('access')) {
+        errorMessage = 'Permission denied';
+        statusCode = 403;
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Resource not found';
+        statusCode = 404;
+      }
+    }
+    
     return NextResponse.json({ 
-      error: 'Internal server error', 
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+      error: errorMessage, 
+      details: errorDetails,
+      timestamp: new Date().toISOString(),
+      path: request.url
+    }, { status: statusCode })
   }
 }
 
@@ -278,10 +296,10 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     console.log('✅ Direct enrollments found:', directEnrollments?.length || 0)
     
     // If we have direct enrollments, create synthetic classes for them
-    let syntheticClasses = [];
+    let syntheticClasses: ClassWithEnrollments[] = [];
     if (directEnrollments && directEnrollments.length > 0) {
       // Group enrollments by subject and year_group
-      const groupedEnrollments = directEnrollments.reduce((acc, enrollment) => {
+      const groupedEnrollments: Record<string, any[]> = directEnrollments.reduce((acc: Record<string, any[]>, enrollment) => {
         const key = `${enrollment.subject || 'General'}-${enrollment.year_group || 'All'}`;
         if (!acc[key]) {
           acc[key] = [];
@@ -290,7 +308,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
         return acc;
       }, {});
       
-      // Create synthetic classes
+      // Create synthetic classes with proper typing
       syntheticClasses = Object.entries(groupedEnrollments).map(([key, groupEnrollments]) => {
         const [subject, grade] = key.split('-');
         return {
@@ -298,6 +316,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
           name: `${subject} for ${grade}`,
           subject,
           grade,
+          description: null, // Added this required field
           teacher_id: teacherId,
           status: 'active',
           created_at: new Date().toISOString(),
@@ -341,13 +360,18 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     
     console.log('✅ Regular classes found:', classes?.length || 0)
     
-    // Combine regular classes with synthetic classes
+    // Combine regular classes with synthetic classes - ensure proper typing
+    const regularClassesTyped: ClassWithEnrollments[] = (classes || []).map(cls => ({
+      ...cls,
+      description: cls.description || null // Ensure description field exists
+    }));
+    
     const combinedClasses = [
-      ...(classes || []),
+      ...regularClassesTyped,
       ...syntheticClasses
     ];
 
-    const typedClasses = combinedClasses as ClassWithEnrollments[] | null
+    const typedClasses = combinedClasses as ClassWithEnrollments[]
     console.log('✅ Total classes (regular + synthetic):', typedClasses?.length || 0)
     
     // Get all student IDs from enrollments
@@ -361,7 +385,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     });
     
     // Fetch credit information for all students
-    let creditData: Record<string, { balance_hours: number, total_purchased: number, total_used: number }> = {};
+    const creditData = {} as Record<string, { balance_hours: number, total_purchased: number, total_used: number }>;
     
     if (studentIds.size > 0) {
       console.log('💰 Fetching credit data for students:', Array.from(studentIds));
@@ -395,7 +419,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     typedClasses?.forEach(cls => {
       cls.enrollments?.forEach(enrollment => {
         if (enrollment.student_id && creditData[enrollment.student_id]) {
-          (enrollment as any).creditData = creditData[enrollment.student_id];
+          (enrollment as { creditData?: { balance_hours: number, total_purchased: number, total_used: number } }).creditData = creditData[enrollment.student_id];
         }
       });
     });
@@ -527,7 +551,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     const todayLogs: ProcessedClassLog[] = processedLogs.filter((log: ProcessedClassLog) => log.date === today)
 
     // Get payment statistics for teacher's classes with better error handling
-    const classIds = typedClasses?.map((c: ClassWithEnrollments) => c.id) || []
+    const classIds = typedClasses?.map((c: ClassWithEnrollments) => c.id).filter(id => !id.startsWith('synthetic-')) || []
     let payments: Payment[] = []
     
     if (classIds.length > 0) {
@@ -582,6 +606,67 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     const attendanceToday = todayLogs.reduce((sum: number, log: ProcessedClassLog) => 
       sum + (log.attendance_count || 0), 0)
 
+    // Transform enrollments into student data
+    interface StudentData {
+      id: string;
+      name: string;
+      grade: string | null;
+      subject: string;
+      status: string;
+      paymentStatus: string;
+      creditsRemaining: number;
+      totalCredits: number;
+      attendanceRate: number;
+      performance: string;
+      parent_email: string | null;
+    }
+    
+    const students: StudentData[] = [];
+    
+    if (typedClasses && typedClasses.length > 0) {
+      // Create a map to avoid duplicate students
+      const studentMap = new Map<string, boolean>();
+      
+      typedClasses.forEach(cls => {
+        cls.enrollments?.forEach(enrollment => {
+          if (enrollment.student_id && enrollment.profiles) {
+            const studentId = enrollment.student_id;
+            
+            // Skip if we've already processed this student
+            if (studentMap.has(studentId)) return;
+            
+            // Get credit data for this student
+            const credit = creditData[studentId] || { 
+              balance_hours: 0, 
+              total_purchased: 0, 
+              total_used: 0 
+            };
+            
+            // Create student object
+            const student: StudentData = {
+              id: studentId,
+              name: enrollment.profiles.full_name || 'Unknown Student',
+              grade: cls.grade,
+              subject: cls.subject || 'General',
+              status: enrollment.status,
+              paymentStatus: 'paid', // Default value
+              creditsRemaining: credit.balance_hours,
+              totalCredits: credit.total_purchased,
+              attendanceRate: 90, // Default value
+              performance: 'good', // Default value
+              parent_email: enrollment.profiles.email
+            };
+            
+            // Add to map and array
+            studentMap.set(studentId, true);
+            students.push(student);
+          }
+        });
+      });
+    }
+    
+    console.log('✅ Transformed students:', students.length);
+
     const responseData = {
       stats: {
         totalClasses: typedClasses?.length || 0,
@@ -595,7 +680,8 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       classLogs: processedLogs, // 👈 Enhanced logs with topics/homework ready
       todaySchedule: todayLogs,
       recentMessages: typedMessages || [],
-      upcomingPayments: payments.filter((p: Payment) => p.status === 'pending').slice(0, 5)
+      upcomingPayments: payments.filter((p: Payment) => p.status === 'pending').slice(0, 5),
+      students: students // Add students to the response
     }
 
     console.log('✅ Teacher dashboard data prepared successfully')

@@ -1,7 +1,6 @@
 // src/app/api/teacher/students/[id]/route.ts
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
 interface UpdateStudentData {
@@ -92,15 +91,11 @@ export async function PATCH(
   console.log('🔄 PATCH: Updating student with ID:', id)
   
   try {
-    // Create Supabase client
-    const supabase = createRouteHandlerClient({ cookies })
+    // Use Next.js 15 compatible helper
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
     
-    // Get current user (teacher)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      console.error('❌ Authentication failed:', authError)
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     console.log('✅ Teacher authenticated:', user.id)
@@ -425,13 +420,10 @@ export async function GET(
   console.log('🔄 GET: Fetching student details for ID:', id)
   
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
     
-    // Get current user (teacher)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const enrollmentId = id

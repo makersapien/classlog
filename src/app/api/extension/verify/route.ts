@@ -1,39 +1,70 @@
+// src/app/api/extension/verify/route.ts
+// Fixed version with simple CORS handling
+
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJWT } from '@/lib/jwt'
 import { getAuthCookieFromRequest } from '@/lib/cookies'
 
+// Simple CORS helper - return Record<string, string> for compatibility
+function getCorsHeaders(request: NextRequest): Record<string, string> {
+  const origin = request.headers.get('origin')
+
+  if (origin && origin.startsWith('chrome-extension://')) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+
+  if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+  }
+}
+
 // Handle CORS preflight
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Credentials': 'true',
-    },
+    headers: getCorsHeaders(request),
   })
 }
 
 // Handle GET requests (existing logic)
 export async function GET(request: NextRequest) {
   const response = await handleAuth(request)
-  
-  // Add CORS headers to response
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  
+
+  // Add CORS headers with proper typing
+  const corsHeaders = getCorsHeaders(request)
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
+
   return response
 }
 
 // Handle POST requests (for AuthManager)
 export async function POST(request: NextRequest) {
   const response = await handleAuth(request)
-  
-  // Add CORS headers to response
-  response.headers.set('Access-Control-Allow-Origin', '*') 
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  
+
+  // Add CORS headers with proper typing
+  const corsHeaders = getCorsHeaders(request)
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
+
   return response
 }
 
@@ -41,7 +72,7 @@ async function handleAuth(request: NextRequest) {
   try {
     // Get JWT from cookie
     const token = getAuthCookieFromRequest(request)
-    
+
     if (!token) {
       return NextResponse.json({
         success: false,

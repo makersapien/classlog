@@ -1,5 +1,5 @@
 // src/app/api/extension/end-class/route.ts
-// Fixed with strict typing, token validation, and ESLint compliance
+// Your existing comprehensive API with CORS fix
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -9,7 +9,61 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Strictly typed interfaces
+// 🔧 CORS FIX: Dynamic CORS headers based on origin
+function getCorsHeaders(request: NextRequest) {
+  const origin = request.headers.get('origin')
+  
+  // Allow chrome-extension origins (this fixes your main issue)
+  if (origin && origin.startsWith('chrome-extension://')) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  // Allow localhost origins (for development)
+  if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  // Allow specific meeting platforms
+  if (origin && (
+    origin.includes('meet.google.com') || 
+    origin.includes('zoom.us') || 
+    origin.includes('teams.microsoft.com')
+  )) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin',
+      'Access-Control-Allow-Credentials': 'true',
+    }
+  }
+  
+  // Default fallback - no credentials to avoid wildcard + credentials issue
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin',
+  }
+}
+
+// 🔧 CORS FIX: Handle preflight OPTIONS requests
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: getCorsHeaders(request),
+  })
+}
+
+// Strictly typed interfaces (your existing interfaces)
 interface EndClassRequestBody {
   class_log_id?: string
   meetUrl?: string
@@ -107,10 +161,18 @@ export async function POST(request: NextRequest) {
 
       if (tokenError || !tokenData) {
         console.error('❌ Invalid token:', tokenError)
-        return NextResponse.json({ 
+        const response = NextResponse.json({ 
           success: false,
           error: 'Invalid authentication token' 
         }, { status: 401 })
+        
+        // 🔧 CORS FIX: Add headers to error responses
+        const corsHeaders = getCorsHeaders(request)
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value)
+        })
+        
+        return response
       }
 
       validatedTeacherId = tokenData.teacher_id
@@ -145,18 +207,34 @@ export async function POST(request: NextRequest) {
 
       if (findError) {
         console.error('❌ Error finding active class:', findError)
-        return NextResponse.json({ 
+        const response = NextResponse.json({ 
           success: false,
           error: `Error finding active class: ${findError.message}` 
         }, { status: 500 })
+        
+        // 🔧 CORS FIX: Add headers to error responses
+        const corsHeaders = getCorsHeaders(request)
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value)
+        })
+        
+        return response
       }
 
       if (!activeClass) {
         console.error('❌ No active class found to end')
-        return NextResponse.json({ 
+        const response = NextResponse.json({ 
           success: false,
           error: 'No active class found to end' 
         }, { status: 404 })
+        
+        // 🔧 CORS FIX: Add headers to error responses
+        const corsHeaders = getCorsHeaders(request)
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value)
+        })
+        
+        return response
       }
 
       classLogId = activeClass.id
@@ -172,18 +250,34 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) {
       console.error('❌ Error fetching class log:', fetchError)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false,
         error: `Class log not found: ${fetchError.message}` 
       }, { status: 404 })
+      
+      // 🔧 CORS FIX: Add headers to error responses
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     if (!existingClass) {
       console.error('❌ Class log not found')
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false,
         error: 'Class log not found' 
       }, { status: 404 })
+      
+      // 🔧 CORS FIX: Add headers to error responses
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     const classRecord = existingClass as ClassLogRecord
@@ -289,10 +383,18 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('❌ Update error:', updateError)
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: false,
         error: `Failed to end class: ${updateError.message}` 
       }, { status: 500 })
+      
+      // 🔧 CORS FIX: Add headers to error responses
+      const corsHeaders = getCorsHeaders(request)
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      
+      return response
     }
 
     console.log('✅ Class ended successfully:', classLogId)
@@ -315,7 +417,7 @@ export async function POST(request: NextRequest) {
       manual_notes: manual_notes ? 'Saved' : 'None'
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       class_log_id: classLogId,
       message: 'Class ended successfully',
@@ -324,12 +426,28 @@ export async function POST(request: NextRequest) {
       class_data: updatedClass
     })
 
+    // 🔧 CORS FIX: Add headers to success response
+    const corsHeaders = getCorsHeaders(request)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+
+    return response
+
   } catch (error) {
     console.error('❌ End class error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: false,
       error: `Internal server error: ${errorMessage}`
     }, { status: 500 })
+
+    // 🔧 CORS FIX: Add headers to error responses
+    const corsHeaders = getCorsHeaders(request)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+
+    return response
   }
 }

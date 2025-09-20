@@ -1,180 +1,151 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 
-function AuthCallbackContent() {
+export default function AuthCallback() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const role = searchParams?.get('role') || 'student'
+  const [status, setStatus] = useState('Processing authentication...')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log('🔄 Auth callback started with role:', role)
+        setStatus('Processing OAuth callback...')
         
-        // Handle the auth callback - Supabase automatically processes the URL fragments
-        const { data, error } = await supabase.auth.getSession()
+        // Get role from URL params for redirect
+        const role = searchParams.get('role')
         
-        if (error) {
-          console.error('❌ Auth error:', error)
-          router.push('/?error=auth_failed')
+        // The auth helpers automatically handle the code exchange
+        // We just need to wait for the session to be established
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          throw sessionError
+        }
+
+        if (!session) {
+          // If no session yet, listen for auth state change
+          setStatus('Waiting for authentication to complete...')
+          
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+              subscription.unsubscribe()
+              await processAuthenticatedUser(session, role)
+            }
+          })
+          
           return
         }
 
-        if (data.session) {
-          const user = data.session.user
-          console.log('✅ User authenticated:', user.id, user.email)
-          
-          // Create or update user profile with role
-          const profileData = {
-            id: user.id,
-            email: user.email!,
-            full_name: user.user_metadata.full_name || user.user_metadata.name || user.email?.split('@')[0] || 'User',
-            avatar_url: user.user_metadata.avatar_url || user.user_metadata.picture || null,
-            role: role as 'teacher' | 'parent' | 'student',
-            status: 'active'
-          }
+        // If we already have a session, process it
+        await processAuthenticatedUser(session, role)
 
-          console.log('📝 Creating/updating profile:', profileData)
-
-          // Use the same supabase client as dashboard
-          const { data: profileResult, error: profileError } = await supabase
-            .from('profiles')
-            .upsert(profileData, {
-              onConflict: 'id'
-            })
-            .select()
-            .single()
-
-          if (profileError) {
-            console.error('❌ Profile creation error:', profileError)
-            // Don't stop here - user is still authenticated
-            console.log('⚠️ Continuing despite profile error...')
-          } else {
-            console.log('✅ Profile created/updated successfully:', profileResult)
-          }
-
-          // 🔥 NEW: Create JWT cookie after successful OAuth
-          console.log('🔄 Creating JWT cookie after OAuth...')
-          
-          try {
-            const jwtResponse = await fetch('/api/auth/create-jwt', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include', // Important for cookies
-              body: JSON.stringify({
-                userId: user.id,
-                email: user.email,
-                name: profileData.full_name,
-                role: role
-              })
-            })
-
-            if (jwtResponse.ok) {
-              const jwtData = await jwtResponse.json()
-              console.log('✅ JWT cookie created successfully:', jwtData)
-            } else {
-              const errorText = await jwtResponse.text()
-              console.error('❌ Failed to create JWT cookie:', errorText)
-            }
-          } catch (jwtError) {
-            console.error('❌ JWT creation error:', jwtError)
-          }
-
-          // Wait a moment for everything to settle
-          console.log('⏳ Waiting for session to stabilize...')
-          await new Promise(resolve => setTimeout(resolve, 1500))
-
-          // Redirect to appropriate dashboard based on role
-          const dashboardRoute = `/dashboard/${role}`
-          console.log('🔄 Redirecting to:', dashboardRoute)
-          
-          // Force redirect with window.location for reliability
-          window.location.href = dashboardRoute
-          
-        } else {
-          console.error('❌ No session found after auth')
-          router.push('/?error=no_session')
-        }
       } catch (error) {
-        console.error('💥 Callback handling error:', error)
-        router.push('/?error=callback_failed')
+        console.error('Auth callback error:', error)
+        setError(error instanceof Error ? error.message : 'Authentication failed')
+        setStatus('Authentication failed')
+      }
+    }
+
+    const processAuthenticatedUser = async (session: any, role: string | null) => {
+      try {
+        setStatus('Getting user profile...')
+        
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profileError || !profile) {
+          throw new Error('Profile not found')
+        }
+
+        setStatus('Creating authentication cookies...')
+        
+        // Create JWT cookies by calling the API
+        const response = await fetch('/api/auth/create-jwt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: session.user.id,
+            email: session.user.email,
+            name: profile.full_name,
+            role: profile.role
+          })
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create cookies: ${errorText}`)
+        }
+
+        setStatus('Authentication successful! Redirecting...')
+        
+        // Redirect based on role
+        const redirectPath = role === 'teacher' ? '/dashboard' : '/student-dashboard'
+        
+        setTimeout(() => {
+          router.push(redirectPath)
+        }, 1000)
+
+      } catch (error) {
+        console.error('Auth processing error:', error)
+        setError(error instanceof Error ? error.message : 'Authentication processing failed')
+        setStatus('Authentication failed')
       }
     }
 
     handleAuthCallback()
-  }, [router, role])
+  }, [searchParams, router])
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
-      <div className="text-center max-w-md mx-auto p-8">
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl">
-              <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v6m0 6v6" />
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              ClassLogger
-            </span>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Authentication Error</h3>
+            <p className="mt-1 text-sm text-gray-500">{error}</p>
+            <div className="mt-6">
+              <button
+                onClick={() => router.push('/auth/signin')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-6"></div>
-        
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Setting up your account...</h2>
-        <p className="text-gray-600 mb-4">Please wait while we complete your sign-in process.</p>
-        
-        <div className="text-sm text-emerald-600 font-semibold mb-4">
-          Signing in as: {role.charAt(0).toUpperCase() + role.slice(1)} ✨
-        </div>
+      </div>
+    )
+  }
 
-        <div className="text-xs text-gray-500 space-y-1">
-          <div>🔄 Processing authentication...</div>
-          <div>📝 Creating your profile...</div>
-          <div>🔐 Setting up secure session...</div>
-          <div>🎯 Redirecting to dashboard...</div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+            <svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Authenticating</h3>
+          <p className="mt-1 text-sm text-gray-500">{status}</p>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function AuthCallback() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <div className="p-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl">
-                <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v6m0 6v6" />
-              </svg>
-              </div>
-              <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                ClassLogger
-              </span>
-            </div>
-          </div>
-          
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-6"></div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading authentication...</h2>
-          <p className="text-gray-600">Preparing your sign-in experience...</p>
-        </div>
-      </div>
-    }>
-      <AuthCallbackContent />
-    </Suspense>
   )
 }

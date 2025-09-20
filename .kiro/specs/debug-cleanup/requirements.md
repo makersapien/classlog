@@ -36,3 +36,14 @@ This feature focuses on cleaning up debugging files and resolving linting errors
 1. WHEN scanning the codebase THEN the system SHALL identify any other debugging or test files that aren't needed
 2. WHEN debugging files are found THEN the system SHALL evaluate whether they should be removed or fixed
 3. WHEN the cleanup is complete THEN the system SHALL have no unnecessary debugging artifacts
+
+### Requirement 4
+
+**User Story:** As a developer, I want to fix Next.js 15 compatibility issues, so that all API routes work correctly with the latest Next.js version.
+
+#### Acceptance Criteria
+
+1. WHEN using cookies() with createRouteHandlerClient THEN the system SHALL use the async/await pattern required by Next.js 15
+2. WHEN API routes are called THEN the system SHALL NOT throw cookie-related runtime errors
+3. WHEN all cookie handling is updated THEN the system SHALL maintain backward compatibility with existing functionality
+4. WHEN the fixes are complete THEN the system SHALL use consistent cookie handling patterns across all API routes
