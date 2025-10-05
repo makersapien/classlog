@@ -10,7 +10,7 @@ const supabase = createClient(
 )
 
 // 🔧 CORS FIX: Dynamic CORS headers based on origin
-function getCorsHeaders(request: NextRequest) {
+function getCorsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get('origin')
   
   // Allow chrome-extension origins (this fixes your main issue)
@@ -57,9 +57,10 @@ function getCorsHeaders(request: NextRequest) {
 
 // 🔧 CORS FIX: Handle preflight OPTIONS requests
 export async function OPTIONS(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request)
   return new Response(null, {
     status: 200,
-    headers: getCorsHeaders(request),
+    headers: corsHeaders,
   })
 }
 

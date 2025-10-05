@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Upload, QrCode, CreditCard, CheckCircle, Clock, DollarSign, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 
 interface PaymentRecord {
   id: string;
@@ -481,10 +481,12 @@ const PaymentCreditsPage: React.FC = () => {
                   <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:border-emerald-300 transition-colors">
                     {qrCodePreview ? (
                       <div className="space-y-3">
-                        <img 
+                        <Image 
                           src={qrCodePreview} 
                           alt="QR Code Preview" 
-                          className="w-24 h-24 mx-auto rounded-lg shadow-md object-contain"
+                          width={96}
+                          height={96}
+                          className="mx-auto rounded-lg shadow-md object-contain"
                         />
                         <div className="flex gap-2 justify-center">
                           <Button

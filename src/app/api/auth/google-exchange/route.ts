@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         client_secret: googleClientSecret,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: 'http://localhost:3000/auth/extension-callback'
+        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/extension-callback`
       })
     })
 

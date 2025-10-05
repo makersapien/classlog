@@ -110,7 +110,7 @@ export default function ExtensionTokenManager({ userId }: ExtensionTokenManagerP
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ teacherId })
+        body: JSON.stringify({ teacherId: userId })
       })
 
       const data = await response.json()

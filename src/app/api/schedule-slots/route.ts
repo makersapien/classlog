@@ -1,7 +1,7 @@
 // src/app/api/schedule-slots/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
-import { Database } from '@/types/database'
+
 
 // GET endpoint to fetch schedule slots
 export async function GET(request: NextRequest) {

@@ -7,7 +7,7 @@ const EXTENSION_COOKIE_NAME = 'classlogger_extension'
 const COOKIE_OPTIONS = {
   httpOnly: false,  // Extension accessible
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none' as const, // Allow cross-origin access for extensions
+  sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax', // Allow cross-origin access for extensions
   maxAge: 60 * 60 * 24 * 7, // 7 days
   path: '/',
 }
@@ -27,7 +27,7 @@ export function setAuthCookie(response: NextResponse, token: string) {
   response.cookies.set('classlogger_auth', token, {
     httpOnly: false, // Allow JavaScript access for extensions
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none', // Allow cross-origin access for extensions
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax', // Use 'lax' in dev, 'none' in prod
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/'
   })
@@ -41,7 +41,7 @@ export function setAuthCookie(response: NextResponse, token: string) {
   }), {
     httpOnly: false, // Allow JavaScript access
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none', // Allow cross-origin access for extensions
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax', // Use 'lax' in dev, 'none' in prod
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/'
   })
@@ -50,12 +50,13 @@ export function setAuthCookie(response: NextResponse, token: string) {
   response.cookies.set('classlogger_teacher_id', userId, {
     httpOnly: false, // Allow JavaScript access
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none', // Allow cross-origin access for extensions
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax', // Use 'lax' in dev, 'none' in prod
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/'
   })
 
-    console.log('✅ Auth cookies set successfully')
+    console.log('✅ Auth cookies set successfully for user:', email)
+    console.log('🍪 Cookie settings - secure:', process.env.NODE_ENV === 'production', 'sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax')
     return response
   } catch (error) {
     console.error('❌ Error parsing JWT for cookie creation:', error)
@@ -110,7 +111,7 @@ export function getTeacherIdFromRequest(request: NextRequest): string | null {
       try {
         const data = JSON.parse(extensionCookie.value)
         return data.teacher_id || data.teacherId
-      } catch (e) {
+      } catch {
         console.log('Extension cookie parse failed')
       }
     }
@@ -124,7 +125,7 @@ export function getTeacherIdFromRequest(request: NextRequest): string | null {
           const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
           return payload.userId || payload.teacher_id || payload.teacherId
         }
-      } catch (e) {
+      } catch {
         console.log('JWT decode failed')
       }
     }

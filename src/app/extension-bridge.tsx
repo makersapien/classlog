@@ -90,12 +90,12 @@ export default function ExtensionBridge() {
     window.addEventListener('message', handleExtensionMessage)
 
     // Set global flag to indicate bridge is loaded
-    ;(window as any).extensionBridge = true
+    ;(window as Window & { extensionBridge?: boolean }).extensionBridge = true
 
     // Cleanup on unmount
     return () => {
       window.removeEventListener('message', handleExtensionMessage)
-      ;(window as any).extensionBridge = false
+      ;(window as Window & { extensionBridge?: boolean }).extensionBridge = false
       console.log('🌉 Extension bridge cleaned up')
     }
   }, [])

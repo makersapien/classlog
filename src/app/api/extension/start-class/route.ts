@@ -3,7 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { getCorsHeaders, createOptionsResponse, addCorsHeaders } from '@/lib/cors'
+import { createOptionsResponse, addCorsHeaders } from '@/lib/cors'
 import { verifyJWT } from '@/lib/jwt'
 
 const supabase = createClient(
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     
     // Get teacher info from Bearer token
     let teacher_id: string | null = null
-    let teacherInfo: any = null
+    let teacherInfo: { userId: string; email: string; name: string; role: string } | null = null
     
     const authHeader = request.headers.get('authorization')
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📥 Request body:', body)
     
-    const { meetUrl, platform, title, student_email, enrollment_id } = body
+    const { meetUrl, title, student_email, enrollment_id } = body
 
     // Validate required fields (now only meetUrl is required from extension)
     if (!meetUrl) {

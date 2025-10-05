@@ -299,7 +299,28 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     let syntheticClasses: ClassWithEnrollments[] = [];
     if (directEnrollments && directEnrollments.length > 0) {
       // Group enrollments by subject and year_group
-      const groupedEnrollments: Record<string, any[]> = directEnrollments.reduce((acc: Record<string, any[]>, enrollment) => {
+      type DirectEnrollmentType = {
+        id: string
+        student_id: string
+        status: string
+        profiles: Array<{
+          id: string
+          full_name: string | null
+          email: string
+        }>
+        subject?: string
+        year_group?: string
+        class_id?: string
+        teacher_id?: string
+        classes_per_week?: number
+        classes_per_recharge?: number
+        tentative_schedule?: string
+        whatsapp_group_url?: string
+        google_meet_url?: string
+        setup_completed?: boolean
+      }
+      
+      const groupedEnrollments: Record<string, DirectEnrollmentType[]> = directEnrollments.reduce((acc: Record<string, DirectEnrollmentType[]>, enrollment: DirectEnrollmentType) => {
         const key = `${enrollment.subject || 'General'}-${enrollment.year_group || 'All'}`;
         if (!acc[key]) {
           acc[key] = [];
@@ -321,7 +342,15 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
           status: 'active',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          enrollments: groupEnrollments
+          enrollments: groupEnrollments.map(enrollment => ({
+            id: enrollment.id,
+            student_id: enrollment.student_id,
+            status: enrollment.status,
+            profiles: enrollment.profiles && enrollment.profiles.length > 0 ? {
+              full_name: enrollment.profiles[0].full_name,
+              email: enrollment.profiles[0].email
+            } : null
+          }))
         };
       });
       

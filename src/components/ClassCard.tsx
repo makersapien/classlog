@@ -227,7 +227,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
                     </Badge>
                   )}
                   {/* Award Credits Button */}
-                  {classLog.student_id && classLog.status === 'completed' && (
+                  {classLog.student_email && classLog.status === 'completed' && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -237,7 +237,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
                         // Dispatch a custom event that the parent component can listen for
                         const event = new CustomEvent('award-credits', { 
                           detail: { 
-                            studentId: classLog.student_id,
+                            studentId: classLog.student_email, // Using email as identifier since student_id is not available
                             studentName: classLog.student_name
                           }
                         });

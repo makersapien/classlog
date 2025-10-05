@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
  * Get appropriate CORS headers based on the request origin
  * Handles chrome-extension origins and localhost properly
  */
-function getCorsHeaders(request: NextRequest) {
+function getCorsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get('origin')
   
   // Allow chrome-extension origins

@@ -1,7 +1,6 @@
 // src/app/api/schedule-slots/[id]/book/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
-import { Database } from '@/types/database'
 
 // POST endpoint to book a schedule slot
 export async function POST(
@@ -15,14 +14,6 @@ export async function POST(
     
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      console.error('❌ Authentication error:', authError)
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
     
     console.log('✅ User authenticated:', user.id)

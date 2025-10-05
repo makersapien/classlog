@@ -1,7 +1,8 @@
 // lib/jwt.ts
-import jwt from 'jsonwebtoken'
+import jwt, { SignOptions } from 'jsonwebtoken'
+import type { StringValue } from 'ms'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this'
+const JWT_SECRET: string = process.env.JWT_SECRET || 'your-super-secret-key-change-this'
 const JWT_EXPIRES_IN = '7d' // 7 days to match your current token system
 
 export interface JWTPayload {
@@ -15,7 +16,11 @@ export interface JWTPayload {
 }
 
 export function signJWT(payload: Omit<JWTPayload, 'iat' | 'exp'>, expiresIn?: string): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn || JWT_EXPIRES_IN })
+  const options: SignOptions = {
+    expiresIn: (expiresIn || JWT_EXPIRES_IN) as StringValue
+  }
+  
+  return jwt.sign(payload as Record<string, unknown>, JWT_SECRET, options)
 }
 
 export function verifyJWT(token: string): JWTPayload | null {

@@ -577,7 +577,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Clock className="h-5 w-5 mr-2 text-indigo-600" />
-            Today's Schedule
+            Today&apos;s Schedule
           </CardTitle>
           <CardDescription>Your classes and appointments for today</CardDescription>
         </CardHeader>
@@ -655,7 +655,7 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
               <User className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No students yet</h3>
-              <p className="text-gray-600 mb-4">You haven't added any students to your classes yet.</p>
+              <p className="text-gray-600 mb-4">You haven&apos;t added any students to your classes yet.</p>
               <Button>Add Your First Student</Button>
             </div>
           )}

@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import { verifyJWT } from '@/lib/jwt'
-import { getTeacherIdFromRequest } from '@/lib/cookies'
-import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

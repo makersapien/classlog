@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       console.error('❌ Authentication error: No user found')
-      return NextResponse.json({ error: 'Authentication failed', details: authError }, { status: 401 })
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
     
     console.log('✅ User authenticated:', user.id)

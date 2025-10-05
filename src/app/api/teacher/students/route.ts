@@ -2,7 +2,7 @@
 
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Database, TentativeScheduleData } from '@/types/database'
 
 // Use proper database types from schema
@@ -101,8 +101,8 @@ export async function GET() {
     }
     
     if (!user) {
-      console.error('❌ Auth error:', authError)
-      return NextResponse.json({ error: 'Authentication failed', details: authError.message }, { status: 401 })
+      console.error('❌ Auth error: No user found')
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
     if (!user) {
@@ -326,9 +326,9 @@ function calculateStudentStats(students: StudentData[], invitations: InvitationD
     // Must have BOTH URLs AND setup_completed flag
     return student.setup_completed === true && 
            student.whatsapp_group_url && 
-           student.google_meet_link &&
+           student.google_meet_url &&
            student.whatsapp_group_url.trim() !== '' &&
-           student.google_meet_link.trim() !== ''
+           student.google_meet_url.trim() !== ''
   }).length
   
   // Students who don't meet the complete setup criteria
@@ -490,7 +490,7 @@ async function validateStudentEmail(supabase: ReturnType<typeof createClient<Dat
 }
 
 // POST endpoint for creating new student invitations - ENHANCED with duplicate prevention
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     // Use Next.js 15 compatible helper
     const { supabase, user } = await createAuthenticatedSupabaseClient()
@@ -503,7 +503,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
     }
 
-    const body = await Request.json()
+    const body = await request.json()
     const {
       student_name,
       student_email,
