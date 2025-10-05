@@ -4,13 +4,23 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Move Supabase client creation inside the function to avoid build-time errors
 
 export async function POST(request: NextRequest) {
   try {
+    // Create Supabase client inside function to avoid build-time env var issues
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase environment variables')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Server configuration error' 
+      }, { status: 500 })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { email } = await request.json()
 
     if (!email) {
