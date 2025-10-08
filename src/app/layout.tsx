@@ -25,7 +25,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-        
+
         {/* Meticulous.ai Script - Must be first script to load */}
         {(process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "preview") && (
           // eslint-disable-next-line @next/next/no-sync-scripts
@@ -49,11 +49,11 @@ export default function RootLayout({
         )}
         <Header />
         <ExtensionBridge />
-        <SpeedInsights/>
+        <SpeedInsights />
         <main className="min-h-screen">
           {children}
         </main>
-        
+
         {/* Footer */}
         <footer className="bg-gray-50 border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
