@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Header from '@/components/Header';
 import ExtensionBridge from './extension-bridge';
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({
         )}
         <Header />
         <ExtensionBridge />
+        <SpeedInsights/>
         <main className="min-h-screen">
           {children}
         </main>
