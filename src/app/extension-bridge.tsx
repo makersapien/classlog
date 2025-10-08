@@ -84,6 +84,98 @@ export default function ExtensionBridge() {
           timestamp: Date.now()
         }, targetOrigin)
       }
+
+      // ========== START CLASS HANDLER ==========
+      if (event.data?.type === 'START_CLASS_REQUEST' && event.data?.source === 'classlogger-extension') {
+        console.log('🔄 Extension requesting to start class...', event.data.data)
+        
+        try {
+          const response = await fetch('/api/extension/start-class', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              meetUrl: event.data.data.meetUrl,
+              platform: event.data.data.platform,
+              title: event.data.data.title
+            })
+          })
+
+          const result = await response.json()
+          const targetOrigin = event.origin || '*'
+
+          window.postMessage({
+            source: 'classlogger-webapp',
+            type: 'START_CLASS_RESPONSE',
+            success: result.success || response.ok,
+            class_log_id: result.class_log_id || result.id,
+            id: result.id || result.class_log_id,
+            student_name: result.student_name,
+            subject: result.subject,
+            start_time: result.start_time,
+            requestId: event.data.requestId,
+            ...result
+          }, targetOrigin)
+
+          console.log('✅ Start class response sent:', result.success)
+
+        } catch (error) {
+          console.error('❌ Start class error:', error)
+          const targetOrigin = event.origin || '*'
+          window.postMessage({
+            source: 'classlogger-webapp',
+            type: 'START_CLASS_RESPONSE',
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to start class',
+            requestId: event.data.requestId
+          }, targetOrigin)
+        }
+      }
+
+      // ========== END CLASS HANDLER ==========
+      if (event.data?.type === 'END_CLASS_REQUEST' && event.data?.source === 'classlogger-extension') {
+        console.log('🔄 Extension requesting to end class...', event.data.data)
+        
+        try {
+          const response = await fetch('/api/extension/end-class', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              class_log_id: event.data.data.class_log_id
+            })
+          })
+
+          const result = await response.json()
+          const targetOrigin = event.origin || '*'
+
+          window.postMessage({
+            source: 'classlogger-webapp',
+            type: 'END_CLASS_RESPONSE',
+            success: result.success || response.ok,
+            message: result.message || 'Class ended successfully',
+            requestId: event.data.requestId,
+            ...result
+          }, targetOrigin)
+
+          console.log('✅ End class response sent:', result.success)
+
+        } catch (error) {
+          console.error('❌ End class error:', error)
+          const targetOrigin = event.origin || '*'
+          window.postMessage({
+            source: 'classlogger-webapp',
+            type: 'END_CLASS_RESPONSE',
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to end class',
+            requestId: event.data.requestId
+          }, targetOrigin)
+        }
+      }
     }
 
     // Add the message listener
