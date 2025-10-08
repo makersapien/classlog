@@ -6,11 +6,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createOptionsResponse, addCorsHeaders } from '@/lib/cors'
 import { verifyJWT } from '@/lib/jwt'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 // Handle preflight OPTIONS requests
 export async function OPTIONS(request: NextRequest) {
   return createOptionsResponse(request)
@@ -18,6 +13,12 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     console.log('🚀 Extension start-class API called')
     
     // Get teacher info from Bearer token

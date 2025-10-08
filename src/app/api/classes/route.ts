@@ -5,11 +5,6 @@ import { TentativeSchedule } from '@/types/api'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 interface StartClassRequest {
   teacher_id: string
   student_email: string
@@ -60,6 +55,12 @@ function extractTeacherIdFromAuth(authHeader: string | null, fallbackTeacherId?:
 // POST /api/classes - Start a new class
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     const body: StartClassRequest = await request.json()
     const { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
 
@@ -215,7 +216,7 @@ const classData = {
   subject: enrollment.classes?.subject || 'Unknown Subject',
   enrollment_id: enrollment.id
 }
-    const classLog = await startClassLog(classData, false, start_time) // false = manually started
+    const classLog = await startClassLog(supabase, classData, false, start_time) // false = manually started
 
     return NextResponse.json({
       success: true,
@@ -238,6 +239,12 @@ const classData = {
 // PUT /api/classes - End a class
 export async function PUT(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     const body: EndClassRequest = await request.json()
     const { class_log_id, teacher_id, content, topics_covered, homework_assigned, end_time } = body
 
@@ -333,6 +340,12 @@ export async function PUT(request: NextRequest) {
 // GET /api/classes - Get active classes for a teacher
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     const { searchParams } = new URL(request.url)
     const teacher_id = searchParams.get('teacher_id')
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
@@ -477,7 +490,8 @@ interface ClassData {
   enrollment_id?: string
 }
 
-async function startClassLog(classData: ClassData, isAutoDetected: boolean = true, customStartTime?: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function startClassLog(supabase: any, classData: ClassData, isAutoDetected: boolean = true, customStartTime?: string) {
   const now = customStartTime ? new Date(customStartTime) : new Date()
   const today = now.toISOString().split('T')[0]
 

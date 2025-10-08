@@ -4,11 +4,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 // 🔧 CORS FIX: Dynamic CORS headers based on origin
 function getCorsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get('origin')
@@ -128,6 +123,12 @@ interface ResponseSummary {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     console.log('🛑 Extension end-class API called')
     
     const body: EndClassRequestBody = await request.json()

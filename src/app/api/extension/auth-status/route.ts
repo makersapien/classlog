@@ -6,12 +6,6 @@ import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import { verifyJWT } from '@/lib/jwt'
 
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 // Fixed CORS helper with proper TypeScript types
 function getCorsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get('origin')
@@ -70,6 +64,12 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     console.log('🔐 Extension auth status check from:', request.headers.get('origin'))
 
     // Debug cookies in development
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     if (!token || token === 'no_token') {
       console.log('📧 No token provided, trying cookie authentication...')
 
-      const cookieAuth = await tryAuthenticationViaCookies(request)
+      const cookieAuth = await tryAuthenticationViaCookies(request, supabase)
       const response = NextResponse.json(cookieAuth)
 
       // Add CORS headers
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       console.log('❌ Extension: Invalid or expired token, error:', tokenError)
 
       // Fallback to cookie auth if token fails
-      const cookieAuth = await tryAuthenticationViaCookies(request)
+      const cookieAuth = await tryAuthenticationViaCookies(request, supabase)
       if (cookieAuth.success) {
         console.log('✅ Token failed but cookie auth succeeded')
         const response = NextResponse.json(cookieAuth)
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         .eq('id', typedTokenData.id)
 
       // Try cookie auth as fallback
-      const cookieAuth = await tryAuthenticationViaCookies(request)
+      const cookieAuth = await tryAuthenticationViaCookies(request, supabase)
       if (cookieAuth.success) {
         console.log('✅ Token expired but cookie auth succeeded')
         const response = NextResponse.json(cookieAuth)
@@ -303,7 +303,8 @@ export async function POST(request: NextRequest) {
 }
 
 // Cookie-based authentication function
-async function tryAuthenticationViaCookies(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function tryAuthenticationViaCookies(request: NextRequest, supabase: any) {
   try {
     console.log('🍪 Trying cookie-based authentication...')
 
@@ -473,6 +474,12 @@ async function handleBearerTokenAuth(request: NextRequest, token: string) {
 
 // GET method for direct authentication check (supports Bearer tokens)
 export async function GET(request: NextRequest) {
+  // Initialize Supabase client inside function to avoid build-time env var issues
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  
   console.log('🔍 Extension GET auth check')
 
   // Check for Bearer token first
@@ -484,7 +491,7 @@ export async function GET(request: NextRequest) {
 
   // Fallback to cookie-based auth
   console.log('🍪 No Bearer token, trying cookies')
-  const cookieAuth = await tryAuthenticationViaCookies(request)
+  const cookieAuth = await tryAuthenticationViaCookies(request, supabase)
   const response = NextResponse.json(cookieAuth)
 
   // Add CORS headers

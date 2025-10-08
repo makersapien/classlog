@@ -1,15 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
 export async function POST(request: NextRequest) {
   try {
+    // Initialize environment variables inside the function
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!
+
+    if (!supabaseUrl || !supabaseServiceKey || !googleClientId || !googleClientSecret) {
+      console.error('❌ Missing required environment variables')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Server configuration error' 
+      }, { status: 500 })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
     const { code } = await request.json()
 
     if (!code) {
