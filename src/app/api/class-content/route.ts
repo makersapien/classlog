@@ -2,7 +2,7 @@
 // SURGICAL FIX: Only minimal changes to remove 'any' types from your existing code
 
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase-client'
+import { createClient } from '@supabase/supabase-js'
 
 // Add this interface at the top for the contentData object
 interface ContentData {
@@ -27,6 +27,12 @@ interface ContentData {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     const {
       class_log_id,
       topics,
@@ -125,6 +131,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
     const { searchParams } = new URL(request.url)
     const classLogId = searchParams.get('class_log_id')
     const teacherId = searchParams.get('teacher_id')
