@@ -6,11 +6,6 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Database } from '../../../../types/database'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 // Types based on actual Supabase response structure
 interface SupabaseJoinResult {
   id: string
@@ -119,6 +114,11 @@ interface ScheduleSlot {
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
     
     const authHeader = request.headers.get('authorization')
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -238,7 +238,7 @@ export async function GET(request: NextRequest) {
     // 3. Check each unique Google Meet URL
     for (const [meetUrl, groupEnrollments] of Array.from(urlGroups.entries())) {
       try {
-        await checkMeetingGroup(meetUrl, groupEnrollments, results)
+        await checkMeetingGroup(supabase, meetUrl, groupEnrollments, results)
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error(`❌ Error checking meeting group ${meetUrl.substring(0, 50)}...:`, errorMessage)
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Clean up stale classes
-    await cleanupStaleClasses()
+    await cleanupStaleClasses(supabase)
 
     // 5. Generate summary
     const duration = Date.now() - startTime
@@ -278,7 +278,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function checkMeetingGroup(meetUrl: string, enrollments: ProcessedEnrollment[], results: DetectionResults): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkMeetingGroup(supabase: any, meetUrl: string, enrollments: ProcessedEnrollment[], results: DetectionResults): Promise<void> {
   console.log(`\n🔍 Checking meeting: ${meetUrl.substring(0, 50)}... (${enrollments.length} enrollments)`)
 
   // 1. Enhanced meeting status check
@@ -347,7 +348,7 @@ async function checkEnrollmentMeeting(
   // Determine action based on meeting status and active log
   if (meetingStatus.isAccessible && meetingStatus.confidence !== 'low' && !hasActiveLog) {
     // Meeting appears active and no active log - start class
-    await startClassLog({
+    await startClassLog(supabase, {
       teacher_id,
       class_id: enrollment.class_id,
       student_name: studentName,
@@ -360,7 +361,7 @@ async function checkEnrollmentMeeting(
     
   } else if (!meetingStatus.isAccessible && hasActiveLog && typedActiveLog) {
     // Meeting ended and we have active log - end class
-    await endClassLog(typedActiveLog)
+    await endClassLog(supabase, typedActiveLog)
     results.ended++
     console.log(`🔴 ✅ Ended class log for ${studentName}`)
     
@@ -609,7 +610,8 @@ function parseTime(timeStr?: string): number | null {
   }
 }
 
-async function startClassLog(classData: ClassData): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function startClassLog(supabase: any, classData: ClassData): Promise<void> {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
 
@@ -653,7 +655,8 @@ async function startClassLog(classData: ClassData): Promise<void> {
   }
 }
 
-async function endClassLog(activeLog: ClassLog): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function endClassLog(supabase: any, activeLog: ClassLog): Promise<void> {
   const now = new Date()
   const startTime = new Date(activeLog.start_time || now.toISOString())
   const durationMinutes = Math.round((now.getTime() - startTime.getTime()) / (1000 * 60))
@@ -682,7 +685,8 @@ async function endClassLog(activeLog: ClassLog): Promise<void> {
   }
 }
 
-async function cleanupStaleClasses(): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function cleanupStaleClasses(supabase: any): Promise<void> {
   console.log('🧹 Starting cleanup of stale classes...')
   
   // Mark classes as completed if they've been running for more than 3 hours
