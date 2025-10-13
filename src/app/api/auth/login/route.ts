@@ -5,13 +5,17 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     const body = await request.json()
     const { google_token, email, name } = body
 

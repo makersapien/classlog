@@ -6,6 +6,14 @@ import { signJWT } from '@/lib/jwt'
 import { setAuthCookie } from '@/lib/cookies'
 
 export async function POST(request: NextRequest) {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
   try {
     console.log('🔄 Creating JWT cookie for OAuth user...')
     
@@ -22,11 +30,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Create Supabase client with service role for verification
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    
+
     // Verify the user exists in the database
     const { data: profile, error: profileError } = await supabase
       .from('profiles')

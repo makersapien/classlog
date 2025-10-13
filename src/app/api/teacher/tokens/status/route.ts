@@ -17,13 +17,17 @@ interface TokenStatusData {
 }
 
 export async function GET(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     const searchParams = request.nextUrl.searchParams
     const teacherId = searchParams.get('teacherId')
 

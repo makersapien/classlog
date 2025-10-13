@@ -54,13 +54,17 @@ function extractTeacherIdFromAuth(authHeader: string | null, fallbackTeacherId?:
 
 // POST /api/classes - Start a new class
 export async function POST(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     const body: StartClassRequest = await request.json()
     const { teacher_id, student_email, google_meet_url, meetUrl, enrollment_id, manual_override = false, start_time } = body
 
@@ -238,13 +242,17 @@ const classData = {
 
 // PUT /api/classes - End a class
 export async function PUT(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     const body: EndClassRequest = await request.json()
     const { class_log_id, teacher_id, content, topics_covered, homework_assigned, end_time } = body
 
@@ -339,13 +347,17 @@ export async function PUT(request: NextRequest) {
 
 // GET /api/classes - Get active classes for a teacher
 export async function GET(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     const { searchParams } = new URL(request.url)
     const teacher_id = searchParams.get('teacher_id')
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0]

@@ -63,13 +63,17 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
     // Initialize Supabase client inside function to avoid build-time env var issues
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
+  try {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
     console.log('🔐 Extension auth status check from:', request.headers.get('origin'))
 
     // Debug cookies in development
@@ -474,12 +478,16 @@ async function handleBearerTokenAuth(request: NextRequest, token: string) {
 
 // GET method for direct authentication check (supports Bearer tokens)
 export async function GET(request: NextRequest) {
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    // Initialize Supabase client inside function to avoid build-time env var issues
+
   // Initialize Supabase client inside function to avoid build-time env var issues
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-  
+
   console.log('🔍 Extension GET auth check')
 
   // Check for Bearer token first

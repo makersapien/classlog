@@ -124,7 +124,6 @@ export async function GET(request: NextRequest) {
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-   
 
     console.log('🔍 Starting enhanced class detection...')
     const startTime = Date.now()
@@ -289,7 +288,7 @@ async function checkMeetingGroup(supabase: any, meetUrl: string, enrollments: Pr
   // 2. Check each enrollment in this meeting
   for (const enrollment of enrollments) {
     try {
-      await checkEnrollmentMeeting(enrollment, meetingStatus, results)
+      await checkEnrollmentMeeting(supabase, enrollment, meetingStatus, results)
       results.checked++
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -299,7 +298,9 @@ async function checkMeetingGroup(supabase: any, meetUrl: string, enrollments: Pr
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkEnrollmentMeeting(
+  supabase: any,
   enrollment: ProcessedEnrollment, 
   meetingStatus: MeetingStatus, 
   results: DetectionResults

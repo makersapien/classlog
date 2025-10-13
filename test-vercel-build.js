@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * 🧪 Vercel Build Simulation Test
- * Tests build with minimal environment variables to simulate Vercel
+ * 🧪 Vercel Build Environment Simulator
+ * This exactly replicates Vercel's build environment to catch the issue
  */
 
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-console.log('🧪 Testing Vercel Build Simulation');
-console.log('==================================');
+console.log('🧪 Vercel Build Environment Simulator');
+console.log('====================================');
 
-// Backup current env file
+// Step 1: Backup current environment
 const envPath = '.env.local';
 let envBackup = '';
 let hasEnvFile = false;
@@ -19,63 +19,117 @@ let hasEnvFile = false;
 if (fs.existsSync(envPath)) {
   envBackup = fs.readFileSync(envPath, 'utf8');
   hasEnvFile = true;
-  console.log('📋 Backing up .env.local file...');
+  console.log('📋 Backing up current .env.local...');
 }
-
-// Create minimal env file (simulating Vercel build environment)
-const minimalEnv = `# Minimal env for Vercel build simulation
-NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://classlogger.com
-`;
 
 try {
-  fs.writeFileSync(envPath, minimalEnv);
-  console.log('🔧 Created minimal environment (simulating Vercel)...');
-  
-  // Try to build
-  console.log('🏗️ Running build test with minimal environment...');
+  // Step 2: Create Vercel-like environment (NO Supabase env vars)
+  const vercelEnv = `# Vercel Build Environment Simulation
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://classlogger.com
+# Note: Supabase env vars are NOT available during build in Vercel
+`;
+
+  fs.writeFileSync(envPath, vercelEnv);
+  console.log('🔧 Created Vercel-like environment (no Supabase env vars)');
+
+  // Step 3: Clear Next.js cache
+  console.log('🗑️ Clearing Next.js cache...');
+  try {
+    execSync('rm -rf .next', { stdio: 'pipe' });
+  } catch (e) {
+    // Ignore if .next doesn't exist
+  }
+
+  // Step 4: Try to build
+  console.log('🏗️ Running build in Vercel-like environment...');
   
   try {
-    const result = execSync('npm run build', { 
+    const buildOutput = execSync('npm run build', { 
       stdio: 'pipe',
-      timeout: 120000 // 2 minutes timeout
+      timeout: 180000, // 3 minutes
+      encoding: 'utf8'
     });
     
-    console.log('✅ BUILD SUCCESSFUL with minimal environment!');
-    console.log('🎉 This means Vercel deployment will work!');
-    
-    // Check if all API routes are included
-    const output = result.toString();
-    const apiRoutes = output.match(/ƒ \/api\/[^\s]+/g) || [];
-    console.log(`\n📊 API Routes Built: ${apiRoutes.length}`);
-    console.log('✅ All API routes compiled successfully');
+    console.log('✅ BUILD SUCCEEDED in Vercel-like environment!');
+    console.log('   This means the issue is likely with Vercel configuration,');
+    console.log('   not with the code itself.');
     
   } catch (buildError) {
-    console.log('❌ Build failed with minimal environment:');
-    const errorOutput = (buildError.stdout?.toString() || '') + (buildError.stderr?.toString() || '');
-    console.log(errorOutput);
+    console.log('❌ BUILD FAILED in Vercel-like environment:');
+    console.log('');
     
-    if (errorOutput.includes('supabaseUrl is required')) {
-      console.log('\n🚨 STILL HAVE ISSUES: Module-level environment variable access detected!');
-      console.log('   Need to fix more API routes.');
-    } else {
-      console.log('\n🤔 Different error - may be acceptable for Vercel');
+    const stdout = buildError.stdout || '';
+    const stderr = buildError.stderr || '';
+    const output = stdout + stderr;
+    
+    // Look for specific error patterns
+    if (output.includes('supabaseUrl is required')) {
+      console.log('🎯 FOUND THE ISSUE: supabaseUrl is required');
+      console.log('   This confirms there are still module-level Supabase clients');
+      
+      // Try to identify the specific file
+      const lines = output.split('\n');
+      for (const line of lines) {
+        if (line.includes('Failed to collect page data for')) {
+          const match = line.match(/Failed to collect page data for (.+?)\]/);
+          if (match) {
+            console.log(`🔍 Problematic route: ${match[1]}`);
+          }
+        }
+      }
+    }
+    
+    if (output.includes('NEXT_PUBLIC_SUPABASE_URL')) {
+      console.log('🎯 FOUND THE ISSUE: Missing NEXT_PUBLIC_SUPABASE_URL');
+      console.log('   Some code is trying to access this env var at build time');
+    }
+    
+    if (output.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+      console.log('🎯 FOUND THE ISSUE: Missing SUPABASE_SERVICE_ROLE_KEY');
+      console.log('   Some code is trying to access this env var at build time');
+    }
+    
+    // Show relevant parts of the error
+    console.log('\n📋 Build Error Output:');
+    console.log('─'.repeat(50));
+    
+    const relevantLines = output.split('\n').filter(line => 
+      line.includes('Error:') || 
+      line.includes('Failed to') ||
+      line.includes('supabase') ||
+      line.includes('SUPABASE') ||
+      line.includes('at ') ||
+      line.includes('route.ts')
+    );
+    
+    relevantLines.slice(0, 20).forEach(line => {
+      console.log(line);
+    });
+    
+    if (relevantLines.length > 20) {
+      console.log('... (truncated)');
     }
   }
-  
-} catch (error) {
-  console.error('❌ Error during test setup:', error.message);
+
 } finally {
-  // Restore original env file
+  // Step 5: Restore original environment
   if (hasEnvFile) {
     fs.writeFileSync(envPath, envBackup);
-    console.log('\n🔄 Restored original .env.local file');
+    console.log('\n🔄 Restored original .env.local');
   } else {
-    fs.unlinkSync(envPath);
-    console.log('\n🗑️ Removed temporary .env.local file');
+    if (fs.existsSync(envPath)) {
+      fs.unlinkSync(envPath);
+      console.log('\n🗑️ Removed temporary .env.local');
+    }
   }
 }
 
-console.log('\n🎯 Summary:');
-console.log('If the build succeeded above, your Vercel deployment should work!');
-console.log('If it failed, there are still some module-level env var issues to fix.');
+console.log('\n🎯 Next Steps:');
+console.log('1. If build succeeded: Check Vercel environment variables');
+console.log('2. If build failed: Fix the identified module-level imports');
+console.log('3. Run this test again until build succeeds');
+console.log('4. Then deploy to Vercel');
+
+console.log('\n💡 Remember: The goal is for the build to succeed');
+console.log('   even when Supabase environment variables are missing!');
