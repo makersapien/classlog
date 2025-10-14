@@ -298,9 +298,8 @@ async function checkMeetingGroup(supabase: any, meetUrl: string, enrollments: Pr
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkEnrollmentMeeting(
-  supabase: any,
+  supabase: ReturnType<typeof createClient<Database>>,
   enrollment: ProcessedEnrollment, 
   meetingStatus: MeetingStatus, 
   results: DetectionResults
@@ -319,7 +318,7 @@ async function checkEnrollmentMeeting(
   const subject = class_info?.subject || class_info?.name || 'Unknown Subject'
 
   // Check if we should process this enrollment
-  const shouldProcess = await shouldProcessEnrollment(enrollment, meetingStatus)
+  const shouldProcess = await shouldProcessEnrollment(supabase, enrollment, meetingStatus)
   if (!shouldProcess.process) {
     console.log(`⏸️ Skipping ${studentName}: ${shouldProcess.reason}`)
     results.skipped++
@@ -457,6 +456,7 @@ async function checkMeetingMetadata(meetUrl: string): Promise<MetadataResult> {
 }
 
 async function shouldProcessEnrollment(
+  supabase: ReturnType<typeof createClient<Database>>,
   enrollment: ProcessedEnrollment, 
   meetingStatus: MeetingStatus
 ): Promise<ProcessingDecision> {
