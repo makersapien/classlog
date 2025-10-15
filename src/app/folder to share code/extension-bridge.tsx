@@ -90,25 +90,12 @@ export default function ExtensionBridge() {
         console.log('🔄 Extension requesting to start class...', event.data.data)
         
         try {
-          // First get the extension token
-          const tokenResponse = await fetch('/api/extension/issue-temp-token', {
-            method: 'POST',
-            credentials: 'include'
-          })
-          
-          if (!tokenResponse.ok) {
-            throw new Error('Failed to get extension token')
-          }
-          
-          const tokenData = await tokenResponse.json()
-          
-          // Now call start-class with Bearer token
           const response = await fetch('/api/extension/start-class', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tokenData.token}`
             },
+            credentials: 'include',
             body: JSON.stringify({
               meetUrl: event.data.data.meetUrl,
               platform: event.data.data.platform,
@@ -152,25 +139,12 @@ export default function ExtensionBridge() {
         console.log('🔄 Extension requesting to end class...', event.data.data)
         
         try {
-          // First get the extension token
-          const tokenResponse = await fetch('/api/extension/issue-temp-token', {
-            method: 'POST',
-            credentials: 'include'
-          })
-          
-          if (!tokenResponse.ok) {
-            throw new Error('Failed to get extension token')
-          }
-          
-          const tokenData = await tokenResponse.json()
-          
-          // Now call end-class with Bearer token
           const response = await fetch('/api/extension/end-class', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tokenData.token}`
             },
+            credentials: 'include',
             body: JSON.stringify({
               class_log_id: event.data.data.class_log_id
             })
