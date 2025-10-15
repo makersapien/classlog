@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-dynamic'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 
@@ -24,7 +24,11 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   const router = useRouter()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    // Get Supabase client dynamically to avoid build-time env var issues
+    const supabase = getSupabaseClient()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     router.push('/')
   }
 

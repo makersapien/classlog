@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-dynamic'
 import DashboardLayout from '@/app/dashboard/DashboardLayout'
 import TeacherDashboard from '@/app/dashboard/TeacherDashboard'
 import ParentDashboard from '@/app/dashboard/ParentDashboard'
@@ -27,6 +27,14 @@ export default function UnifiedDashboard() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // Get Supabase client dynamically to avoid build-time env var issues
+        const supabase = getSupabaseClient()
+        
+        if (!supabase) {
+          setError('Failed to initialize Supabase client')
+          return
+        }
+        
         // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
@@ -74,10 +82,10 @@ export default function UnifiedDashboard() {
 
         // Set user data - using full_name from database schema
         setUser({
-          id: profile.id,
+          id: profile.id as string,
           email: session.user.email || '',
-          name: profile.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User',
-          avatar_url: profile.avatar_url || session.user.user_metadata?.avatar_url,
+          name: (profile.full_name as string) || session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User',
+          avatar_url: (profile.avatar_url as string) || session.user.user_metadata?.avatar_url,
           role: userRole
         })
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -14,6 +14,15 @@ export default function DashboardPage() {
     const redirectToRoleDashboard = async () => {
       try {
         setStatus('🔄 Checking authentication...')
+        
+        // Get Supabase client dynamically to avoid build-time env var issues
+        const supabase = getSupabaseClient()
+        
+        if (!supabase) {
+          setStatus('❌ Failed to initialize - redirecting to login')
+          setTimeout(() => router.push('/'), 1000)
+          return
+        }
         
         // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()

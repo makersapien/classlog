@@ -2,7 +2,7 @@
 // Custom hook for managing class logs data with proper error handling
 
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase-client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useToast } from '@/components/ui/use-toast'
 import { 
   enhanceClassLog, 
@@ -53,6 +53,9 @@ export function useClassLogs({
   autoRefresh = true,
   refreshInterval = 30000
 }: UseClassLogsOptions): UseClassLogsReturn {
+  
+  // Create Supabase client inside hook to avoid build-time env var issues
+  const supabase = createClientComponentClient()
   
   // State
   const [classLogs, setClassLogs] = useState<EnhancedClassLog[]>([])

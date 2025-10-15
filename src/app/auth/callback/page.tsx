@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase-client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -16,6 +16,9 @@ function AuthCallbackContent() {
     const handleAuthCallback = async () => {
       try {
         setStatus('Processing OAuth callback...')
+        
+        // Create Supabase client inside useEffect to avoid build-time env var issues
+        const supabase = createClientComponentClient()
         
         // Get role from URL params for redirect
         const role = searchParams.get('role')
@@ -35,7 +38,7 @@ function AuthCallbackContent() {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session) {
               subscription.unsubscribe()
-              await processAuthenticatedUser(session, role)
+              await processAuthenticatedUser(supabase, session, role)
             }
           })
           
@@ -43,7 +46,7 @@ function AuthCallbackContent() {
         }
 
         // If we already have a session, process it
-        await processAuthenticatedUser(session, role)
+        await processAuthenticatedUser(supabase, session, role)
 
       } catch (error) {
         console.error('Auth callback error:', error)
@@ -52,7 +55,12 @@ function AuthCallbackContent() {
       }
     }
 
-    const processAuthenticatedUser = async (session: { user: { id: string; email?: string | null } }, role: string | null) => {
+    const processAuthenticatedUser = async (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase: any, 
+      session: { user: { id: string; email?: string | null } }, 
+      role: string | null
+    ) => {
       try {
         setStatus('Getting user profile...')
         

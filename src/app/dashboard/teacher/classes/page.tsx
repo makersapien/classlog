@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase-client'  // Using your auth helper client
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import MyClassesView from '@/components/MyClassesView'
 import DashboardLayout from '@/app/dashboard/DashboardLayout'
 
@@ -27,6 +27,9 @@ export default function MyClassesPage() {
     const checkAuthAndLoadUser = async () => {
       try {
         console.log('🔍 Checking authentication...')
+        
+        // Create Supabase client inside useEffect to avoid build-time env var issues
+        const supabase = createClientComponentClient()
         
         // Get the current session (same pattern as your dashboard)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
