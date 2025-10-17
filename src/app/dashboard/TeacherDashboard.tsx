@@ -11,10 +11,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { BookOpen, Users, Clock, DollarSign, Calendar, Plus, FileText, User, CheckCircle, AlertCircle } from 'lucide-react'
+import { BookOpen, Users, Clock, DollarSign, Calendar, Plus, FileText, User, CheckCircle, AlertCircle, BarChart3 } from 'lucide-react'
 
 import StudentCard from '@/components/StudentCard'
 import ScheduleSlots from '@/components/ScheduleSlots'
+import TeacherScheduleView from '@/components/TeacherScheduleView'
+import BookingAnalyticsDashboard from '@/components/BookingAnalyticsDashboard'
 
 interface TeacherDashboardProps {
   user: {
@@ -623,9 +625,10 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
       </Card>
 
       <Tabs defaultValue="students" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-2 lg:w-[300px]">
+        <TabsList className="grid grid-cols-3 md:grid-cols-3 lg:w-[600px]">
           <TabsTrigger value="students">Students</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students" className="space-y-6">
@@ -662,11 +665,14 @@ export default function TeacherDashboard({ user }: TeacherDashboardProps) {
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-6">
-          <ScheduleSlots
+          <TeacherScheduleView
             teacherId={user.id}
-            userRole="teacher"
-            onSlotAdded={() => fetchDashboardData()}
+            user={user}
           />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <BookingAnalyticsDashboard teacherId={user.id} />
         </TabsContent>
       </Tabs>
 

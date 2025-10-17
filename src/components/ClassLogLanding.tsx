@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react';
 import Header from '@/components/Header';
-import { supabase } from '@/lib/supabase-client'; // Use the browser-compatible client
+import { getSupabaseClient } from '@/lib/supabase-dynamic'
 
 const ClassLoggerLanding = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -13,6 +13,14 @@ const ClassLoggerLanding = () => {
     setIsLoading(true);
     try {
       console.log('🔄 Starting Google sign-in for role:', loginType);
+      
+      // Get Supabase client dynamically to avoid build-time env var issues
+      const supabase = getSupabaseClient()
+      
+      if (!supabase) {
+        alert('Failed to initialize authentication. Please refresh and try again.');
+        return;
+      }
       
       // Get the current origin for redirect URL
       const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`;

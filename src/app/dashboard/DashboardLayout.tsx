@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase-dynamic'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { NotificationCenter } from '@/components/NotificationCenter'
 
 interface User {
   id: string
@@ -162,10 +163,11 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {user.name}
                 </p>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                     {getRoleEmoji(user.role)} {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
+                  <NotificationCenter userId={user.id} userRole={user.role} />
                 </div>
               </div>
             </div>

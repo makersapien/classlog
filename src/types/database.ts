@@ -481,6 +481,273 @@ export interface Database {
           updated_at?: string | null
         }
       }
+      share_tokens: {
+        Row: {
+          id: string
+          student_id: string
+          teacher_id: string
+          token: string
+          is_active: boolean
+          access_count: number
+          last_accessed: string | null
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          teacher_id: string
+          token: string
+          is_active?: boolean
+          access_count?: number
+          last_accessed?: string | null
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          teacher_id?: string
+          token?: string
+          is_active?: boolean
+          access_count?: number
+          last_accessed?: string | null
+          created_at?: string
+          expires_at?: string
+        }
+      }
+      time_slots: {
+        Row: {
+          id: string
+          teacher_id: string
+          day_of_week: string
+          start_time: string
+          end_time: string
+          is_available: boolean
+          is_recurring: boolean
+          recurrence_end_date: string | null
+          subject: string | null
+          duration_minutes: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          day_of_week: string
+          start_time: string
+          end_time: string
+          is_available?: boolean
+          is_recurring?: boolean
+          recurrence_end_date?: string | null
+          subject?: string | null
+          duration_minutes?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          day_of_week?: string
+          start_time?: string
+          end_time?: string
+          is_available?: boolean
+          is_recurring?: boolean
+          recurrence_end_date?: string | null
+          subject?: string | null
+          duration_minutes?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      bookings: {
+        Row: {
+          id: string
+          teacher_id: string
+          student_id: string
+          schedule_slot_id: string | null
+          time_slot_id: string | null
+          booking_date: string
+          start_time: string
+          end_time: string
+          status: 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+          booked_at: string
+          cancelled_at: string | null
+          completed_at: string | null
+          notes: string | null
+          cancellation_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          student_id: string
+          schedule_slot_id?: string | null
+          time_slot_id?: string | null
+          booking_date: string
+          start_time: string
+          end_time: string
+          status?: 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+          booked_at?: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          notes?: string | null
+          cancellation_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          student_id?: string
+          schedule_slot_id?: string | null
+          time_slot_id?: string | null
+          booking_date?: string
+          start_time?: string
+          end_time?: string
+          status?: 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+          booked_at?: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          notes?: string | null
+          cancellation_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      blocked_slots: {
+        Row: {
+          id: string
+          teacher_id: string
+          day_of_week: string | null
+          start_time: string
+          end_time: string
+          date: string | null
+          is_recurring: boolean
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          day_of_week?: string | null
+          start_time: string
+          end_time: string
+          date?: string | null
+          is_recurring?: boolean
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          day_of_week?: string | null
+          start_time?: string
+          end_time?: string
+          date?: string | null
+          is_recurring?: boolean
+          reason?: string | null
+          created_at?: string
+        }
+      }
+      student_themes: {
+        Row: {
+          id: string
+          student_id: string
+          teacher_id: string
+          color_theme: 'red' | 'blue' | 'purple' | 'amber' | 'emerald' | 'pink' | 'indigo' | 'teal'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          teacher_id: string
+          color_theme?: 'red' | 'blue' | 'purple' | 'amber' | 'emerald' | 'pink' | 'indigo' | 'teal'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          teacher_id?: string
+          color_theme?: 'red' | 'blue' | 'purple' | 'amber' | 'emerald' | 'pink' | 'indigo' | 'teal'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      schedule_slots: {
+        Row: {
+          id: string
+          teacher_id: string
+          date: string
+          start_time: string
+          end_time: string
+          duration_minutes: number
+          title: string | null
+          description: string | null
+          subject: string | null
+          max_students: number
+          status: 'available' | 'booked' | 'cancelled' | 'completed'
+          booked_by: string | null
+          booked_at: string | null
+          google_meet_url: string | null
+          meeting_notes: string | null
+          is_recurring: boolean
+          recurrence_type: 'daily' | 'weekly' | 'monthly' | null
+          recurrence_end_date: string | null
+          parent_slot_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          date: string
+          start_time: string
+          end_time: string
+          duration_minutes?: number
+          title?: string | null
+          description?: string | null
+          subject?: string | null
+          max_students?: number
+          status?: 'available' | 'booked' | 'cancelled' | 'completed'
+          booked_by?: string | null
+          booked_at?: string | null
+          google_meet_url?: string | null
+          meeting_notes?: string | null
+          is_recurring?: boolean
+          recurrence_type?: 'daily' | 'weekly' | 'monthly' | null
+          recurrence_end_date?: string | null
+          parent_slot_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          date?: string
+          start_time?: string
+          end_time?: string
+          duration_minutes?: number
+          title?: string | null
+          description?: string | null
+          subject?: string | null
+          max_students?: number
+          status?: 'available' | 'booked' | 'cancelled' | 'completed'
+          booked_by?: string | null
+          booked_at?: string | null
+          google_meet_url?: string | null
+          meeting_notes?: string | null
+          is_recurring?: boolean
+          recurrence_type?: 'daily' | 'weekly' | 'monthly' | null
+          recurrence_end_date?: string | null
+          parent_slot_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       credit_transactions: {
         Row: {
           id: string
@@ -564,6 +831,62 @@ export interface Database {
           subject?: string | null
           notes?: string | null
           is_active?: boolean
+        }
+      }
+      booking_waitlist: {
+        Row: {
+          id: string
+          teacher_id: string
+          student_id: string
+          schedule_slot_id: string | null
+          time_slot_id: string | null
+          preferred_date: string | null
+          day_of_week: string | null
+          start_time: string
+          end_time: string
+          priority: number
+          status: 'waiting' | 'notified' | 'expired' | 'fulfilled'
+          created_at: string
+          expires_at: string | null
+          notified_at: string | null
+          fulfilled_at: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          student_id: string
+          schedule_slot_id?: string | null
+          time_slot_id?: string | null
+          preferred_date?: string | null
+          day_of_week?: string | null
+          start_time: string
+          end_time: string
+          priority?: number
+          status?: 'waiting' | 'notified' | 'expired' | 'fulfilled'
+          created_at?: string
+          expires_at?: string | null
+          notified_at?: string | null
+          fulfilled_at?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          student_id?: string
+          schedule_slot_id?: string | null
+          time_slot_id?: string | null
+          preferred_date?: string | null
+          day_of_week?: string | null
+          start_time?: string
+          end_time?: string
+          priority?: number
+          status?: 'waiting' | 'notified' | 'expired' | 'fulfilled'
+          created_at?: string
+          expires_at?: string | null
+          notified_at?: string | null
+          fulfilled_at?: string | null
+          notes?: string | null
         }
       }
       parent_child_relationships: {
@@ -655,6 +978,100 @@ export interface Database {
           subject?: string | null
           message?: string
           is_read?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notification_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          user_role: 'teacher' | 'student' | 'parent'
+          email_booking_confirmation: boolean
+          email_booking_cancellation: boolean
+          email_class_reminders: boolean
+          email_weekly_summary: boolean
+          inapp_booking_activity: boolean
+          inapp_class_reminders: boolean
+          inapp_system_notifications: boolean
+          reminder_24h_enabled: boolean
+          reminder_1h_enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_role: 'teacher' | 'student' | 'parent'
+          email_booking_confirmation?: boolean
+          email_booking_cancellation?: boolean
+          email_class_reminders?: boolean
+          email_weekly_summary?: boolean
+          inapp_booking_activity?: boolean
+          inapp_class_reminders?: boolean
+          inapp_system_notifications?: boolean
+          reminder_24h_enabled?: boolean
+          reminder_1h_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          user_role?: 'teacher' | 'student' | 'parent'
+          email_booking_confirmation?: boolean
+          email_booking_cancellation?: boolean
+          email_class_reminders?: boolean
+          email_weekly_summary?: boolean
+          inapp_booking_activity?: boolean
+          inapp_class_reminders?: boolean
+          inapp_system_notifications?: boolean
+          reminder_24h_enabled?: boolean
+          reminder_1h_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          user_role: 'teacher' | 'student' | 'parent'
+          type: 'booking_created' | 'booking_cancelled' | 'class_reminder' | 'system' | 'booking_activity'
+          title: string
+          message: string
+          priority: 'low' | 'medium' | 'high'
+          data: any | null
+          read: boolean
+          read_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_role: 'teacher' | 'student' | 'parent'
+          type: 'booking_created' | 'booking_cancelled' | 'class_reminder' | 'system' | 'booking_activity'
+          title: string
+          message: string
+          priority?: 'low' | 'medium' | 'high'
+          data?: any | null
+          read?: boolean
+          read_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          user_role?: 'teacher' | 'student' | 'parent'
+          type?: 'booking_created' | 'booking_cancelled' | 'class_reminder' | 'system' | 'booking_activity'
+          title?: string
+          message?: string
+          priority?: 'low' | 'medium' | 'high'
+          data?: any | null
+          read?: boolean
+          read_at?: string | null
           created_at?: string
           updated_at?: string
         }

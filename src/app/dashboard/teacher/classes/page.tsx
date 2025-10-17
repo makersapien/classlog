@@ -6,7 +6,25 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import MyClassesView from '@/components/MyClassesView'
+import dynamic from 'next/dynamic'
+
+// Dynamically import MyClassesView to avoid SSR issues with Supabase hooks
+const MyClassesView = dynamic(() => import('@/components/MyClassesView'), {
+  ssr: false,
+  loading: () => (
+    <div className="p-6">
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded"></div>
+          ))}
+        </div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  )
+})
 import DashboardLayout from '@/app/dashboard/DashboardLayout'
 
 interface User {
