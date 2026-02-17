@@ -6,13 +6,21 @@ import { signJWT } from '@/lib/jwt'
 import { setAuthCookie } from '@/lib/cookies'
 
 export async function POST(request: NextRequest) {
-    // Initialize Supabase client inside function to avoid build-time env var issues
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase env vars for JWT creation')
+      return NextResponse.json(
+        { error: 'Missing Supabase environment variables.' },
+        { status: 500 }
+      )
+    }
+
+    // Initialize Supabase client inside function to avoid build-time env var issues
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
     console.log('🔄 Creating JWT cookie for OAuth user...')
     
     // Get data from request
