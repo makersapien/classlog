@@ -3,10 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { z } from 'zod'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables.')
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseKey)
+}
 
 const MarkAllReadSchema = z.object({
   userId: z.string().uuid(),
@@ -19,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { userId, role } = MarkAllReadSchema.parse(body)
 
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
       .from('notifications')
       .update({ read: true, read_at: new Date().toISOString() })
       .eq('user_id', userId)

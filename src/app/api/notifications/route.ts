@@ -3,10 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { z } from 'zod'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables.')
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseKey)
+}
 
 const CreateNotificationSchema = z.object({
   userId: z.string().uuid(),
@@ -37,7 +43,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId and role are required' }, { status: 400 })
     }
 
-    let query = supabase
+    let query = getSupabaseClient()
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
@@ -90,7 +96,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = CreateNotificationSchema.parse(body)
 
-    const { data: notification, error } = await supabase
+    const { data: notification, error } = await getSupabaseClient()
       .from('notifications')
       .insert({
         user_id: validatedData.userId,

@@ -2,10 +2,16 @@ import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables.')
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseKey)
+}
 
 // DELETE - Delete a notification
 export async function DELETE(
@@ -15,7 +21,7 @@ export async function DELETE(
   try {
     const { id } = await context.params
     void request
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
       .from('notifications')
       .delete()
       .eq('id', id)

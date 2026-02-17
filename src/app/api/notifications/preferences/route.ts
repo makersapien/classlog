@@ -3,10 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { z } from 'zod'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables.')
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseKey)
+}
 
 const NotificationPreferencesSchema = z.object({
   email_booking_confirmation: z.boolean(),
@@ -37,7 +43,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId and role are required' }, { status: 400 })
     }
 
-    const { data: preferences, error } = await supabase
+    const { data: preferences, error } = await getSupabaseClient()
       .from('notification_preferences')
       .select('*')
       .eq('user_id', userId)
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { userId, userRole, preferences } = SavePreferencesSchema.parse(body)
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('notification_preferences')
       .upsert({
         user_id: userId,
