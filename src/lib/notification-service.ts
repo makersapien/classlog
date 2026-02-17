@@ -2,17 +2,29 @@ import { createEmailService, EmailTemplates, type EmailNotificationData } from '
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables.')
+  }
+
+  if (!supabaseClient) {
+    supabaseClient = createClient<Database>(supabaseUrl, supabaseKey)
+  }
+
+  return supabaseClient
+}
 
 export class NotificationService {
   private emailService = createEmailService()
 
   async getUserPreferences(userId: string, userRole: 'teacher' | 'student' | 'parent') {
     try {
-      const { data: preferences, error } = await supabase
+      const { data: preferences, error } = await getSupabaseClient()
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -56,7 +68,7 @@ export class NotificationService {
     data?: unknown
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getSupabaseClient()
         .rpc('create_booking_notification', {
           p_user_id: userId,
           p_user_role: userRole,
@@ -368,7 +380,7 @@ export class NotificationService {
       const weekEnd = new Date()
       weekEnd.setDate(weekEnd.getDate() + 7)
 
-      const { data: bookings, error } = await supabase
+      const { data: bookings, error } = await getSupabaseClient()
         .from('bookings')
         .select(`
           *,
@@ -495,7 +507,7 @@ Manage your schedule at classlogger.com
 
   private async getBookingNotificationData(bookingId: string): Promise<EmailNotificationData | null> {
     try {
-      const { data: booking, error } = await supabase
+      const { data: booking, error } = await getSupabaseClient()
         .from('bookings')
         .select(`
           *,
@@ -556,7 +568,7 @@ export async function sendWeeklySummaryEmail(teacherId: string) {
 // Send class start notification for booked classes
 export async function sendClassStartNotification(classLogId: string) {
   try {
-    const { data: classLog, error } = await supabase
+    const { data: classLog, error } = await getSupabaseClient()
       .from('class_logs')
       .select(`
         *,
@@ -608,7 +620,7 @@ export async function sendClassStartNotification(classLogId: string) {
 // Send class completion notification for booked classes
 export async function sendClassCompletionNotification(classLogId: string) {
   try {
-    const { data: classLog, error } = await supabase
+    const { data: classLog, error } = await getSupabaseClient()
       .from('class_logs')
       .select(`
         *,
