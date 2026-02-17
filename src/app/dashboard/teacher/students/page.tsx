@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import StudentDetailsModal from '@/components/StudentDetailsModal'
 
 interface Student {
@@ -69,6 +70,7 @@ export default function StudentsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [invitationUrl, setInvitationUrl] = useState('')
+  const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null)
 
   // Modal state for student details
   const [showStudentModal, setShowStudentModal] = useState(false)
@@ -227,6 +229,35 @@ export default function StudentsPage() {
     fetchStudents()
   }
 
+  const handleDeleteStudent = async (student: Student) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${student.student_name}? This will deactivate their enrollment.`
+    )
+    if (!confirmed) return
+
+    try {
+      setDeletingStudentId(student.id)
+      const response = await fetch(`/api/teacher/students/${student.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || 'Failed to remove student')
+      }
+
+      setStudents(prevStudents => prevStudents.filter(s => s.id !== student.id))
+      fetchStudents()
+    } catch (error) {
+      alert(`Error removing student: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setDeletingStudentId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -239,7 +270,20 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Page Banner */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <span className="text-emerald-600 mr-2">🎓</span>
+          <div>
+            <h3 className="font-medium text-emerald-800">Student Management</h3>
+            <p className="text-sm text-emerald-700">
+              Track enrollments, invite new students, and keep everything organized.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
@@ -248,7 +292,13 @@ export default function StudentsPage() {
           </h1>
           <p className="mt-1 text-gray-600">Manage your students and track their setup progress</p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex items-center gap-3">
+          <Link
+            href="/dashboard/teacher"
+            className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-2 font-medium"
+          >
+            ← Back to Dashboard
+          </Link>
           <button
             onClick={() => setShowModal(true)}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium"
@@ -419,12 +469,25 @@ export default function StudentsPage() {
                             </span>
                           </td>
                           <td className="py-5 px-3">
-                            <button 
-                              onClick={() => handleViewDetails(student)}
-                              className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 text-sm font-medium transform hover:scale-105"
-                            >
-                              View Details
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleViewDetails(student)}
+                                className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 text-sm font-medium transform hover:scale-105"
+                              >
+                                View Details
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStudent(student)}
+                                disabled={deletingStudentId === student.id}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                  deletingStudentId === student.id
+                                    ? 'bg-red-200 text-red-800 cursor-not-allowed'
+                                    : 'bg-red-500 text-white hover:bg-red-600'
+                                }`}
+                              >
+                                {deletingStudentId === student.id ? 'Removing...' : 'Remove'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

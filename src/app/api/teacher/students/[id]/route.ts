@@ -534,3 +534,74 @@ export async function GET(
     }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  request: Request,
+  context: RouteContext
+) {
+  const { id } = await context.params
+  console.log('🗑️ DELETE: Removing student enrollment with ID:', id)
+
+  try {
+    const { supabase, user } = await createAuthenticatedSupabaseClient()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const enrollmentId = id
+    if (!enrollmentId) {
+      return NextResponse.json({ error: 'Invalid enrollment ID' }, { status: 400 })
+    }
+
+    // Fetch enrollment to verify ownership
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id, class_id, student_id')
+      .eq('id', enrollmentId)
+      .single()
+
+    if (enrollmentError || !enrollment) {
+      return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 })
+    }
+
+    const { data: classInfo, error: classError } = await supabase
+      .from('classes')
+      .select('id, teacher_id')
+      .eq('id', enrollment.class_id)
+      .single()
+
+    if (classError || !classInfo) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+    }
+
+    if (classInfo.teacher_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Soft-delete: mark enrollment inactive
+    const { error: updateError } = await supabase
+      .from('enrollments')
+      .update({
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', enrollmentId)
+
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to remove student' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Student removed successfully',
+      enrollment_id: enrollmentId
+    })
+  } catch (error) {
+    console.error('💥 DELETE Student API error:', error)
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
