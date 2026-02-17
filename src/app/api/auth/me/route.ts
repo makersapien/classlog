@@ -6,6 +6,18 @@ export async function GET() {
   try {
     console.log('🔄 Auth me API called')
     
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase env vars in /api/auth/me')
+      return NextResponse.json({
+        authenticated: false,
+        user: null,
+        error: 'Missing Supabase environment variables.'
+      }, { status: 500 })
+    }
+
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
     if (!user) {
