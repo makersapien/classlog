@@ -3,7 +3,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
   Clock, 
   Users, 
@@ -36,7 +36,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 
 import LiveIndicator from './LiveIndicator'
-import { extractTopics, getHomeworkAssigned, formatFileSize } from '@/lib/class-utils'
+import { PaymentStatusBadge, PaymentStatusDetail, calculatePaymentStatus } from './PaymentStatusBadge'
+import { extractTopics, formatFileSize, getHomeworkAssigned } from '@/lib/class-utils'
 import type { ClassCardProps } from '@/types/database-enhanced'
 
 // NEW: Interface for class_content table data
@@ -220,6 +221,20 @@ const ClassCard: React.FC<ClassCardProps> = ({
                   {classLog.student_name || 'Class Session'}
                   <LiveIndicator classLog={classLog} />
                   {getStatusBadge()}
+                  {/* Payment Status Badge */}
+                  {classLog.status === 'completed' && (
+                    <PaymentStatusBadge
+                      status={calculatePaymentStatus(
+                        classLog.credits_deducted || 0,
+                        classLog.is_paid || false,
+                        classLog.payment_status || undefined,
+                        classLog.duration_minutes || undefined
+                      )}
+                      creditsDeducted={classLog.credits_deducted || 0}
+                      showCredits={true}
+                      size="sm"
+                    />
+                  )}
                   {/* NEW: Indicator for structured content */}
                   {classContent && (
                     <Badge variant="outline" className="text-xs">
@@ -773,6 +788,22 @@ const ClassCard: React.FC<ClassCardProps> = ({
                           {classContent ? 'Enhanced' : 'Basic'}
                         </span>
                       </div>
+                      {classLog.status === 'completed' && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Payment Status:</span>
+                          <PaymentStatusBadge
+                            status={calculatePaymentStatus(
+                              classLog.credits_deducted || 0,
+                              classLog.is_paid || false,
+                              classLog.payment_status || undefined,
+                              classLog.duration_minutes || undefined
+                            )}
+                            creditsDeducted={classLog.credits_deducted || 0}
+                            showCredits={false}
+                            size="sm"
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -793,6 +824,41 @@ const ClassCard: React.FC<ClassCardProps> = ({
                             <p className="text-xs text-muted-foreground">{classLog.student_email}</p>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Payment Information Card */}
+                  {classLog.status === 'completed' && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Payment Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <PaymentStatusDetail
+                          status={calculatePaymentStatus(
+                            classLog.credits_deducted || 0,
+                            classLog.is_paid || false,
+                            classLog.payment_status || undefined,
+                            classLog.duration_minutes || undefined
+                          )}
+                          creditsDeducted={classLog.credits_deducted || 0}
+                          durationMinutes={classLog.duration_minutes || undefined}
+                        />
+                        {(classLog.credits_deducted ?? 0) > 0 && (
+                          <div className="mt-3 pt-3 border-t border-muted text-xs text-muted-foreground">
+                            <div className="flex justify-between">
+                              <span>Credits Deducted:</span>
+                              <span className="font-medium">{classLog.credits_deducted || 0}h</span>
+                            </div>
+                            {classLog.duration_minutes && (
+                              <div className="flex justify-between">
+                                <span>Class Duration:</span>
+                                <span className="font-medium">{(classLog.duration_minutes / 60).toFixed(1)}h</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}

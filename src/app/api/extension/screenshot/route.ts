@@ -1,5 +1,5 @@
 // src/app/api/extension/screenshot/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Define proper types for the screenshot data
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     console.log('📸 Storing screenshot for class:', class_log_id)
 
     // Verify the class log exists and is ongoing
-    const { data: classLog, error: fetchError } = await supabase
+    const { data: classLog, error: fetchError  } = await supabase
       .from('class_logs')
       .select('id, status, attachments')
       .eq('id', class_log_id)

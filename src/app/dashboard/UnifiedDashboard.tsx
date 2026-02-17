@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSupabaseClient } from '@/lib/supabase-dynamic'
+import { supabase } from '@/lib/supabase'
 import DashboardLayout from '@/app/dashboard/DashboardLayout'
+import { useDashboardLayoutProvided } from '@/contexts/DashboardLayoutContext'
 import TeacherDashboard from '@/app/dashboard/TeacherDashboard'
 import ParentDashboard from '@/app/dashboard/ParentDashboard'
 import StudentDashboard from '@/app/dashboard/StudentDashboard'
@@ -23,17 +24,12 @@ export default function UnifiedDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const isDashboardLayoutProvided = useDashboardLayoutProvided()
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Get Supabase client dynamically to avoid build-time env var issues
-        const supabase = getSupabaseClient()
-        
-        if (!supabase) {
-          setError('Failed to initialize Supabase client')
-          return
-        }
+        // Use the working Supabase client
         
         // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -255,6 +251,15 @@ export default function UnifiedDashboard() {
     }
   }
 
+  // If DashboardLayout is already provided by parent, don't wrap again
+  if (isDashboardLayoutProvided) {
+    console.log('🎯 UnifiedDashboard: DashboardLayout already provided, skipping wrapper')
+    return renderDashboardContent()
+  }
+  
+  console.log('🎯 UnifiedDashboard: Providing own DashboardLayout')
+
+  // Otherwise, provide our own DashboardLayout (for parent/student pages)
   return (
     <DashboardLayout user={user}>
       {renderDashboardContent()}

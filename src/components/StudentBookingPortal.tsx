@@ -1,25 +1,13 @@
 // src/components/StudentBookingPortal.tsx
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { 
-  Calendar, 
-  Clock, 
-  ChevronLeft, 
-  ChevronRight, 
-  User,
-  CheckCircle,
-  X,
-  AlertCircle,
-  BookOpen,
-  RefreshCw,
-  Users
-} from 'lucide-react'
+import { AlertCircle, BookOpen, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, RefreshCw, User, Users, X } from 'lucide-react'
 import WaitlistModal from './WaitlistModal'
 
 interface StudentBookingPortalProps {
@@ -724,7 +712,7 @@ export default function StudentBookingPortal({ shareToken }: StudentBookingPorta
             <DialogTitle>Slot Full - Join Waitlist?</DialogTitle>
             <DialogDescription>
               This time slot is currently full. Would you like to join the waitlist? 
-              You'll be notified if a spot becomes available.
+              You&apos;ll be notified if a spot becomes available.
             </DialogDescription>
           </DialogHeader>
           

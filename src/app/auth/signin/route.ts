@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const supabase = createRouteHandlerClient({ cookies })
 
     // Authenticate with Supabase
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError  } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile to determine role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('users')
       .select('role, name')
       .eq('id', authData.user.id)

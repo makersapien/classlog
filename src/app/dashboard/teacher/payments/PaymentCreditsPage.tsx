@@ -3,18 +3,17 @@
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Upload, QrCode, CreditCard, CheckCircle, Clock, DollarSign, Camera, Trash2, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Camera, CheckCircle, Clock, CreditCard, DollarSign, Image as  Loader2, QrCode, Trash2, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useToast } from '@/hooks/use-toast';
+import AwardCreditsModal from '@/components/AwardCreditsModal';
 
 interface PaymentRecord {
   id: string;
@@ -52,10 +51,6 @@ const PaymentCreditsPage: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('teacher');
   const [upiId, setUpiId] = useState<string>('');
   const [qrCodePreview, setQrCodePreview] = useState<string>('');
-  const [parentEmail, setParentEmail] = useState<string>('');
-  const [creditHours, setCreditHours] = useState<string>('');
-  const [paymentAmount, setPaymentAmount] = useState<string>('');
-  const [paymentNote, setPaymentNote] = useState<string>('');
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [awardCreditsDialog, setAwardCreditsDialog] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -255,59 +250,8 @@ const PaymentCreditsPage: React.FC = () => {
     }
   };
 
-  const handleCreditAward = async (): Promise<void> => {
-    if (!parentEmail.trim() || !creditHours.trim() || !paymentAmount.trim()) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch('/api/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'award_credits',
-          parent_email: parentEmail,
-          credit_hours: creditHours,
-          payment_amount: paymentAmount,
-          payment_note: paymentNote
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: data.message,
-        });
-        
-        setAwardCreditsDialog(false);
-        setParentEmail('');
-        setCreditHours('');
-        setPaymentAmount('');
-        setPaymentNote('');
-        
-        // Refresh data
-        fetchData();
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error('Error awarding credits:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to award credits",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCreditModalSuccess = () => {
+    fetchData();
   };
 
   const triggerFileInput = (): void => {
@@ -576,91 +520,19 @@ const PaymentCreditsPage: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <Dialog open={awardCreditsDialog} onOpenChange={setAwardCreditsDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                      <DollarSign size={16} className="mr-2" />
-                      Award New Credits
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Award Class Credits</DialogTitle>
-                      <DialogDescription>
-                        Confirm payment received and award credits to parent
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="parent-email">Parent Email</Label>
-                        <Input
-                          id="parent-email"
-                          type="email"
-                          placeholder="parent@email.com"
-                          value={parentEmail}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setParentEmail(e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="credit-hours">Credit Hours</Label>
-                          <Input
-                            id="credit-hours"
-                            type="number"
-                            placeholder="4"
-                            value={creditHours}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setCreditHours(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="payment-amount">Amount (₹)</Label>
-                          <Input
-                            id="payment-amount"
-                            type="number"
-                            placeholder="2000"
-                            value={paymentAmount}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="payment-note">Note (Optional)</Label>
-                        <Textarea
-                          id="payment-note"
-                          placeholder="Payment for Mathematics classes..."
-                          value={paymentNote}
-                          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPaymentNote(e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="flex gap-3 pt-4">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setAwardCreditsDialog(false)}
-                          className="flex-1"
-                          disabled={submitting}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleCreditAward}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                          disabled={submitting}
-                        >
-                          {submitting ? (
-                            <Loader2 size={16} className="mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle size={16} className="mr-2" />
-                          )}
-                          Award Credits
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setAwardCreditsDialog(true)}
+                >
+                  <DollarSign size={16} className="mr-2" />
+                  Award New Credits
+                </Button>
+                
+                <AwardCreditsModal
+                  open={awardCreditsDialog}
+                  onOpenChange={setAwardCreditsDialog}
+                  onSuccess={handleCreditModalSuccess}
+                />
               </CardContent>
             </Card>
           </div>

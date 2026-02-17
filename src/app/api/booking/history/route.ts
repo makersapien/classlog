@@ -1,7 +1,7 @@
 // src/app/api/booking/history/route.ts
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { verifyJWT } from '@/lib/jwt'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerSupabaseClient()
     
     // Fetch booking history with class log details
-    const { data: bookings, error: bookingsError } = await supabase
+    const { data: bookings, error: bookingsError  } = await supabase
       .from('bookings')
       .select(`
         id,

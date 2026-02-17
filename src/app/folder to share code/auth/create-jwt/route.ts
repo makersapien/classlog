@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Create Supabase client with service role for verification
 
     // Verify the user exists in the database
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, email, role')
       .eq('id', userId)

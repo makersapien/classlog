@@ -3,7 +3,7 @@
 // Set up to run every 5 minutes via cron
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { Database } from '../../../../types/database'
 
 // Types based on actual Supabase response structure
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     
     // 1. Get all active enrollments with Google Meet URLs
     // The enrollments table has teacher_id directly now
-    const { data: enrollments, error: enrollmentsError } = await supabase
+    const { data: enrollments, error: enrollmentsError  } = await supabase
       .from('enrollments')
       .select(`
         id,

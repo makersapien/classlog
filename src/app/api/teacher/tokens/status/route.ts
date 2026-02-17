@@ -2,7 +2,7 @@
 // Get current token status for teacher
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // Moved Supabase client creation inside functions to avoid build-time env var issues
 
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.log('📊 Checking token status for teacher:', teacherId)
 
     // Get current active token for teacher
-    const { data: currentToken, error: tokenError } = await supabase
+    const { data: currentToken, error: tokenError  } = await supabase
       .from('extension_tokens')
       .select(`
         id,

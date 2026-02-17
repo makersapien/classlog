@@ -1,4 +1,4 @@
-import { createEmailService, EmailTemplates, EmailNotificationData } from './email-service'
+import { createEmailService, EmailTemplates, type EmailNotificationData } from './email-service'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -53,7 +53,7 @@ export class NotificationService {
     title: string,
     message: string,
     priority: 'low' | 'medium' | 'high' = 'medium',
-    data?: any
+    data?: unknown
   ): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -83,6 +83,9 @@ export class NotificationService {
     try {
       const data = await this.getBookingNotificationData(bookingId)
       if (!data) return false
+
+      const studentName = data.student.full_name ?? data.student.email
+      const teacherName = data.teacher.full_name ?? data.teacher.email
 
       // Get user preferences
       const studentPrefs = await this.getUserPreferences(data.student.id, 'student')
@@ -130,11 +133,11 @@ export class NotificationService {
           'student',
           'booking_created',
           'Class Booking Confirmed',
-          `Your class with ${data.teacher.name} on ${bookingDate} at ${startTime} has been confirmed.`,
+          `Your class with ${teacherName} on ${bookingDate} at ${startTime} has been confirmed.`,
           'medium',
           {
             bookingId: data.booking.id,
-            teacherName: data.teacher.name,
+            teacherName,
             classDate: bookingDate,
             classTime: startTime
           }
@@ -148,11 +151,11 @@ export class NotificationService {
           'teacher',
           'booking_activity',
           'New Class Booking',
-          `${data.student.name} has booked a class on ${bookingDate} at ${startTime}.`,
+          `${studentName} has booked a class on ${bookingDate} at ${startTime}.`,
           'medium',
           {
             bookingId: data.booking.id,
-            studentName: data.student.name,
+            studentName,
             classDate: bookingDate,
             classTime: startTime
           }
@@ -170,6 +173,9 @@ export class NotificationService {
     try {
       const data = await this.getBookingNotificationData(bookingId)
       if (!data) return false
+
+      const studentName = data.student.full_name ?? data.student.email
+      const teacherName = data.teacher.full_name ?? data.teacher.email
 
       const template = EmailTemplates.bookingCancellation(data)
       
@@ -204,11 +210,11 @@ export class NotificationService {
         'student',
         'booking_cancelled',
         'Class Booking Cancelled',
-        `Your class with ${data.teacher.name} on ${bookingDate} at ${startTime} has been cancelled.`,
+        `Your class with ${teacherName} on ${bookingDate} at ${startTime} has been cancelled.`,
         'medium',
         {
           bookingId: data.booking.id,
-          teacherName: data.teacher.name,
+          teacherName,
           classDate: bookingDate,
           classTime: startTime
         }
@@ -220,11 +226,11 @@ export class NotificationService {
         'teacher',
         'booking_activity',
         'Class Booking Cancelled',
-        `${data.student.name} has cancelled their class on ${bookingDate} at ${startTime}.`,
+        `${studentName} has cancelled their class on ${bookingDate} at ${startTime}.`,
         'medium',
         {
           bookingId: data.booking.id,
-          studentName: data.student.name,
+          studentName,
           classDate: bookingDate,
           classTime: startTime
         }
@@ -264,6 +270,7 @@ export class NotificationService {
 
       // Create in-app notification if enabled
       if (studentPrefs?.inapp_class_reminders) {
+        const teacherName = data.teacher.full_name ?? data.teacher.email
         const bookingDate = new Date(data.booking.booking_date).toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
@@ -280,11 +287,11 @@ export class NotificationService {
           'student',
           'class_reminder',
           'Class Tomorrow',
-          `Don't forget your class with ${data.teacher.name} tomorrow at ${startTime}.`,
+          `Don't forget your class with ${teacherName} tomorrow at ${startTime}.`,
           'high',
           {
             bookingId: data.booking.id,
-            teacherName: data.teacher.name,
+            teacherName,
             classDate: bookingDate,
             classTime: startTime
           }
@@ -325,6 +332,7 @@ export class NotificationService {
 
       // Create in-app notification if enabled
       if (studentPrefs?.inapp_class_reminders) {
+        const teacherName = data.teacher.full_name ?? data.teacher.email
         const startTime = new Date(`2000-01-01T${data.timeSlot.start_time}`).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
@@ -336,11 +344,11 @@ export class NotificationService {
           'student',
           'class_reminder',
           'Class Starting Soon!',
-          `Your class with ${data.teacher.name} starts in 1 hour at ${startTime}.`,
+          `Your class with ${teacherName} starts in 1 hour at ${startTime}.`,
           'high',
           {
             bookingId: data.booking.id,
-            teacherName: data.teacher.name,
+            teacherName,
             classTime: startTime
           }
         )
@@ -364,8 +372,8 @@ export class NotificationService {
         .from('bookings')
         .select(`
           *,
-          student:profiles!bookings_student_id_fkey(name, email, grade, subject),
-          teacher:profiles!bookings_teacher_id_fkey(name, email),
+          student:profiles!bookings_student_id_fkey(full_name, email, grade, subject),
+          teacher:profiles!bookings_teacher_id_fkey(full_name, email),
           time_slot:time_slots(day_of_week, start_time, end_time)
         `)
         .eq('teacher_id', teacherId)
@@ -380,6 +388,7 @@ export class NotificationService {
 
       const teacher = bookings[0].teacher
       if (!teacher?.email) return false
+      const teacherName = teacher.full_name ?? teacher.email
 
       const subject = `Weekly Class Summary - ${bookings.length} upcoming classes`
       
@@ -394,7 +403,10 @@ export class NotificationService {
           minute: '2-digit',
           hour12: true
         })
-        return `• ${date} at ${time} - ${booking.student?.name} (${booking.student?.subject || 'General'})`
+        const studentName = booking.student?.full_name ?? booking.student?.email ?? 'Student'
+        const studentSubject =
+          (booking.student as { subject?: string | null } | null | undefined)?.subject ?? 'General'
+        return `• ${date} at ${time} - ${studentName} (${studentSubject})`
       }).join('\n')
 
       const html = `
@@ -420,7 +432,7 @@ export class NotificationService {
                 <h1>📊 Weekly Class Summary</h1>
               </div>
               <div class="content">
-                <p>Hi ${teacher.name},</p>
+                <p>Hi ${teacherName},</p>
                 <p>Here's your upcoming class schedule for this week:</p>
                 
                 <div class="booking-list">
@@ -439,8 +451,8 @@ export class NotificationService {
                     return `
                       <div class="booking-item">
                         <strong>${date} at ${time}</strong><br>
-                        Student: ${booking.student?.name}<br>
-                        Subject: ${booking.student?.subject || 'General'}
+                        Student: ${booking.student?.full_name ?? booking.student?.email ?? 'Student'}<br>
+                        Subject: ${(booking.student as { subject?: string | null } | null | undefined)?.subject ?? 'General'}
                       </div>
                     `
                   }).join('')}
@@ -461,7 +473,7 @@ export class NotificationService {
       const text = `
 Weekly Class Summary
 
-Hi ${teacher.name},
+Hi ${teacherName},
 
 Here's your upcoming class schedule for this week:
 
@@ -487,8 +499,8 @@ Manage your schedule at classlogger.com
         .from('bookings')
         .select(`
           *,
-          student:profiles!bookings_student_id_fkey(name, email, grade, subject),
-          teacher:profiles!bookings_teacher_id_fkey(name, email),
+          student:profiles!bookings_student_id_fkey(full_name, email, grade, subject),
+          teacher:profiles!bookings_teacher_id_fkey(full_name, email),
           time_slot:time_slots(day_of_week, start_time, end_time)
         `)
         .eq('id', bookingId)
@@ -505,10 +517,10 @@ Manage your schedule at classlogger.com
       }
 
       return {
-        booking: booking as any,
-        student: booking.student as any,
-        teacher: booking.teacher as any,
-        timeSlot: booking.time_slot as any
+        booking: booking as EmailNotificationData['booking'],
+        student: booking.student as EmailNotificationData['student'],
+        teacher: booking.teacher as EmailNotificationData['teacher'],
+        timeSlot: booking.time_slot as EmailNotificationData['timeSlot']
       }
     } catch (error) {
       console.error('Error fetching booking notification data:', error)
@@ -665,17 +677,20 @@ export async function sendClassCompletionNotification(classLogId: string) {
 }
 
 // Send bulk notifications for auto-started classes
-export async function sendBulkClassStartNotifications(processedBookings: any[]) {
+export async function sendBulkClassStartNotifications(processedBookings: unknown[]) {
   try {
     let successCount = 0
-    for (const booking of processedBookings) {
+    const bookings = processedBookings as Array<{
+      session_result?: { success?: boolean; class_log_id?: string }
+    }>
+    for (const booking of bookings) {
       if (booking.session_result?.success && booking.session_result?.class_log_id) {
         const success = await sendClassStartNotification(booking.session_result.class_log_id)
         if (success) successCount++
       }
     }
-    console.log(`Sent bulk start notifications for ${successCount}/${processedBookings.length} classes`)
-    return successCount === processedBookings.length
+    console.log(`Sent bulk start notifications for ${successCount}/${bookings.length} classes`)
+    return successCount === bookings.length
   } catch (error) {
     console.error('Error sending bulk class start notifications:', error)
     return false

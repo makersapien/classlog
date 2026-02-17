@@ -1,7 +1,7 @@
 // src/app/api/booking/analytics/route.ts
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { verifyJWT } from '@/lib/jwt'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     
     // Get teacher info from Bearer token or session
     let teacher_id: string | null = null
-    let teacherInfo: { userId: string; email: string; name: string; role: string } | null = null
 
     const authHeader = request.headers.get('authorization')
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
 
       if (decoded && (decoded.type === 'extension' || decoded.type === 'web')) {
         teacher_id = decoded.userId
-        teacherInfo = decoded
+        // teacherInfo = decoded // Unused variable
         console.log('✅ Authenticated teacher:', decoded.email)
       } else {
         console.error('❌ Invalid authentication token')
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerSupabaseClient()
     
     // Use the database function to get analytics
-    const { data: analyticsResult, error: analyticsError } = await supabase
+    const { data: analyticsResult, error: analyticsError  } = await supabase
       .rpc('get_booking_analytics', {
         p_teacher_id: teacher_id,
         p_start_date: start_date || null,
@@ -95,7 +94,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Analytics fetched successfully')
     
     // Get additional metrics not covered by the main function
-    const { data: upcomingBookings, error: upcomingError } = await supabase
+    const { data: upcomingBookings, error: upcomingError  } = await supabase
       .from('bookings')
       .select(`
         *,
@@ -106,9 +105,10 @@ export async function GET(request: NextRequest) {
       .gte('booking_date', new Date().toISOString().split('T')[0])
       .order('booking_date', { ascending: true })
       .limit(10)
+    void upcomingError
     
     // Get recent completed classes with booking integration
-    const { data: recentClasses, error: classesError } = await supabase
+    const { data: recentClasses, error: classesError  } = await supabase
       .from('class_logs')
       .select(`
         *,
@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
       .eq('status', 'completed')
       .order('end_time', { ascending: false })
       .limit(10)
+    void classesError
     
     return NextResponse.json({
       success: true,

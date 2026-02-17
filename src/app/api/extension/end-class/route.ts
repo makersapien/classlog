@@ -2,8 +2,8 @@
 // Your existing comprehensive API with CORS fix
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
-import { createOptionsResponse, addCorsHeaders } from '@/lib/cors'
+import { NextRequest, NextResponse  } from 'next/server'
+import { addCorsHeaders, createOptionsResponse } from '@/lib/cors'
 import { verifyJWT } from '@/lib/jwt'
 
 
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         query = query.eq('student_email', student_email)
       }
 
-      const { data: activeClass, error: findError } = await query.maybeSingle()
+      const { data: activeClass, error: findError  } = await query.maybeSingle()
 
       if (findError) {
         console.error('❌ Error finding active class:', findError)
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the existing class log
-    const { data: existingClass, error: fetchError } = await supabase
+    const { data: existingClass, error: fetchError  } = await supabase
       .from('class_logs')
       .select('*')
       .eq('id', classLogId)
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the class log
-    const { data: updatedClass, error: updateError } = await supabase
+    const { data: updatedClass, error: updateError  } = await supabase
       .from('class_logs')
       .update(updateData)
       .eq('id', classLogId)
@@ -318,14 +318,25 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Class ended successfully:', classLogId)
 
-    // 🔧 Debug credit deduction (your DB trigger should handle this automatically)
-    console.log('💳 Credit Deduction Debug:', {
-      classLogId,
-      meetUrl: existingClass.google_meet_link,
-      studentEmail: existingClass.student_email,
-      enrollmentId: existingClass.enrollment_id,
-      triggerShouldFire: 'Database trigger should auto-deduct credits'
-    })
+    // Wait a moment for the trigger to process credit deduction
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Get updated class data with payment information
+    const { data: finalClassData, error: finalFetchError  } = await supabase
+      .from('class_logs')
+      .select('*')
+      .eq('id', classLogId)
+      .single()
+
+    let creditDeductionInfo = null
+    if (!finalFetchError && finalClassData) {
+      creditDeductionInfo = {
+        credits_deducted: finalClassData.credits_deducted || 0,
+        payment_status: finalClassData.payment_status || 'unpaid',
+        is_paid: finalClassData.is_paid || false
+      }
+      console.log('💳 Credit deduction processed:', creditDeductionInfo)
+    }
 
     // Prepare summary for response
     const summary: ResponseSummary = {
@@ -336,13 +347,27 @@ export async function POST(request: NextRequest) {
       manual_notes: manual_notes ? 'Saved' : 'None'
     }
 
+    // Prepare user-friendly credit deduction message
+    let creditMessage = ''
+    if (creditDeductionInfo) {
+      if (creditDeductionInfo.payment_status === 'paid') {
+        creditMessage = `✅ ${creditDeductionInfo.credits_deducted} credit hours deducted`
+      } else if (creditDeductionInfo.payment_status === 'partial') {
+        creditMessage = `⚠️ ${creditDeductionInfo.credits_deducted} credit hours deducted (partial payment)`
+      } else {
+        creditMessage = '❌ No credits available - marked as unpaid'
+      }
+    }
+
     const response = NextResponse.json({
       success: true,
       class_log_id: classLogId,
       message: 'Class ended successfully',
       duration: durationText,
       summary: summary,
-      class_data: updatedClass
+      class_data: finalClassData || updatedClass,
+      credit_deduction: creditDeductionInfo,
+      credit_message: creditMessage
     })
     return addCorsHeaders(response, request)
 

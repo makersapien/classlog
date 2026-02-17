@@ -115,7 +115,7 @@ export async function PATCH(
 
     // First, get the enrollment and check ownership
     console.log('🔍 Fetching enrollment to verify ownership...')
-    const { data: enrollment, error: fetchError } = await supabase
+    const { data: enrollment, error: fetchError  } = await supabase
       .from('enrollments')
       .select('id, class_id, student_id')
       .eq('id', enrollmentId)
@@ -130,7 +130,7 @@ export async function PATCH(
     }
 
     // Get the class info to check teacher ownership
-    const { data: classInfo, error: classError } = await supabase
+    const { data: classInfo, error: classError  } = await supabase
       .from('classes')
       .select('id, teacher_id, name, subject, grade')
       .eq('id', enrollment.class_id)
@@ -207,7 +207,7 @@ export async function PATCH(
       console.log('🔄 Target enrollment ID:', enrollmentId)
       
       // First, let's verify the enrollment exists
-      const { data: existingEnrollment, error: checkError } = await supabase
+      const { data: existingEnrollment, error: checkError  } = await supabase
         .from('enrollments')
         .select('*')
         .eq('id', enrollmentId)
@@ -263,7 +263,7 @@ export async function PATCH(
         console.error('   3. The update didn\'t actually change any values')
         
         // Let's verify the enrollment still exists after the update attempt
-        const { data: checkAfterUpdate, error: checkAfterError } = await supabase
+        const { data: checkAfterUpdate, error: checkAfterError  } = await supabase
           .from('enrollments')
           .select('*')
           .eq('id', enrollmentId)
@@ -298,7 +298,7 @@ export async function PATCH(
 
       console.log('🔄 Updating student profile with:', profileUpdates)
       
-      const { data: updatedProfile, error: updateProfileError } = await supabase
+      const { data: updatedProfile, error: updateProfileError  } = await supabase
         .from('profiles')
         .update(profileUpdates)
         .eq('id', enrollment.student_id)
@@ -321,7 +321,7 @@ export async function PATCH(
       console.log('🔍 Looking for parent relationship...')
       
       // Get parent ID from relationship table
-      const { data: parentRelation, error: parentRelationError } = await supabase
+      const { data: parentRelation, error: parentRelationError  } = await supabase
         .from('parent_child_relationships')
         .select('parent_id')
         .eq('child_id', enrollment.student_id)
@@ -343,7 +343,7 @@ export async function PATCH(
         if (Object.keys(parentUpdates).length > 0) {
           console.log('🔄 Updating parent profile with:', parentUpdates)
           
-          const { data: updatedParent, error: updateParentError } = await supabase
+          const { data: updatedParent, error: updateParentError  } = await supabase
             .from('profiles')
             .update(parentUpdates)
             .eq('id', parentRelation.parent_id)
@@ -374,7 +374,7 @@ export async function PATCH(
       if (Object.keys(classUpdates).length > 0) {
         console.log('🔄 Updating class with:', classUpdates)
         
-        const { data: updatedClass, error: updateClassError } = await supabase
+        const { data: updatedClass, error: updateClassError  } = await supabase
           .from('classes')
           .update(classUpdates)
           .eq('id', enrollment.class_id)
@@ -429,7 +429,7 @@ export async function GET(
     const enrollmentId = id
 
     // Fetch enrollment
-    const { data: enrollment, error: fetchError } = await supabase
+    const { data: enrollment, error: fetchError  } = await supabase
       .from('enrollments')
       .select(`
         id,
@@ -457,7 +457,7 @@ export async function GET(
     }
 
     // Get student profile
-    const { data: studentProfile, error: studentError } = await supabase
+    const { data: studentProfile, error: studentError  } = await supabase
       .from('profiles')
       .select('id, full_name, email')
       .eq('id', enrollment.student_id)
@@ -467,7 +467,7 @@ export async function GET(
     console.log('Debug: Student error for monitoring:', studentError)
 
     // Get class info
-    const { data: classInfo, error: classInfoError } = await supabase
+    const { data: classInfo, error: classInfoError  } = await supabase
       .from('classes')
       .select('id, name, subject, grade, teacher_id')
       .eq('id', enrollment.class_id)
@@ -484,7 +484,7 @@ export async function GET(
     }
 
     // Get parent information
-    const { data: parentRelation, error: parentError } = await supabase
+    const { data: parentRelation, error: parentError  } = await supabase
       .from('parent_child_relationships')
       .select('parent_id')
       .eq('child_id', enrollment.student_id)

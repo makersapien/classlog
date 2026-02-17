@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -10,13 +10,15 @@ const supabase = createClient<Database>(
 // PATCH - Mark notification as read
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
+    void request
     const { error } = await supabase
       .from('notifications')
       .update({ read: true, read_at: new Date().toISOString() })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('Failed to mark notification as read:', error)

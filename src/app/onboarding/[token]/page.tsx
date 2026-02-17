@@ -1,7 +1,7 @@
 // src/app/onboarding/[token]/page.tsx
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { use } from 'react'
@@ -50,7 +50,7 @@ export default function OnboardingPage({ params }: OnboardingPageProps) {
       console.log('=== LOADING INVITATION ===')
       console.log('Token:', token)
 
-      const { data: invitationData, error: invitationError } = await supabase
+      const { data: invitationData, error: invitationError  } = await supabase
         .from('student_invitations')
         .select('*')
         .eq('invitation_token', token)

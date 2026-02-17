@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, Link, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Link, User, X } from 'lucide-react'
 
 // Define TypeScript interfaces
 interface Student {

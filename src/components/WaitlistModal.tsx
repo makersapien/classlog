@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Clock, Users, Bell, Calendar, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, Bell, Calendar, CheckCircle, Clock, Timer, Users, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface WaitlistEntry {
@@ -32,6 +32,8 @@ interface WaitlistEntry {
   fulfilled_at?: string
   notes?: string
   position?: number
+  estimated_wait_time?: number
+  estimated_available_date?: string
   student?: {
     id: string
     full_name: string
@@ -84,6 +86,7 @@ export default function WaitlistModal({
   const [isUpdating, setIsUpdating] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
   const [extendHours, setExtendHours] = useState(24)
+  const [showQueueActions, setShowQueueActions] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -100,14 +103,21 @@ export default function WaitlistModal({
       if (studentId) params.append('student_id', studentId)
       params.append('status', activeTab === 'current' ? 'waiting' : 'all')
 
-      const response = await fetch(`/api/timeslots/waitlist?${params}`)
-      const data = await response.json()
+      // Try queue API first, fallback to waitlist API
+      let response = await fetch(`/api/timeslots/queue?${params}`)
+      let data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch waitlist')
+        // Fallback to waitlist API
+        response = await fetch(`/api/timeslots/waitlist?${params}`)
+        data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch waitlist')
+        }
       }
 
-      setWaitlistEntries(data.waitlist_entries || [])
+      setWaitlistEntries(data.queue_entries || data.waitlist_entries || [])
     } catch (error) {
       console.error('Fetch waitlist error:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to fetch waitlist')
@@ -118,19 +128,25 @@ export default function WaitlistModal({
 
   const handleWaitlistAction = async (
     entryId: string,
-    action: 'notify' | 'fulfill' | 'remove' | 'extend'
+    action: 'notify' | 'fulfill' | 'remove' | 'extend' | 'promote' | 'demote' | 'auto_book'
   ) => {
     setIsUpdating(true)
     try {
-      const response = await fetch('/api/timeslots/waitlist', {
+      // Use queue API for queue-specific actions, waitlist API for others
+      const isQueueAction = ['promote', 'demote', 'auto_book'].includes(action)
+      const apiEndpoint = isQueueAction ? '/api/timeslots/queue' : '/api/timeslots/waitlist'
+      
+      const requestBody: unknown = {
+        [isQueueAction ? 'queue_id' : 'waitlist_id']: entryId,
+        action,
+        notification_message: notificationMessage || undefined,
+        extend_hours: action === 'extend' ? extendHours : undefined
+      }
+
+      const response = await fetch(apiEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          waitlist_id: entryId,
-          action,
-          notification_message: notificationMessage || undefined,
-          extend_hours: action === 'extend' ? extendHours : undefined
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
@@ -143,6 +159,7 @@ export default function WaitlistModal({
       fetchWaitlistEntries()
       onUpdate()
       setSelectedEntry(null)
+      setShowQueueActions(false)
     } catch (error) {
       console.error(`${action} error:`, error)
       toast.error(error instanceof Error ? error.message : `Failed to ${action} waitlist entry`)
@@ -264,6 +281,18 @@ export default function WaitlistModal({
                               <span className="ml-2">{getTimeUntilExpiry(entry.expires_at)}</span>
                             </div>
                           )}
+                          {entry.estimated_wait_time && (
+                            <div>
+                              <span className="text-muted-foreground">Est. Wait:</span>
+                              <span className="ml-2">{Math.round(entry.estimated_wait_time)} hours</span>
+                            </div>
+                          )}
+                          {entry.estimated_available_date && (
+                            <div>
+                              <span className="text-muted-foreground">Est. Available:</span>
+                              <span className="ml-2">{entry.estimated_available_date}</span>
+                            </div>
+                          )}
                         </div>
 
                         {entry.notes && (
@@ -288,49 +317,94 @@ export default function WaitlistModal({
                         )}
 
                         {mode === 'teacher' && (
-                          <div className="flex gap-2 pt-2">
-                            {entry.status === 'waiting' && (
+                          <div className="space-y-2 pt-2">
+                            <div className="flex gap-2">
+                              {entry.status === 'waiting' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleWaitlistAction(entry.id, 'notify')}
+                                    disabled={isUpdating}
+                                  >
+                                    <Bell className="h-3 w-3 mr-1" />
+                                    Notify
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleWaitlistAction(entry.id, 'auto_book')}
+                                    disabled={isUpdating}
+                                  >
+                                    <Zap className="h-3 w-3 mr-1" />
+                                    Auto Book
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {entry.status === 'notified' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleWaitlistAction(entry.id, 'fulfill')}
+                                    disabled={isUpdating}
+                                  >
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Mark Fulfilled
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleWaitlistAction(entry.id, 'extend')}
+                                    disabled={isUpdating}
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Extend
+                                  </Button>
+                                </>
+                              )}
+                              
                               <Button
                                 size="sm"
-                                onClick={() => handleWaitlistAction(entry.id, 'notify')}
+                                variant="destructive"
+                                onClick={() => handleWaitlistAction(entry.id, 'remove')}
                                 disabled={isUpdating}
                               >
-                                <Bell className="h-3 w-3 mr-1" />
-                                Notify
+                                <X className="h-3 w-3 mr-1" />
+                                Remove
                               </Button>
-                            )}
-                            
-                            {entry.status === 'notified' && (
-                              <>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setShowQueueActions(!showQueueActions)}
+                              >
+                                <Timer className="h-3 w-3 mr-1" />
+                                Queue
+                              </Button>
+                            </div>
+
+                            {showQueueActions && (
+                              <div className="flex gap-2 p-2 bg-muted rounded-lg">
                                 <Button
                                   size="sm"
-                                  onClick={() => handleWaitlistAction(entry.id, 'fulfill')}
+                                  variant="outline"
+                                  onClick={() => handleWaitlistAction(entry.id, 'promote')}
                                   disabled={isUpdating}
                                 >
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Mark Fulfilled
+                                  <ArrowUp className="h-3 w-3 mr-1" />
+                                  Promote
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleWaitlistAction(entry.id, 'extend')}
+                                  onClick={() => handleWaitlistAction(entry.id, 'demote')}
                                   disabled={isUpdating}
                                 >
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Extend
+                                  <ArrowDown className="h-3 w-3 mr-1" />
+                                  Demote
                                 </Button>
-                              </>
+                              </div>
                             )}
-                            
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleWaitlistAction(entry.id, 'remove')}
-                              disabled={isUpdating}
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              Remove
-                            </Button>
                           </div>
                         )}
 

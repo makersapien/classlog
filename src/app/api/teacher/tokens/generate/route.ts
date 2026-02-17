@@ -2,8 +2,9 @@
 // FIXED: One token per teacher, proper expiry logic
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
-import { createHash, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
+import { NextRequest, NextResponse  } from 'next/server'
+import { createHash } from 'crypto'
 
 // Moved Supabase client creation inside functions to avoid build-time env var issues
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.log('🔐 Generating extension token for teacher:', teacherId)
 
     // Verify teacher exists and is active
-    const { data: teacher, error: teacherError } = await supabase
+    const { data: teacher, error: teacherError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('id', teacherId)
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     console.log('⏰ Days until expiry:', Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 
     // STEP 4: Insert single new token
-    const { data: newToken, error: insertError } = await supabase
+    const { data: newToken, error: insertError  } = await supabase
       .from('extension_tokens')
       .insert({
         teacher_id: teacherId,
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // STEP 5: Verify the token was created correctly
-    const { data: verifyToken, error: verifyError } = await supabase
+    const { data: verifyToken, error: verifyError  } = await supabase
       .from('extension_tokens')
       .select('id, token_hash, expires_at, is_active, created_at')
       .eq('teacher_id', teacherId)

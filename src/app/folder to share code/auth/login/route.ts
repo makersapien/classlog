@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists in our database and is a teacher
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('email', email)

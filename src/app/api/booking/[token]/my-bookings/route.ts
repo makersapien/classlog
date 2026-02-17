@@ -1,17 +1,18 @@
 // src/app/api/booking/[token]/my-bookings/route.ts
-import { createSupabaseServiceClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // GET endpoint to fetch student's booking history
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  context: { params: Promise<{ token: string }> }
 ) {
   try {
-    console.log('🔄 Student Bookings API called for token:', params.token.substring(0, 8) + '...')
+    const { token } = await context.params
+    console.log('🔄 Student Bookings API called for token:', token.substring(0, 8) + '...')
     
     // Use service client for token validation
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') // 'confirmed', 'cancelled', 'completed', 'all'
@@ -20,8 +21,8 @@ export async function GET(
     const includeHistory = searchParams.get('include_history') === 'true'
     
     // Validate share token and get student/teacher info
-    const { data: tokenValidation, error: tokenError } = await supabase
-      .rpc('validate_share_token', { p_token: params.token })
+    const { data: tokenValidation, error: tokenError  } = await supabase
+      .rpc('validate_share_token', { p_token: token })
     
     if (tokenError) {
       console.error('❌ Token validation error:', tokenError)
@@ -91,7 +92,7 @@ export async function GET(
       .order('start_time', { ascending: false })
       .range(offset, offset + limit - 1)
     
-    const { data: bookings, error: bookingsError } = await query
+    const { data: bookings, error: bookingsError  } = await query
     
     if (bookingsError) {
       console.error('❌ Bookings fetch error:', bookingsError)
@@ -102,13 +103,13 @@ export async function GET(
     }
     
     // Get booking statistics
-    const { data: stats, error: statsError } = await supabase
+    const { data: stats, error: statsError  } = await supabase
       .from('bookings')
       .select('status')
       .eq('student_id', student_id)
       .eq('teacher_id', teacher_id)
     
-    let bookingStats = {
+    const bookingStats = {
       total: 0,
       confirmed: 0,
       completed: 0,
@@ -128,7 +129,7 @@ export async function GET(
     const nextWeek = new Date()
     nextWeek.setDate(nextWeek.getDate() + 7)
     
-    const { data: upcomingBookings, error: upcomingError } = await supabase
+    const { data: upcomingBookings, error: upcomingError  } = await supabase
       .from('bookings')
       .select(`
         id,
@@ -150,6 +151,7 @@ export async function GET(
       .order('booking_date')
       .order('start_time')
       .limit(10)
+    void upcomingError
     
     console.log('✅ Bookings loaded for student:', student_name)
     

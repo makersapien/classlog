@@ -23,6 +23,19 @@ export async function createServerSupabaseClient() {
       auth: {
         autoRefreshToken: false,
         persistSession: false
+      },
+      global: {
+        fetch: (...args) => {
+          console.log('🌐 Supabase fetch called:', args[0])
+          return fetch(...args).catch(err => {
+            console.error('❌ Fetch error details:', {
+              message: err.message,
+              cause: err.cause,
+              stack: err.stack
+            })
+            throw err
+          })
+        }
       }
     }
   )

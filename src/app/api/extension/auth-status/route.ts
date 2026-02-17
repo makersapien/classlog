@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const tokenHash = createHash('sha256').update(token).digest('hex')
 
     // Query using token_hash and proper join syntax
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError  } = await supabase
       .from('extension_tokens')
       .select(`
         id,

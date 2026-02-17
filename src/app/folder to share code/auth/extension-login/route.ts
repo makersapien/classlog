@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.toLowerCase().trim()
 
     // Check if teacher exists in database
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('email', normalizedEmail)

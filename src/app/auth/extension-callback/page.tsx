@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 function ExtensionCallbackContent() {

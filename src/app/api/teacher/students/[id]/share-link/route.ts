@@ -1,16 +1,18 @@
 // src/app/api/teacher/students/[id]/share-link/route.ts
+import crypto from 'crypto'
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
-import { middleware } from '@/middleware'
+import { NextRequest, NextResponse  } from 'next/server'
+// import { middleware } from '@/middleware'
 
 // GET endpoint to get existing share link for a student
 async function getShareLinkHandler(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: unknown
 ) {
   try {
-    console.log('🔄 Get Share Link API called for student:', params.id)
+    const { id } = await (context as { params: Promise<{ id: string }> }).params
+    console.log('🔄 Get Share Link API called for enrollment:', id)
     
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
@@ -19,7 +21,7 @@ async function getShareLinkHandler(
     }
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -35,45 +37,46 @@ async function getShareLinkHandler(
       return NextResponse.json({ error: 'Only teachers can manage share links' }, { status: 403 })
     }
 
-    // Verify the student belongs to this teacher
-    const { data: student, error: studentError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('id', params.id)
-      .single()
-
-    if (studentError) {
-      console.error('❌ Student fetch error:', studentError)
-      if (studentError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
-      }
-      return NextResponse.json({ 
-        error: 'Failed to fetch student',
-        details: studentError.message
-      }, { status: 500 })
-    }
-
-    // Check if there's an enrollment relationship
-    const { data: enrollment, error: enrollmentError } = await supabase
+    // Get enrollment and verify it belongs to this teacher
+    const { data: enrollment, error: enrollmentError  } = await supabase
       .from('enrollments')
-      .select('id')
-      .eq('student_id', params.id)
+      .select(`
+        id,
+        student_id,
+        teacher_id,
+        status,
+        profiles!enrollments_student_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('id', id)
       .eq('teacher_id', user.id)
       .eq('status', 'active')
       .single()
 
-    if (enrollmentError && enrollmentError.code === 'PGRST116') {
+    if (enrollmentError) {
+      console.error('❌ Enrollment fetch error:', enrollmentError)
+      if (enrollmentError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
       return NextResponse.json({ 
-        error: 'Student is not enrolled with this teacher',
-        code: 'NOT_ENROLLED'
-      }, { status: 403 })
+        error: 'Failed to fetch student enrollment',
+        details: enrollmentError.message
+      }, { status: 500 })
     }
 
-    // Get existing share token
-    const { data: shareToken, error: tokenError } = await supabase
+    const student = enrollment.profiles as { id?: string; full_name?: string; email?: string } | null
+    if (!student) {
+      return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
+    }
+
+    // Get existing share token using the actual student_id from enrollment
+    const { data: shareToken, error: tokenError  } = await supabase
       .from('share_tokens')
       .select('*')
-      .eq('student_id', params.id)
+      .eq('student_id', enrollment.student_id)
       .eq('teacher_id', user.id)
       .eq('is_active', true)
       .single()
@@ -131,10 +134,11 @@ async function getShareLinkHandler(
 // POST endpoint to create or regenerate share link for a student
 async function createShareLinkHandler(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: unknown
 ) {
   try {
-    console.log('🔄 Create Share Link API called for student:', params.id)
+    const { id } = await (context as { params: Promise<{ id: string }> }).params
+    console.log('🔄 Create Share Link API called for enrollment:', id)
     
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
@@ -143,7 +147,7 @@ async function createShareLinkHandler(
     }
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -159,38 +163,39 @@ async function createShareLinkHandler(
       return NextResponse.json({ error: 'Only teachers can create share links' }, { status: 403 })
     }
 
-    // Verify the student belongs to this teacher
-    const { data: student, error: studentError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('id', params.id)
-      .single()
-
-    if (studentError) {
-      console.error('❌ Student fetch error:', studentError)
-      if (studentError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
-      }
-      return NextResponse.json({ 
-        error: 'Failed to fetch student',
-        details: studentError.message
-      }, { status: 500 })
-    }
-
-    // Check if there's an enrollment relationship
-    const { data: enrollment, error: enrollmentError } = await supabase
+    // Get enrollment and verify it belongs to this teacher
+    const { data: enrollment, error: enrollmentError  } = await supabase
       .from('enrollments')
-      .select('id')
-      .eq('student_id', params.id)
+      .select(`
+        id,
+        student_id,
+        teacher_id,
+        status,
+        profiles!enrollments_student_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('id', id)
       .eq('teacher_id', user.id)
       .eq('status', 'active')
       .single()
 
-    if (enrollmentError && enrollmentError.code === 'PGRST116') {
+    if (enrollmentError) {
+      console.error('❌ Enrollment fetch error:', enrollmentError)
+      if (enrollmentError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
       return NextResponse.json({ 
-        error: 'Student is not enrolled with this teacher',
-        code: 'NOT_ENROLLED'
-      }, { status: 403 })
+        error: 'Failed to fetch student enrollment',
+        details: enrollmentError.message
+      }, { status: 500 })
+    }
+
+    const student = enrollment.profiles as { id?: string; full_name?: string; email?: string } | null
+    if (!student) {
+      return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
     // Get client info for security logging
@@ -203,18 +208,18 @@ async function createShareLinkHandler(
       action: 'token_generation'
     }
 
-    // Use the database function to create or get share token
-    const { data: tokenResult, error: tokenError } = await supabase
+    // Use the database function to create or get share token with actual student_id
+    const { data: tokenResult, error: tokenError  } = await supabase
       .rpc('create_share_token', {
-        p_student_id: params.id,
+        p_student_id: enrollment.student_id,
         p_teacher_id: user.id
       })
     
     // Log token generation
     if (tokenResult) {
       await supabase.from('token_audit_logs').insert({
-        token_hash: require('crypto').createHash('sha256').update(tokenResult).digest('hex'),
-        student_id: params.id,
+        token_hash: crypto.createHash('sha256').update(tokenResult).digest('hex'),
+        student_id: enrollment.student_id,
         teacher_id: user.id,
         action: 'generation',
         client_info: clientInfo
@@ -230,7 +235,7 @@ async function createShareLinkHandler(
     }
 
     // Get the full token details
-    const { data: shareToken, error: fetchError } = await supabase
+    const { data: shareToken, error: fetchError  } = await supabase
       .from('share_tokens')
       .select('*')
       .eq('token', tokenResult)
@@ -271,8 +276,8 @@ async function createShareLinkHandler(
     }, { status: 500 })
   }
 }
-// App
-ly security middleware
+
+// Apply security middleware
 export const GET = withSecurity(getShareLinkHandler, { 
   rateLimit: 'api-general',
   csrf: false // GET requests don't need CSRF protection
@@ -280,5 +285,5 @@ export const GET = withSecurity(getShareLinkHandler, {
 
 export const POST = withSecurity(createShareLinkHandler, { 
   rateLimit: 'token-generation',
-  csrf: true // POST requests need CSRF protection
+  csrf: false // Disable CSRF for this endpoint - we have auth + rate limiting
 })

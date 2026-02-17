@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react';
 import Header from '@/components/Header';
-import { getSupabaseClient } from '@/lib/supabase-dynamic'
+import { signInWithGoogle } from '@/lib/supabase'
 
 const ClassLoggerLanding = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -14,28 +14,7 @@ const ClassLoggerLanding = () => {
     try {
       console.log('🔄 Starting Google sign-in for role:', loginType);
       
-      // Get Supabase client dynamically to avoid build-time env var issues
-      const supabase = getSupabaseClient()
-      
-      if (!supabase) {
-        alert('Failed to initialize authentication. Please refresh and try again.');
-        return;
-      }
-      
-      // Get the current origin for redirect URL
-      const redirectUrl = `${window.location.origin}/auth/callback?role=${loginType}`;
-      console.log('🔗 Redirect URL:', redirectUrl);
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      });
+      const { error } = await signInWithGoogle(loginType);
       
       if (error) {
         console.error('❌ Google sign-in error:', error);

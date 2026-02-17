@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookieFromRequest } from '@/lib/cookies'
-import { verifyJWT, signJWT } from '@/lib/jwt'
+import { signJWT, verifyJWT } from '@/lib/jwt'
 
 // CORS helper for extension access
 function getCorsHeaders(request: NextRequest): Record<string, string> {

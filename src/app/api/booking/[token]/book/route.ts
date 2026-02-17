@@ -1,7 +1,7 @@
 // src/app/api/booking/[token]/book/route.ts
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -13,10 +13,11 @@ const BookingRequestSchema = z.object({
 // POST endpoint to book a slot via share token
 async function bookSlotHandler(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  context: unknown
 ) {
   try {
-    console.log('🔄 Student Booking API called for token:', params.token.substring(0, 8) + '...')
+    const { token } = await (context as { params: Promise<{ token: string }> }).params
+    console.log('🔄 Student Booking API called for token:', token.substring(0, 8) + '...')
     
     // Use service client for token validation and booking
     const supabase = await createServerSupabaseClient()
@@ -46,9 +47,9 @@ async function bookSlotHandler(
     }
 
     // Use enhanced token validation with security logging
-    const { data: tokenValidation, error: tokenError } = await supabase
+    const { data: tokenValidation, error: tokenError  } = await supabase
       .rpc('validate_share_token_secure', {
-        p_token: params.token,
+        p_token: token,
         p_client_info: clientInfo
       })
     
@@ -70,7 +71,7 @@ async function bookSlotHandler(
     const { student_id, teacher_id } = tokenValidation
     
     // Get the schedule slot to verify it belongs to the correct teacher
-    const { data: scheduleSlot, error: slotError } = await supabase
+    const { data: scheduleSlot, error: slotError  } = await supabase
       .from('schedule_slots')
       .select('*')
       .eq('id', schedule_slot_id)
@@ -112,7 +113,7 @@ async function bookSlotHandler(
     }
     
     // Get student's credit account
-    const { data: creditAccount, error: creditError } = await supabase
+    const { data: creditAccount, error: creditError  } = await supabase
       .from('credits')
       .select('*')
       .eq('student_id', student_id)
@@ -160,7 +161,7 @@ async function bookSlotHandler(
     }
     
     // Use the enhanced booking function
-    const { data: bookingResult, error: bookingError } = await supabase
+    const { data: bookingResult, error: bookingError  } = await supabase
       .rpc('book_slot_with_validation', {
         p_schedule_slot_id: schedule_slot_id,
         p_student_id: student_id,
@@ -191,8 +192,9 @@ async function bookSlotHandler(
     console.log('✅ Booking successful:', bookingResult.booking_id)
     
     // Log successful booking
+    const crypto = await import('crypto');
     await supabase.from('token_audit_logs').insert({
-      token_hash: require('crypto').createHash('sha256').update(params.token).digest('hex'),
+      token_hash: crypto.createHash('sha256').update(token).digest('hex'),
       student_id,
       teacher_id,
       action: 'booking_success',

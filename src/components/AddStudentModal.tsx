@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, AlertTriangle, Info, Mail, Link2, Clock, Users } from 'lucide-react'
+import { AlertTriangle, Check, Clock, Copy, Info, Link2, Mail, Users } from 'lucide-react'
 
 interface AddStudentModalProps {
   isOpen: boolean

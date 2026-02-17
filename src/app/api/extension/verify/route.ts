@@ -1,7 +1,7 @@
 // src/app/api/extension/verify/route.ts
 // Fixed version with simple CORS handling
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { verifyJWT } from '@/lib/jwt'
 import { getAuthCookieFromRequest } from '@/lib/cookies'
 

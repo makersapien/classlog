@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSupabaseClient } from '@/lib/supabase-dynamic'
+import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { NotificationCenter } from '@/components/NotificationCenter'
@@ -20,16 +20,26 @@ interface DashboardLayoutProps {
   user: User
 }
 
+// Create user context
+const UserContext = createContext<User | null>(null)
+
+// Hook to use user context
+export const useUser = () => {
+  const context = useContext(UserContext)
+  if (!context) {
+    throw new Error('useUser must be used within a DashboardLayout')
+  }
+  return context
+}
+
 export default function DashboardLayout({ children, user }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const router = useRouter()
 
   const handleSignOut = async () => {
-    // Get Supabase client dynamically to avoid build-time env var issues
-    const supabase = getSupabaseClient()
-    if (supabase) {
-      await supabase.auth.signOut()
-    }
+    // Use the working Supabase client
+    await supabase.auth.signOut()
     router.push('/')
   }
 
@@ -64,30 +74,31 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
           { icon: '📚', label: 'My Classes', href: '/dashboard/teacher/classes' },
           { icon: '👥', label: 'Students', href: '/dashboard/teacher/students' },
           { icon: '📝', label: 'Class Logs', href: '/dashboard/teacher/classes' },
-          { icon: '💰', label: 'Payments', href: '/dashboard/teacher/payments' },
-          { icon: '💬', label: 'Messages', href: '/dashboard/teacher/messages' },
-          { icon: '📊', label: 'Analytics', href: '/dashboard/teacher/analytics' }
+          { icon: '📅', label: 'Booking Management', href: '/dashboard/teacher/booking' },
+          { icon: '💰', label: 'Payments', href: '/dashboard/teacher/payments' }
         ]
       
       case 'parent':
         return [
           ...baseItems,
-          { icon: '👶', label: 'My Children', href: '/dashboard/parent/children' },
-          { icon: '📖', label: 'Class Logs', href: '/dashboard/parent/logs' },
-          { icon: '💳', label: 'Payments', href: '/dashboard/parent/payments' },
-          { icon: '📅', label: 'Schedule', href: '/dashboard/parent/schedule' },
-          { icon: '💬', label: 'Messages', href: '/dashboard/parent/messages' },
-          { icon: '📈', label: 'Progress', href: '/dashboard/parent/progress' }
+          // Most parent pages don't exist yet, keeping only the main dashboard
+          // { icon: '👶', label: 'My Children', href: '/dashboard/parent/children' },
+          // { icon: '📖', label: 'Class Logs', href: '/dashboard/parent/logs' },
+          // { icon: '💳', label: 'Payments', href: '/dashboard/parent/payments' },
+          // { icon: '📅', label: 'Schedule', href: '/dashboard/parent/schedule' },
+          // { icon: '💬', label: 'Messages', href: '/dashboard/parent/messages' },
+          // { icon: '📈', label: 'Progress', href: '/dashboard/parent/progress' }
         ]
       
       case 'student':
         return [
           ...baseItems,
-          { icon: '📚', label: 'My Classes', href: '/dashboard/student/classes' },
-          { icon: '📝', label: 'Assignments', href: '/dashboard/student/assignments' },
-          { icon: '📊', label: 'Progress', href: '/dashboard/student/progress' },
-          { icon: '📅', label: 'Schedule', href: '/dashboard/student/schedule' },
-          { icon: '💬', label: 'Messages', href: '/dashboard/student/messages' }
+          // Most student pages don't exist yet, keeping only the main dashboard
+          // { icon: '📚', label: 'My Classes', href: '/dashboard/student/classes' },
+          // { icon: '📝', label: 'Assignments', href: '/dashboard/student/assignments' },
+          // { icon: '📊', label: 'Progress', href: '/dashboard/student/progress' },
+          // { icon: '📅', label: 'Schedule', href: '/dashboard/student/schedule' },
+          // { icon: '💬', label: 'Messages', href: '/dashboard/student/messages' }
         ]
       
       default:
@@ -138,38 +149,60 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         {/* Sidebar */}
         <div className={`${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out lg:transition-none`}>
+        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 ${
+          isCollapsed ? 'w-16' : 'w-64'
+        } bg-white border-r border-gray-200 transition-all duration-200 ease-in-out`}>
           
           {/* Logo */}
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CL</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">CL</span>
+                </div>
+                {!isCollapsed && (
+                  <span className="text-xl font-bold text-gray-900">ClassLogger</span>
+                )}
               </div>
-              <span className="text-xl font-bold text-gray-900">ClassLogger</span>
+              {/* Desktop collapse button */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden lg:block p-1 rounded-md hover:bg-gray-100 transition-colors"
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <div className="w-4 h-4 flex items-center justify-center">
+                  {isCollapsed ? (
+                    <span className="text-gray-600">→</span>
+                  ) : (
+                    <span className="text-gray-600">←</span>
+                  )}
+                </div>
+              </button>
             </div>
           </div>
 
           {/* User Profile */}
           <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user.avatar_url} alt={user.name} />
                 <AvatarFallback className="bg-emerald-100 text-emerald-600">
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {user.name}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                    {getRoleEmoji(user.role)} {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                  </span>
-                  <NotificationCenter userId={user.id} userRole={user.role} />
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user.name}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                      {getRoleEmoji(user.role)} {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                    </span>
+                    <NotificationCenter userId={user.id} userRole={user.role} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -181,14 +214,19 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 <button
                   key={`${item.href}-${index}`}
                   onClick={() => router.push(item.href)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                  className={`w-full flex items-center ${
+                    isCollapsed ? 'justify-center px-2' : 'space-x-3 px-3'
+                  } py-2 rounded-lg text-left transition-colors ${
                     itemIsActive 
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
+                  title={isCollapsed ? item.label : undefined}
                 >
                   <span className="text-lg">{item.icon}</span>
-                  <span className="text-sm font-medium">{item.label}</span>
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">{item.label}</span>
+                  )}
                 </button>
               )
             })}
@@ -199,10 +237,11 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
             <Button
               onClick={handleSignOut}
               variant="outline"
-              className="w-full justify-start"
+              className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+              title={isCollapsed ? 'Sign Out' : undefined}
             >
-              <span className="mr-2">🚪</span>
-              Sign Out
+              <span className={isCollapsed ? '' : 'mr-2'}>🚪</span>
+              {!isCollapsed && 'Sign Out'}
             </Button>
           </div>
         </div>
@@ -218,7 +257,9 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         {/* Main Content */}
         <div className="flex-1 lg:pl-0">
           <main className="p-4 lg:p-6">
-            {children}
+            <UserContext.Provider value={user}>
+              {children}
+            </UserContext.Provider>
           </main>
         </div>
       </div>

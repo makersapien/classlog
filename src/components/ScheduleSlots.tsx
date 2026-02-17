@@ -1,13 +1,13 @@
 // src/components/ScheduleSlots.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Calendar, Clock, Plus, Check, X } from 'lucide-react'
+import { Calendar, Check, Clock, Plus, X } from 'lucide-react'
 
 interface ScheduleSlot {
   id: string

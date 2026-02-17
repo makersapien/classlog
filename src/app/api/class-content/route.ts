@@ -1,7 +1,7 @@
 // src/app/api/class-content/route.ts
 // SURGICAL FIX: Only minimal changes to remove 'any' types from your existing code
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Add this interface at the top for the contentData object
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     // RESTORED: Support for individual class content lookup (this was missing)
     if (classLogId) {
       // First try to get from class_content table (for enhanced class card)
-      const { data: classContent, error: contentError } = await supabase
+      const { data: classContent, error: contentError  } = await supabase
         .from('class_content')
         .select('*')
         .eq('class_log_id', classLogId)

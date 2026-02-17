@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { notificationService } from '@/lib/notification-service'
@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
       .from('bookings')
       .select(`
         id,
-        time_slot:time_slots(start_time)
+        start_time,
+        schedule_slot:schedule_slots(start_time)
       `)
       .eq('booking_date', todayStr)
       .eq('status', 'confirmed')
@@ -70,9 +71,16 @@ export async function POST(request: NextRequest) {
     if (error1h) {
       results.errors.push(`Failed to fetch 1h reminders: ${error1h.message}`)
     } else if (bookings1h) {
-      for (const booking of bookings1h) {
-        if (booking.time_slot?.start_time) {
-          const startHour = parseInt(booking.time_slot.start_time.split(':')[0])
+      const reminderBookings = bookings1h as Array<{
+        id: string
+        start_time?: string | null
+        schedule_slot?: { start_time?: string | null } | null
+      }>
+      for (const booking of reminderBookings) {
+        // Use booking start_time directly or from schedule_slot
+        const startTime = booking.start_time || booking.schedule_slot?.start_time
+        if (startTime) {
+          const startHour = parseInt(startTime.split(':')[0])
           
           // Send reminder if class starts in the next hour
           if (startHour === currentHour) {
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
     // Send weekly summaries (only on Sundays)
     const today = new Date()
     if (today.getDay() === 0) { // Sunday
-      const { data: teachers, error: teachersError } = await supabase
+      const { data: teachers, error: teachersError  } = await supabase
         .from('profiles')
         .select('id')
         .eq('role', 'teacher')

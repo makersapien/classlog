@@ -1,6 +1,6 @@
 // src/lib/token-security.ts
 import crypto from 'crypto'
-import { createSupabaseServiceClient } from './supabase-server'
+import { createServerSupabaseClient } from './supabase-server'
 
 // Token security configuration
 export const TOKEN_CONFIG = {
@@ -62,7 +62,7 @@ export interface TokenValidationResult {
 
 export async function validateShareTokenSecure(token: string): Promise<TokenValidationResult> {
   try {
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     // Input validation
     if (!token || typeof token !== 'string' || token.length !== 64) {
@@ -134,13 +134,20 @@ export async function validateShareTokenSecure(token: string): Promise<TokenVali
         needsRotation: true
       }
     }
+
+    const studentProfile = Array.isArray(tokenData.student)
+      ? tokenData.student[0]
+      : tokenData.student
+    const teacherProfile = Array.isArray(tokenData.teacher)
+      ? tokenData.teacher[0]
+      : tokenData.teacher
     
     return {
       isValid: true,
       studentId: tokenData.student_id,
       teacherId: tokenData.teacher_id,
-      studentName: tokenData.student?.full_name,
-      teacherName: tokenData.teacher?.full_name,
+      studentName: studentProfile?.full_name,
+      teacherName: teacherProfile?.full_name,
       accessCount: tokenData.access_count,
       lastAccessed: tokenData.last_accessed,
       expiresAt: tokenData.expires_at,
@@ -163,13 +170,27 @@ export async function updateTokenAccess(token: string, clientInfo?: {
   referer?: string
 }): Promise<void> {
   try {
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     // Update access count and timestamp
+    const { data: tokenRow, error: fetchError } = await supabase
+      .from('share_tokens')
+      .select('access_count')
+      .eq('token', token)
+      .eq('is_active', true)
+      .single()
+
+    if (fetchError || !tokenRow) {
+      console.error('Failed to fetch token access count:', fetchError)
+      return
+    }
+
+    const nextAccessCount = (tokenRow.access_count ?? 0) + 1
+
     const { error: updateError } = await supabase
       .from('share_tokens')
       .update({
-        access_count: supabase.raw('access_count + 1'),
+        access_count: nextAccessCount,
         last_accessed: new Date().toISOString()
       })
       .eq('token', token)
@@ -197,7 +218,7 @@ export async function logTokenAccess(
   }
 ): Promise<void> {
   try {
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     // Get token info for logging
     const { data: tokenData } = await supabase
@@ -231,8 +252,9 @@ export async function rotateShareToken(
   teacherId: string,
   reason: 'expiring' | 'compromised' | 'manual' = 'manual'
 ): Promise<{ success: boolean; newToken?: string; error?: string }> {
+  void reason
   try {
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     // Deactivate existing tokens
     const { error: deactivateError } = await supabase
@@ -251,7 +273,7 @@ export async function rotateShareToken(
     const expiresAt = new Date(Date.now() + (TOKEN_CONFIG.DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000))
     
     // Create new token
-    const { data: tokenData, error: createError } = await supabase
+    const { error: createError  } = await supabase
       .from('share_tokens')
       .insert({
         student_id: studentId,
@@ -269,7 +291,7 @@ export async function rotateShareToken(
     }
     
     // Log the rotation
-    await logTokenAccess(newToken, 'regeneration', { reason })
+    await logTokenAccess(newToken, 'regeneration', {})
     
     return { success: true, newToken }
   } catch (error) {
@@ -286,7 +308,7 @@ export function generateCSRFToken(): string {
 export function validateCSRFToken(token: string, sessionToken: string): boolean {
   try {
     // Simple CSRF validation - in production, you might want more sophisticated validation
-    return token && sessionToken && token.length === 43 // base64url encoded 32 bytes
+    return !!(token && sessionToken && token.length === 43) // base64url encoded 32 bytes
   } catch {
     return false
   }
@@ -308,10 +330,10 @@ export function checkRateLimit(
   maxRequests: number
 ): RateLimitResult {
   const now = Date.now()
-  const windowStart = now - windowMs
+  // const windowStart = now - windowMs
   
   // Clean up expired entries
-  for (const [k, v] of rateLimitStore.entries()) {
+  for (const [k, v] of Array.from(rateLimitStore.entries())) {
     if (v.resetTime < now) {
       rateLimitStore.delete(k)
     }

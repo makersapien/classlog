@@ -1,14 +1,15 @@
 // src/app/api/schedule-slots/[id]/book/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // POST endpoint to book a schedule slot
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔄 Book Schedule Slot API called for slot ID:', params.id)
+    const { id } = await context.params
+    console.log('🔄 Book Schedule Slot API called for slot ID:', id)
     
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
@@ -19,7 +20,7 @@ export async function POST(
     console.log('✅ User authenticated:', user.id)
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -38,7 +39,7 @@ export async function POST(
       return NextResponse.json({ error: 'Only students and parents can book schedule slots' }, { status: 403 })
     }
 
-    const slotId = params.id
+    const slotId = id
     const body = await request.json()
     const { student_id } = body
 
@@ -52,7 +53,7 @@ export async function POST(
     
     // If the user is a parent, verify that the student is their child
     if (profile.role === 'parent' && validStudentId) {
-      const { data: child, error: childError } = await supabase
+      const { data: child, error: childError  } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', validStudentId)
@@ -69,7 +70,7 @@ export async function POST(
     }
 
     // Get the slot
-    const { data: slot, error: slotError } = await supabase
+    const { data: slot, error: slotError  } = await supabase
       .from('schedule_slots')
       .select('*')
       .eq('id', slotId)
@@ -126,7 +127,7 @@ export async function POST(
     }
 
     // Get the student's credit account
-    const { data: creditAccount, error: creditError } = await supabase
+    const { data: creditAccount, error: creditError  } = await supabase
       .from('credits')
       .select('*')
       .eq('student_id', validStudentId)
@@ -138,7 +139,7 @@ export async function POST(
       console.error('❌ Credit account error:', creditError)
       
       // Check if there's an inactive account that could be reactivated
-      const { data: inactiveAccount, error: inactiveError } = await supabase
+      const { data: inactiveAccount, error: inactiveError  } = await supabase
         .from('credits')
         .select('*')
         .eq('student_id', validStudentId)
@@ -186,7 +187,7 @@ export async function POST(
     let bookingResult;
     
     try {
-      const { data: transaction, error: transactionError } = await supabase.rpc('book_schedule_slot', {
+      const { data: transaction, error: transactionError  } = await supabase.rpc('book_schedule_slot', {
         p_slot_id: slotId,
         p_student_id: validStudentId,
         p_credit_account_id: creditAccount.id

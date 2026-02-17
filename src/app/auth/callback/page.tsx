@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -15,66 +15,147 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log('🔄 Starting auth callback processing...')
         setStatus('Processing OAuth callback...')
-        
-        // Create Supabase client inside useEffect to avoid build-time env var issues
-        const supabase = createClientComponentClient()
         
         // Get role from URL params for redirect
         const role = searchParams.get('role')
+        console.log('👤 Role from URL:', role)
         
-        // The auth helpers automatically handle the code exchange
-        // We just need to wait for the session to be established
+        // Check if we have URL fragments (access_token, etc.)
+        const urlHash = window.location.hash
+        console.log('🔗 URL hash:', urlHash ? 'Present' : 'Not present')
+        
+        // First, try to get the current session
+        console.log('📋 Checking current session...')
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
+          console.error('❌ Session error:', sessionError)
           throw sessionError
         }
 
-        if (!session) {
-          // If no session yet, listen for auth state change
-          setStatus('Waiting for authentication to complete...')
-          
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-              subscription.unsubscribe()
-              await processAuthenticatedUser(supabase, session, role)
-            }
-          })
-          
+        if (session) {
+          console.log('✅ Session found immediately:', session.user.email)
+          await processAuthenticatedUser(session, role)
           return
         }
 
-        // If we already have a session, process it
-        await processAuthenticatedUser(supabase, session, role)
+        // If no session yet, wait for auth state change
+        console.log('⏳ No session found, waiting for auth state change...')
+        setStatus('Waiting for authentication to complete...')
+        
+        // Set up auth state listener with timeout
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('🔔 Auth state change:', event, session?.user?.email || 'No session')
+          
+          if (event === 'SIGNED_IN' && session) {
+            console.log('✅ Sign in detected, processing user...')
+            clearTimeout(timeoutId)
+            subscription.unsubscribe()
+            await processAuthenticatedUser(session, role)
+          } else if (event === 'TOKEN_REFRESHED' && session) {
+            console.log('🔄 Token refreshed, processing user...')
+            clearTimeout(timeoutId)
+            subscription.unsubscribe()
+            await processAuthenticatedUser(session, role)
+          }
+        })
+        
+        // Set timeout to prevent infinite waiting
+        const timeoutId = setTimeout(() => {
+          console.log('⏰ Auth callback timeout reached')
+          subscription.unsubscribe()
+          setError('Authentication timeout. Please try signing in again.')
+          setStatus('Authentication timeout')
+        }, 30000) // 30 second timeout
 
       } catch (error) {
-        console.error('Auth callback error:', error)
+        console.error('❌ Auth callback error:', error)
         setError(error instanceof Error ? error.message : 'Authentication failed')
         setStatus('Authentication failed')
       }
     }
 
     const processAuthenticatedUser = async (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase: any, 
       session: { user: { id: string; email?: string | null } }, 
       role: string | null
     ) => {
       try {
+        console.log('👤 Processing authenticated user:', session.user.email)
         setStatus('Getting user profile...')
         
         // Get user profile
-        const { data: profile, error: profileError } = await supabase
+        const { data: existingProfile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
 
-        if (profileError || !profile) {
-          throw new Error('Profile not found')
+        let profile = existingProfile
+
+        if (profileError) {
+          console.error('❌ Profile error:', profileError)
+          
+          // If profile doesn't exist, create it
+          if (profileError.code === 'PGRST116') {
+            console.log('📝 Creating new profile...')
+            setStatus('Creating user profile...')
+            
+            // Get user metadata from session
+            const userMetadata = (session.user as { user_metadata?: Record<string, unknown> }).user_metadata || {}
+            console.log('👤 User metadata:', userMetadata)
+            
+            const profileData = {
+              id: session.user.id,
+              email: session.user.email,
+              full_name: userMetadata.full_name || userMetadata.name || session.user.email?.split('@')[0] || 'User',
+              role: role || 'student'
+            }
+            
+            console.log('📝 Creating profile with data:', profileData)
+            
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert(profileData)
+              .select()
+              .single()
+            
+            if (createError) {
+              console.error('❌ Profile creation error:', createError)
+              console.error('❌ Profile creation details:', createError.details)
+              console.error('❌ Profile creation hint:', createError.hint)
+              
+              // Try to proceed anyway - the JWT API is now more flexible
+              console.log('⚠️ Profile creation failed, but proceeding with authentication...')
+              profile = {
+                id: session.user.id,
+                email: session.user.email,
+                full_name: profileData.full_name,
+                role: profileData.role
+              }
+            } else {
+              console.log('✅ Profile created successfully:', newProfile)
+              profile = newProfile
+            }
+          } else {
+            console.error('❌ Unexpected profile error:', profileError)
+            // Try to proceed anyway with basic user data
+            profile = {
+              id: session.user.id,
+              email: session.user.email,
+              full_name: session.user.email?.split('@')[0] || 'User',
+              role: role || 'student'
+            }
+            console.log('⚠️ Using fallback profile data:', profile)
+          }
         }
 
+        if (!profile) {
+          throw new Error('Profile not found and could not be created')
+        }
+
+        console.log('✅ Profile found/created:', profile.email, profile.role)
         setStatus('Creating authentication cookies...')
         
         // Validate required user data
@@ -99,20 +180,26 @@ function AuthCallbackContent() {
 
         if (!response.ok) {
           const errorText = await response.text()
+          console.error('❌ JWT creation failed:', errorText)
           throw new Error(`Failed to create cookies: ${errorText}`)
         }
 
+        console.log('✅ JWT cookies created successfully')
         setStatus('Authentication successful! Redirecting...')
         
-        // Redirect based on role
-        const redirectPath = role === 'teacher' ? '/dashboard' : '/student-dashboard'
+        // Redirect based on profile role (not URL role)
+        const redirectPath = profile.role === 'teacher' ? '/dashboard' : 
+                           profile.role === 'parent' ? '/dashboard/parent' : 
+                           '/student-dashboard'
+        
+        console.log('🔄 Redirecting to:', redirectPath)
         
         setTimeout(() => {
           router.push(redirectPath)
         }, 1000)
 
       } catch (error) {
-        console.error('Auth processing error:', error)
+        console.error('❌ Auth processing error:', error)
         setError(error instanceof Error ? error.message : 'Authentication processing failed')
         setStatus('Authentication failed')
       }

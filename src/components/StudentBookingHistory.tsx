@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { AlertCircle, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react'
 
 interface BookingHistoryItem {
   id: string
@@ -164,7 +164,7 @@ export default function StudentBookingHistory({ studentId, teacherId }: StudentB
           <div className="text-center text-gray-500 py-8">
             <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p className="text-lg font-medium">No bookings yet</p>
-            <p className="text-sm">This student hasn't made any bookings through the booking system.</p>
+            <p className="text-sm">This student hasn&apos;t made any bookings through the booking system.</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">

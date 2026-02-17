@@ -1,6 +1,6 @@
 // src/app/api/schedule-slots/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 
 // GET endpoint to fetch schedule slots
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ User authenticated:', user.id)
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -33,8 +33,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const teacherId = searchParams.get('teacher_id')
     const studentId = searchParams.get('student_id')
+    const weekStart = searchParams.get('week_start')
     
-    console.log('📝 Query parameters - Teacher ID:', teacherId, 'Student ID:', studentId)
+    console.log('📝 Query parameters - Teacher ID:', teacherId, 'Student ID:', studentId, 'Week Start:', weekStart)
     
     // Build the query based on the user role and parameters
     let query = supabase
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
         query = query.or(`booked_by.eq.${studentId},status.eq.available`)
       } else if (profile.role === 'parent') {
         // Parents can only view their children's slots
-        const { data: isChild, error: childCheckError } = await supabase
+        const { data: isChild, error: childCheckError  } = await supabase
           .from('profiles')
           .select('id')
           .eq('id', studentId)
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
       query = query.or(`booked_by.eq.${user.id},status.eq.available`)
     } else if (profile.role === 'parent') {
       // If the user is a parent, get their children
-      const { data: children, error: childrenError } = await supabase
+      const { data: children, error: childrenError  } = await supabase
         .from('profiles')
         .select('id')
         .eq('parent_id', user.id)
@@ -113,9 +114,21 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Only show slots from today onwards
-    const today = new Date().toISOString().split('T')[0]
-    query = query.gte('date', today)
+    // Filter by date range
+    if (weekStart) {
+      // If week_start is provided, show slots for that week (7 days)
+      const startDate = new Date(weekStart)
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + 6) // 7 days total
+      
+      query = query
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0])
+    } else {
+      // Only show slots from today onwards
+      const today = new Date().toISOString().split('T')[0]
+      query = query.gte('date', today)
+    }
     
     // Execute the query
     const { data: slots, error } = await query
@@ -150,7 +163,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ User authenticated:', user.id)
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)

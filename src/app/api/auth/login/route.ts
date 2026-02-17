@@ -2,7 +2,7 @@
 // This handles Google OAuth login for the Chrome extension
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 export async function POST(request: NextRequest) {
     // Initialize Supabase client inside function to avoid build-time env var issues
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists in our database and is a teacher
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('email', email)

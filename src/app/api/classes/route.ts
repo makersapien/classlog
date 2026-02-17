@@ -3,7 +3,7 @@
 
 import { TentativeSchedule } from '@/types/api'
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 interface StartClassRequest {
   teacher_id: string
@@ -284,7 +284,7 @@ export async function PUT(request: NextRequest) {
     if (finalTeacherId) {
       query = query.eq('teacher_id', finalTeacherId)
     }
-    const { data: classLog, error: fetchError } = await query.single()
+    const { data: classLog, error: fetchError  } = await query.single()
 
     if (fetchError || !classLog) {
       return NextResponse.json({ 
@@ -308,7 +308,7 @@ export async function PUT(request: NextRequest) {
 
     const updatedContent = content || `${classLog.content} - Duration: ${Math.floor(durationMinutes/60)}h ${durationMinutes%60}m`
 
-    const { data: updatedLog, error: updateError } = await supabase
+    const { data: updatedLog, error: updateError  } = await supabase
       .from('class_logs')
       .update({
         end_time: now.toISOString(),
@@ -327,11 +327,42 @@ export async function PUT(request: NextRequest) {
       throw new Error(`Failed to update class log: ${updateError.message}`)
     }
 
+    // Wait a moment for the trigger to process credit deduction
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Get updated class data with payment information
+    const { data: finalClassData, error: finalFetchError  } = await supabase
+      .from('class_logs')
+      .select('*')
+      .eq('id', class_log_id)
+      .single()
+
+    let creditDeductionInfo = null
+    let creditMessage = ''
+    if (!finalFetchError && finalClassData) {
+      creditDeductionInfo = {
+        credits_deducted: finalClassData.credits_deducted || 0,
+        payment_status: finalClassData.payment_status || 'unpaid',
+        is_paid: finalClassData.is_paid || false
+      }
+
+      // Prepare user-friendly credit deduction message
+      if (creditDeductionInfo.payment_status === 'paid') {
+        creditMessage = `✅ ${creditDeductionInfo.credits_deducted} credit hours deducted`
+      } else if (creditDeductionInfo.payment_status === 'partial') {
+        creditMessage = `⚠️ ${creditDeductionInfo.credits_deducted} credit hours deducted (partial payment)`
+      } else {
+        creditMessage = '❌ No credits available - marked as unpaid'
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Class ended successfully',
       duration_minutes: durationMinutes,
-      class_log: updatedLog
+      class_log: finalClassData || updatedLog,
+      credit_deduction: creditDeductionInfo,
+      credit_message: creditMessage
     })
 
   } catch (error) {

@@ -263,7 +263,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     console.log('📚 Fetching classes and enrollments...')
     
     // First check if there are any enrollments directly associated with the teacher
-    const { data: directEnrollments, error: enrollmentsError } = await supabase
+    const { data: directEnrollments, error: enrollmentsError  } = await supabase
       .from('enrollments')
       .select(`
         id,
@@ -358,7 +358,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     }
     
     // Now get regular classes with their enrollments
-    const { data: classes, error: classesError } = await supabase
+    const { data: classes, error: classesError  } = await supabase
       .from('classes')
       .select(`
         *,
@@ -419,7 +419,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     if (studentIds.size > 0) {
       console.log('💰 Fetching credit data for students:', Array.from(studentIds));
       
-      const { data: credits, error: creditsError } = await supabase
+      const { data: credits, error: creditsError  } = await supabase
         .from('credits')
         .select('*')
         .eq('teacher_id', teacherId)
@@ -457,7 +457,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     const today = new Date().toISOString().split('T')[0]
     console.log('📅 Fetching enhanced logs for date:', today)
     
-    const { data: enhancedLogs, error: logsError } = await supabase
+    const { data: enhancedLogs, error: logsError  } = await supabase
       .from('class_logs_enhanced')
       .select('*')
       .eq('teacher_id', teacherId)
@@ -469,7 +469,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
       console.log('🔄 Falling back to regular class_logs...')
       
       // Fallback to regular class_logs if enhanced view doesn't exist yet
-      const { data: regularLogs, error: regularLogsError } = await supabase
+      const { data: regularLogs, error: regularLogsError  } = await supabase
         .from('class_logs')
         .select(`
           *,
@@ -585,7 +585,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
     
     if (classIds.length > 0) {
       console.log('💰 Fetching payments for classes:', classIds.length)
-      const { data: paymentsData, error: paymentsError } = await supabase
+      const { data: paymentsData, error: paymentsError  } = await supabase
         .from('payments')
         .select('*')
         .in('class_id', classIds)
@@ -601,7 +601,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
 
     // Get recent messages with better error handling
     console.log('💬 Fetching messages...')
-    const { data: messages, error: messagesError } = await supabase
+    const { data: messages, error: messagesError  } = await supabase
       .from('messages')
       .select(`
         *,
@@ -674,7 +674,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
             // Create student object
             const student: StudentData = {
               id: studentId,
-              name: enrollment.profiles.full_name || 'Unknown Student',
+              name: enrollment.profiles?.full_name || 'Unknown Student',
               grade: cls.grade,
               subject: cls.subject || 'General',
               status: enrollment.status,
@@ -683,7 +683,7 @@ async function getTeacherDashboardData(supabase: SupabaseClient, teacherId: stri
               totalCredits: credit.total_purchased,
               attendanceRate: 90, // Default value
               performance: 'good', // Default value
-              parent_email: enrollment.profiles.email
+              parent_email: enrollment.profiles?.email || ''
             };
             
             // Add to map and array
@@ -732,7 +732,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
     console.log('🎓 Fetching student dashboard data for:', studentId)
 
     // Get student's enrollments with class details
-    const { data: enrollments, error: enrollmentsError } = await supabase
+    const { data: enrollments, error: enrollmentsError  } = await supabase
       .from('enrollments')
       .select(`
         *,
@@ -756,7 +756,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
     let recentLogs: ClassLogWithDetails[] = []
     
     if (classIds.length > 0) {
-      const { data: logsData, error: logsError } = await supabase
+      const { data: logsData, error: logsError  } = await supabase
         .from('class_logs')
         .select(`
           *,
@@ -774,7 +774,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
     }
 
     // Get student's payments
-    const { data: payments, error: paymentsError } = await supabase
+    const { data: payments, error: paymentsError  } = await supabase
       .from('payments')
       .select(`
         *,
@@ -790,7 +790,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
     const typedPayments = payments as Payment[] | null
 
     // Get student's attendance
-    const { data: attendance, error: attendanceError } = await supabase
+    const { data: attendance, error: attendanceError  } = await supabase
       .from('attendance')
       .select(`
         *,
@@ -810,7 +810,7 @@ async function getStudentDashboardData(supabase: SupabaseClient, studentId: stri
     const typedAttendance = attendance as AttendanceWithDetails[] | null
 
     // Get messages
-    const { data: messages, error: messagesError } = await supabase
+    const { data: messages, error: messagesError  } = await supabase
       .from('messages')
       .select(`
         *,
@@ -861,7 +861,7 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
     console.log('👨‍👩‍👧‍👦 Fetching parent dashboard data for:', parentId)
 
     // Get parent's children
-    const { data: children, error: childrenError } = await supabase
+    const { data: children, error: childrenError  } = await supabase
       .from('profiles')
       .select('*')
       .eq('parent_id', parentId)
@@ -886,7 +886,7 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
     const childIds = typedChildren.map((c) => c.id)
 
     // Get children's enrollments
-    const { data: enrollments, error: enrollmentsError } = await supabase
+    const { data: enrollments, error: enrollmentsError  } = await supabase
       .from('enrollments')
       .select(`
         *,
@@ -903,7 +903,7 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
     const typedEnrollments = enrollments as EnrollmentWithDetails[] | null
 
     // Get payments for children
-    const { data: payments, error: paymentsError } = await supabase
+    const { data: payments, error: paymentsError  } = await supabase
       .from('payments')
       .select(`
         *,
@@ -924,7 +924,7 @@ async function getParentDashboardData(supabase: SupabaseClient, parentId: string
     let recentLogs: ClassLogWithDetails[] = []
     
     if (classIds.length > 0) {
-      const { data: logsData, error: logsError } = await supabase
+      const { data: logsData, error: logsError  } = await supabase
         .from('class_logs')
         .select(`
           *,

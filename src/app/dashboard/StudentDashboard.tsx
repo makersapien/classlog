@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Calendar } from '@/components/ui/calendar'
-import { BookOpen, Users, Clock, Target, TrendingUp, Calendar as CalendarIcon, MessageSquare, FileText, Zap, Award, Trophy, Sparkles, Rocket, Gift, Bell, Heart, Brain, Lightbulb, Flame } from 'lucide-react'
+import { Award, Bell, BookOpen, Brain, Calendar as CalendarIcon, Clock, FileText, Flame, Gift, Heart, Lightbulb, MessageSquare, Rocket, Sparkles, Target, TrendingUp, Trophy, Users, Zap } from 'lucide-react'
 
 interface StudentDashboardProps {
   user: {

@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-10-20T11:17:44.754Z",
+  "summary": {
+    "total_tests": 15,
+    "passed": 5,
+    "failed": 8,
+    "warnings": 2
+  },
+  "details": {
+    "database": {
+      "Credits table exists": {
+        "status": "FAIL",
+        "details": "TypeError: fetch failed"
+      },
+      "Credit transactions table exists": {
+        "status": "FAIL",
+        "details": "TypeError: fetch failed"
+      },
+      "Class logs table exists": {
+        "status": "FAIL",
+        "details": "TypeError: fetch failed"
+      },
+      "Payments table exists": {
+        "status": "FAIL",
+        "details": "TypeError: fetch failed"
+      }
+    },
+    "functions": {
+      "check_credit_transaction_function exists": {
+        "status": "FAIL",
+        "details": "TypeError: fetch failed"
+      },
+      "book_schedule_slot function exists": {
+        "status": "WARN",
+        "details": "TypeError: fetch failed"
+      },
+      "Class completion trigger check": {
+        "status": "WARN",
+        "details": "Cannot verify trigger existence"
+      }
+    },
+    "apis": {
+      "Credits API accessible": {
+        "status": "FAIL",
+        "details": "Status: 401"
+      },
+      "Payments API accessible": {
+        "status": "PASS",
+        "details": "Returns 401 as expected (auth required)"
+      },
+      "Teacher students API accessible": {
+        "status": "PASS",
+        "details": "Returns 401 as expected (auth required)"
+      }
+    },
+    "workflows": {
+      "Credit purchase workflow": {
+        "status": "PASS",
+        "details": "Components exist (API + DB function)"
+      },
+      "Credit deduction workflow": {
+        "status": "PASS",
+        "details": "Components exist (trigger + DB function)"
+      },
+      "Schedule slot booking workflow": {
+        "status": "PASS",
+        "details": "Components exist (API + DB function)"
+      },
+      "Payment status tracking workflow": {
+        "status": "FAIL",
+        "details": "Missing class_logs payment fields"
+      },
+      "Payment reminder workflow": {
+        "status": "FAIL",
+        "details": "Depends on payment status tracking"
+      }
+    }
+  },
+  "recommendations": [
+    "Add missing payment tracking fields to class_logs table",
+    "Create database migration for payment status integration",
+    "Update TypeScript types to include new fields",
+    "Implement payment status sync workflows",
+    "Create comprehensive test suite with authentication"
+  ]
+}

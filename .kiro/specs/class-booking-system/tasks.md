@@ -156,7 +156,7 @@
   - Add preview and confirmation for bulk operations
   - _Requirements: 1.3, 1.4_
 
-- [ ] 9.2 Add booking conflict resolution
+- [x] 9.2 Add booking conflict resolution
   - Create conflict detection for overlapping slots
   - Add automatic conflict resolution suggestions
   - Implement booking queue for popular time slots

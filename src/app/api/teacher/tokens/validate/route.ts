@@ -2,7 +2,7 @@
 // Validate extension token and return teacher info
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createHash } from 'crypto'
 
 // Moved Supabase client creation inside functions to avoid build-time env var issues
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const tokenHash = createHash('sha256').update(token).digest('hex')
 
     // Look up token in database
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError  } = await supabase
       .from('extension_tokens')
       .select(`
         id,

@@ -1,7 +1,7 @@
 // src/app/api/payments/route.ts
 import { createClient } from '@supabase/supabase-js'
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Import your existing database types
@@ -55,7 +55,7 @@ export async function GET() {
     console.log('Fetching profile for user:', user.id);
 
     // Get user profile - cast result to handle missing UPI fields
-    const { data: rawProfile, error: profileError } = await supabase
+    const { data: rawProfile, error: profileError  } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -98,7 +98,7 @@ export async function GET() {
         console.log('Fetching payments for teacher...');
 
         // For teachers, get their manual payment records (simplified)
-        const { data: rawPayments, error: paymentsError } = await supabase
+        const { data: rawPayments, error: paymentsError  } = await supabase
           .from('payments')
           .select('*')
           .order('created_at', { ascending: false })
@@ -133,7 +133,7 @@ export async function GET() {
         console.log('Fetching payments for parent...');
 
         // For parents, get payments for their children
-        const { data: children, error: childrenError } = await supabase
+        const { data: children, error: childrenError  } = await supabase
           .from('profiles')
           .select('id')
           .eq('parent_id', user.id)
@@ -143,7 +143,7 @@ export async function GET() {
           const childIds = children.map(child => child.id);
 
           // For parents, get their children's payment records
-          const { data: rawPayments, error: paymentsError } = await supabase
+          const { data: rawPayments, error: paymentsError  } = await supabase
             .from('payments')
             .select('*')
             .in('student_id', childIds)
@@ -309,7 +309,7 @@ async function createPaymentRecord(
       student_id_length: studentId.length,
     });
 
-    const { data: payment, error: paymentError } = await adminSupabase
+    const { data: payment, error: paymentError  } = await adminSupabase
       .from('payments')
       .insert(paymentRecord)
       .select()
@@ -413,7 +413,7 @@ async function handleAwardCredits(
     console.log('No student_id provided, looking up parent by email:', parent_email);
 
     // Find parent by email
-    const { data: parent, error: parentError } = await supabase
+    const { data: parent, error: parentError  } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', parent_email)
@@ -429,7 +429,7 @@ async function handleAwardCredits(
     }
 
     // Get parent's children (students)
-    const { data: children, error: childrenError } = await supabase
+    const { data: children, error: childrenError  } = await supabase
       .from('profiles')
       .select('id')
       .eq('parent_id', parent.id)

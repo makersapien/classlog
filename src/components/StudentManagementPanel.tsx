@@ -1,12 +1,11 @@
 // src/components/StudentManagementPanel.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { 
@@ -17,25 +16,35 @@ import {
   EyeOff,
   RefreshCw,
   BarChart3,
-  Calendar,
-  Clock,
+  
+  
   User,
   ExternalLink
 } from 'lucide-react'
 
 interface StudentManagementPanelProps {
-  students: StudentInfo[]
+  students: Student[]
   teacherId: string
   onStudentUpdate: () => void
 }
 
-interface StudentInfo {
+interface Student {
   id: string
-  name: string
-  email?: string
-  theme: string
-  grade?: string
-  subject?: string
+  student_id: string
+  student_name: string
+  parent_name: string
+  parent_email: string
+  subject: string
+  year_group: string
+  classes_per_week: number
+  classes_per_recharge: number
+  tentative_schedule: string | { note: string } | null
+  whatsapp_group_url: string | null
+  google_meet_url: string | null
+  setup_completed: boolean
+  enrollment_date: string
+  status: string
+  class_name: string
 }
 
 interface ShareLinkData {
@@ -74,10 +83,10 @@ const studentThemes = {
 
 export default function StudentManagementPanel({ 
   students, 
-  teacherId, 
   onStudentUpdate 
 }: StudentManagementPanelProps) {
-  const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null)
+  void onStudentUpdate
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [showShareLinkModal, setShowShareLinkModal] = useState(false)
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false)
   const [shareLinkData, setShareLinkData] = useState<ShareLinkData | null>(null)
@@ -87,9 +96,22 @@ export default function StudentManagementPanel({
 
   const { toast } = useToast()
 
-  // Get student theme
-  const getStudentTheme = (theme: string) => {
-    return studentThemes[theme as keyof typeof studentThemes] || studentThemes.blue
+  // Generate consistent theme based on student data
+  const getStudentTheme = (student: Student) => {
+    // Create a consistent hash from student name and subject
+    const hashString = `${student.student_name}-${student.subject}`.toLowerCase()
+    let hash = 0
+    for (let i = 0; i < hashString.length; i++) {
+      const char = hashString.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    
+    // Get theme based on hash
+    const themeKeys = Object.keys(studentThemes)
+    const themeIndex = Math.abs(hash) % themeKeys.length
+    const themeName = themeKeys[themeIndex]
+    return studentThemes[themeName as keyof typeof studentThemes]
   }
 
   // Toggle student blur
@@ -107,7 +129,13 @@ export default function StudentManagementPanel({
   const fetchShareLinkData = async (studentId: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/teacher/students/${studentId}/share-link`)
+      const response = await fetch(`/api/teacher/students/${studentId}/share-link`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
       
       if (response.ok) {
         const data = await response.json()
@@ -136,7 +164,13 @@ export default function StudentManagementPanel({
         ? `/api/teacher/students/${studentId}/regenerate-token`
         : `/api/teacher/students/${studentId}/share-link`
       
-      const response = await fetch(endpoint, { method: 'POST' })
+      const response = await fetch(endpoint, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
       
       if (response.ok) {
         const data = await response.json()
@@ -244,14 +278,14 @@ Your Teacher`)
   }
 
   // Handle share link modal
-  const handleShareLinkClick = async (student: StudentInfo) => {
+  const handleShareLinkClick = async (student: Student) => {
     setSelectedStudent(student)
     setShowShareLinkModal(true)
     await fetchShareLinkData(student.id)
   }
 
   // Handle analytics modal
-  const handleAnalyticsClick = async (student?: StudentInfo) => {
+  const handleAnalyticsClick = async (student?: Student) => {
     setSelectedStudent(student || null)
     setShowAnalyticsModal(true)
     await fetchAnalytics(student?.id)
@@ -292,31 +326,35 @@ Your Teacher`)
           <CardContent className="p-8 text-center">
             <User className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No students yet</h3>
-            <p className="text-gray-600">Students will appear here once they're enrolled in your classes.</p>
+            <p className="text-gray-600">Students will appear here once they&apos;re enrolled in your classes.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {students.map(student => {
-            const theme = getStudentTheme(student.theme)
+            const theme = getStudentTheme(student)
             const isBlurred = blurredStudents.has(student.id)
             
             return (
-              <Card key={student.id} className={`border-l-4 ${theme.border} ${theme.bg}`}>
+              <Card key={student.id} className={`border-l-4 ${theme.border} ${theme.bg} hover:shadow-md transition-shadow`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className={`${isBlurred ? 'blur-sm' : ''}`}>
                       <h4 className={`font-semibold ${theme.text}`}>
-                        {student.name}
+                        {student.student_name}
                       </h4>
-                      {student.grade && (
-                        <p className="text-sm text-gray-600">{student.grade}</p>
-                      )}
-                      {student.subject && (
-                        <p className="text-xs text-gray-500">{student.subject}</p>
+                      <p className="text-sm text-gray-600">{student.year_group}</p>
+                      <p className="text-xs text-gray-500">{student.subject}</p>
+                      <p className="text-xs text-gray-400">{student.class_name}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className={`w-3 h-3 rounded-full ${theme.badge}`}></div>
+                      {student.setup_completed ? (
+                        <span className="text-xs text-green-600 font-medium">✓ Setup</span>
+                      ) : (
+                        <span className="text-xs text-orange-600 font-medium">⚠ Pending</span>
                       )}
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${theme.badge}`}></div>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -349,9 +387,14 @@ Your Teacher`)
                         <BarChart3 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {student.theme}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {student.classes_per_week}/week
+                      </Badge>
+                      <span className="text-xs text-gray-500" title={student.parent_email}>
+                        {student.parent_name}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -366,10 +409,10 @@ Your Teacher`)
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Link className="h-5 w-5 text-indigo-600" />
-              Booking Link for {selectedStudent?.name}
+              Booking Link for {selectedStudent?.student_name}
             </DialogTitle>
             <DialogDescription>
-              Share this link with {selectedStudent?.name} to allow them to book their own class slots.
+              Share this link with {selectedStudent?.student_name} to allow them to book their own class slots.
             </DialogDescription>
           </DialogHeader>
 
@@ -401,8 +444,8 @@ Your Teacher`)
                   <Button
                     onClick={() => shareLinkData.share_url && emailShareLink(
                       shareLinkData.share_url, 
-                      selectedStudent?.name || '', 
-                      selectedStudent?.email
+                      selectedStudent?.student_name || '', 
+                      selectedStudent?.parent_email
                     )}
                     variant="outline"
                     className="flex-1"
@@ -480,7 +523,7 @@ Your Teacher`)
                 <Link className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                 <h4 className="font-medium text-gray-900 mb-2">No booking link yet</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  Create a booking link for {selectedStudent?.name} to allow them to book classes.
+                  Create a booking link for {selectedStudent?.student_name} to allow them to book classes.
                 </p>
                 <Button
                   onClick={() => selectedStudent && generateShareLink(selectedStudent.id)}
@@ -520,11 +563,11 @@ Your Teacher`)
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-indigo-600" />
-              {selectedStudent ? `Analytics for ${selectedStudent.name}` : 'Booking Analytics'}
+              {selectedStudent ? `Analytics for ${selectedStudent.student_name}` : 'Booking Analytics'}
             </DialogTitle>
             <DialogDescription>
               {selectedStudent 
-                ? `Booking and link usage statistics for ${selectedStudent.name}`
+                ? `Booking and link usage statistics for ${selectedStudent.student_name}`
                 : 'Overall booking and link usage statistics for all students'
               }
             </DialogDescription>

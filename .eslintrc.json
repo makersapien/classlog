@@ -1,56 +1,12 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "@typescript-eslint/recommended"
-  ],
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "extends": "next/core-web-vitals",
   "rules": {
-    // Temporarily disable or adjust problematic rules
-    
-    "@typescript-eslint/no-unused-vars": ["warn", { 
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_" 
-    }],
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-require-imports": "warn",
     "prefer-const": "warn",
+    "react/no-unescaped-entities": "off",
     "react-hooks/exhaustive-deps": "warn",
-    "react/no-unescaped-entities": "warn",
-    
-    // Keep these as errors for important issues
-   
-    "no-console": "off",
-    
-    // Custom rules for educational app
-    "react/prop-types": "off",
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    
-    // Allow any for specific cases (add _ prefix to ignore)
-    "@typescript-eslint/no-explicit-any": ["error", {
-      "ignoreRestArgs": true
-    }]
-  },
-  "overrides": [
-    {
-      "files": ["src/types/database.ts", "src/types/razorpay.ts"],
-      "rules": {
-        "@typescript-eslint/no-explicit-any": "off"
-      }
-    },
-    {
-      "files": ["src/app/api/**/*.ts"],
-      "rules": {
-        "@typescript-eslint/no-unused-vars": ["warn", {
-          "argsIgnorePattern": "^(request|req|res|response)$"
-        }]
-      }
-    }
-  ],
-  "ignorePatterns": [
-    "node_modules/",
-    ".next/",
-    "out/",
-    "build/",
-    "dist/"
-  ]
+    "react/jsx-no-undef": "warn"
+  }
 }

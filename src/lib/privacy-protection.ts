@@ -9,11 +9,36 @@ export interface PrivacyFilterOptions {
   includeContactInfo?: boolean
 }
 
+type CalendarSlot = {
+  id?: string
+  date?: string
+  start_time?: string
+  end_time?: string
+  duration_minutes?: number
+  subject?: string | null
+  status?: string | null
+  booked_by?: string | null
+  student_name?: string | null
+  student_details?: unknown
+  notes?: string | null
+}
+
+type CalendarSlotView = CalendarSlot & {
+  is_my_booking?: boolean
+}
+
+type ClientInfo = {
+  userAgent?: string | null
+  ipAddress?: string | null
+  referer?: string | null
+  timestamp?: string | null
+}
+
 // Data filtering for student portal calendar view
 export function filterCalendarDataForStudent(
-  slots: any[], 
+  slots: CalendarSlot[],
   studentId: string
-): any[] {
+): CalendarSlotView[] {
   return slots.map(slot => {
     // If this is the student's own booking, show full details
     if (slot.booked_by === studentId) {
@@ -60,10 +85,10 @@ export function filterCalendarDataForStudent(
 // GDPR compliance features
 export interface GDPRDataExport {
   personal_data: {
-    profile: any
-    bookings: any[]
-    share_tokens: any[]
-    audit_logs: any[]
+    profile: unknown
+    bookings: unknown[]
+    share_tokens: unknown[]
+    audit_logs: unknown[]
   }
   metadata: {
     export_date: string
@@ -271,15 +296,17 @@ export async function updateTeacherPrivacySettings(
 }
 
 // Data anonymization utilities
-export function anonymizeClientInfo(clientInfo: any): any {
+export function anonymizeClientInfo(clientInfo: unknown): ClientInfo | null {
   if (!clientInfo) return null
-  
+
+  const info = clientInfo as ClientInfo
   return {
-    userAgent: clientInfo.userAgent ? 'anonymized' : null,
-    ipAddress: clientInfo.ipAddress ? 
-      clientInfo.ipAddress.split('.').slice(0, 2).join('.') + '.xxx.xxx' : null,
-    referer: clientInfo.referer ? 'anonymized' : null,
-    timestamp: clientInfo.timestamp || new Date().toISOString()
+    userAgent: info.userAgent ? 'anonymized' : null,
+    ipAddress: info.ipAddress
+      ? info.ipAddress.split('.').slice(0, 2).join('.') + '.xxx.xxx'
+      : null,
+    referer: info.referer ? 'anonymized' : null,
+    timestamp: info.timestamp || new Date().toISOString()
   }
 }
 
@@ -315,23 +342,27 @@ export function validateDataAccess(
 }
 
 // Data masking for different user roles
-export function maskSensitiveData(data: any, viewerRole: string, isOwner: boolean): any {
+export function maskSensitiveData(data: unknown, viewerRole: string, isOwner: boolean): unknown {
   if (isOwner || viewerRole === 'admin') {
     return data // Full access
   }
+
+  if (!data || typeof data !== 'object') {
+    return data
+  }
   
   // Mask sensitive fields for non-owners
-  const masked = { ...data }
+  const masked = { ...(data as Record<string, unknown>) }
   
-  if (masked.email) {
+  if (typeof masked.email === 'string') {
     masked.email = masked.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
   }
   
-  if (masked.phone) {
+  if (typeof masked.phone === 'string') {
     masked.phone = masked.phone.replace(/(.{3})(.*)(.{2})/, '$1***$3')
   }
   
-  if (masked.address) {
+  if (typeof masked.address === 'string') {
     masked.address = 'Address hidden for privacy'
   }
   

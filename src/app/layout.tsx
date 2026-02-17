@@ -1,5 +1,7 @@
+import React from 'react'
 import type { Metadata } from "next";
 import Header from '@/components/Header';
+import DevBanner from '@/components/DevBanner';
 import ExtensionBridge from './extension-bridge';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -41,12 +43,10 @@ export default function RootLayout({
         style={{
           fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
         }}
+        suppressHydrationWarning={true}
       >
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-yellow-100 border-b border-yellow-300 p-2 text-center text-sm">
-            🧪 JWT Test Mode - Visit <a href="/test-jwt" className="underline">/test-jwt</a> to check authentication
-          </div>
-        )}
+
+        <DevBanner />
         <Header />
         <ExtensionBridge />
         <SpeedInsights />

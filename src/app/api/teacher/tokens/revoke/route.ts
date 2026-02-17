@@ -2,7 +2,7 @@
 // Revoke extension token for teacher
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // Moved Supabase client creation inside functions to avoid build-time env var issues
 

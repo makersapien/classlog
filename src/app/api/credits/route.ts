@@ -1,5 +1,5 @@
 // src/app/api/credits/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { Database } from '@/types/database'
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Verifying credit transaction function')
       try {
         // Check if the function exists using our helper function
-        const { data: checkResult, error: checkError } = await supabase.rpc('check_credit_transaction_function')
+        const { data: checkResult, error: checkError  } = await supabase.rpc('check_credit_transaction_function')
         
         if (checkError) {
           console.error('❌ Function check error:', checkError)
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       creditAccounts = data || []
     } else if (profile.role === 'parent') {
       // For parents, get credit accounts for their children
-      const { data: children, error: childrenError } = await supabase
+      const { data: children, error: childrenError  } = await supabase
         .from('profiles')
         .select('id')
         .eq('parent_id', user.id)
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
     
     if (studentId) {
       // Get credit account for specific student
-      const { data: studentAccount, error: accountError } = await supabase
+      const { data: studentAccount, error: accountError  } = await supabase
         .from('credits')
         .select('id')
         .eq('student_id', studentId)
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ User authenticated:', user.id)
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
       
       try {
         // Check if the function exists using our helper function
-        const { data: checkResult, error: checkError } = await supabase.rpc('pg_get_function_result', {
+        const { data: checkResult, error: checkError  } = await supabase.rpc('pg_get_function_result', {
           function_name: 'manage_credit_transaction'
         })
         
@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Validation passed. Action:', action, 'Student ID:', studentId, 'Hours:', hours)
 
     // Verify the student exists before proceeding
-    const { data: studentExists, error: studentError } = await supabase
+    const { data: studentExists, error: studentError  } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', studentId)
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Student verified:', studentId);
     
     // Get credit account for the student
-    const { data: creditAccount, error: accountError } = await supabase
+    const { data: creditAccount, error: accountError  } = await supabase
       .from('credits')
       .select('*')
       .eq('student_id', studentId)
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
         console.log('🔄 Creating new credit account for student:', studentId)
         
         // Check if there's an inactive account we can reactivate
-        const { data: inactiveAccount, error: inactiveError } = await supabase
+        const { data: inactiveAccount, error: inactiveError  } = await supabase
           .from('credits')
           .select('*')
           .eq('student_id', studentId)
@@ -368,7 +368,7 @@ export async function POST(request: NextRequest) {
           console.log('🔄 Reactivating existing credit account:', inactiveAccount.id);
           
           // Reactivate the account
-          const { data: updatedAccount, error: updateError } = await supabase
+          const { data: updatedAccount, error: updateError  } = await supabase
             .from('credits')
             .update({
               is_active: true,
@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Create a new account if no inactive account exists
-        const { data: newAccount, error: createError } = await supabase
+        const { data: newAccount, error: createError  } = await supabase
           .from('credits')
           .insert({
             student_id: studentId,
@@ -566,7 +566,7 @@ async function handleCreditTransaction(
 
     // Check if the function exists by querying available functions
     try {
-      const { data: functions, error: funcError } = await supabase
+      const { data: functions, error: funcError  } = await supabase
         .rpc('pg_get_function_result', { 
           function_name: 'manage_credit_transaction'
         });

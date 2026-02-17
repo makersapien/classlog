@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, Clock, AlertTriangle, CheckCircle, X } from 'lucide-react'
+import { AlertTriangle, Calendar,   X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface RecurringSlot {
@@ -26,7 +26,7 @@ interface ConflictInfo {
   type: string
   day_of_week: string
   time_range: string
-  conflicting_slots: any[]
+  conflicting_slots: unknown[]
 }
 
 interface PreviewData {
@@ -42,7 +42,7 @@ interface RecurringSlotModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  existingSlot?: any
+  existingSlot?: Partial<RecurringSlot> & { id?: string; duration_minutes?: number }
   mode: 'create' | 'edit' | 'delete'
 }
 
@@ -90,9 +90,9 @@ export default function RecurringSlotModal({
   useEffect(() => {
     if (existingSlot && mode === 'edit') {
       setSlots([{
-        day_of_week: existingSlot.day_of_week,
-        start_time: existingSlot.start_time,
-        end_time: existingSlot.end_time,
+        day_of_week: existingSlot.day_of_week || 'Monday',
+        start_time: existingSlot.start_time || '09:00',
+        end_time: existingSlot.end_time || '10:00',
         subject: existingSlot.subject || '',
         duration_minutes: existingSlot.duration_minutes || 60
       }])
@@ -113,7 +113,7 @@ export default function RecurringSlotModal({
     setSlots(slots.filter((_, i) => i !== index))
   }
 
-  const updateSlot = (index: number, field: keyof RecurringSlot, value: any) => {
+  const updateSlot = (index: number, field: keyof RecurringSlot, value: unknown) => {
     const updatedSlots = [...slots]
     updatedSlots[index] = { ...updatedSlots[index], [field]: value }
     
@@ -413,7 +413,7 @@ export default function RecurringSlotModal({
                         <Checkbox
                           id="create-time-slots"
                           checked={createTimeSlots}
-                          onCheckedChange={setCreateTimeSlots}
+                          onCheckedChange={(checked) => setCreateTimeSlots(checked === true)}
                         />
                         <Label htmlFor="create-time-slots">Create time slot templates</Label>
                       </div>
@@ -421,7 +421,7 @@ export default function RecurringSlotModal({
                         <Checkbox
                           id="create-schedule-slots"
                           checked={createScheduleSlots}
-                          onCheckedChange={setCreateScheduleSlots}
+                          onCheckedChange={(checked) => setCreateScheduleSlots(checked === true)}
                         />
                         <Label htmlFor="create-schedule-slots">Create schedule slots</Label>
                       </div>

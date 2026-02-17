@@ -1,7 +1,7 @@
 // src/app/api/privacy/settings/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema for privacy settings
@@ -22,6 +22,7 @@ async function getPrivacySettingsHandler(
 ) {
   try {
     console.log('🔄 Get Privacy Settings API called')
+    void request
     
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
@@ -30,7 +31,7 @@ async function getPrivacySettingsHandler(
     }
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -47,7 +48,7 @@ async function getPrivacySettingsHandler(
     }
     
     // Get privacy settings
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings, error: settingsError  } = await supabase
       .from('teacher_privacy_settings')
       .select('*')
       .eq('teacher_id', user.id)
@@ -121,7 +122,7 @@ async function updatePrivacySettingsHandler(
     const settings = validationResult.data
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -138,7 +139,7 @@ async function updatePrivacySettingsHandler(
     }
     
     // Update privacy settings
-    const { data: updatedSettings, error: updateError } = await supabase
+    const { data: updatedSettings, error: updateError  } = await supabase
       .from('teacher_privacy_settings')
       .upsert({
         teacher_id: user.id,

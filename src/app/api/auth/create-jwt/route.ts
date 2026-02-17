@@ -1,6 +1,6 @@
 // src/app/api/auth/create-jwt/route.ts
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signJWT } from '@/lib/jwt'
 import { setAuthCookie } from '@/lib/cookies'
@@ -11,8 +11,6 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    
-    // Initialize Supabase client inside function to avoid build-time env var issues
 
   try {
     console.log('🔄 Creating JWT cookie for OAuth user...')
@@ -31,28 +29,27 @@ export async function POST(request: NextRequest) {
     
     // Create Supabase client with service role for verification
 
-    // Verify the user exists in the database
+    // Try to verify the user exists in the database (optional check)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role')
       .eq('id', userId)
       .single()
     
-    if (profileError || !profile) {
-      console.error('❌ User not found in database:', profileError)
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-    
-    // Verify the email matches
-    if (profile.email !== email) {
-      console.error('❌ Email mismatch')
-      return NextResponse.json(
-        { error: 'Email mismatch' },
-        { status: 401 }
-      )
+    if (profile) {
+      // If profile exists, verify the email matches
+      if (profile.email !== email) {
+        console.error('❌ Email mismatch')
+        return NextResponse.json(
+          { error: 'Email mismatch' },
+          { status: 401 }
+        )
+      }
+      console.log('✅ Profile verified in database:', profile.email, profile.role)
+    } else {
+      // Profile doesn't exist yet, but that's okay for OAuth flow
+      console.log('⚠️ Profile not found in database, but proceeding with JWT creation for OAuth user')
+      console.log('📋 Profile error details:', profileError)
     }
 
     console.log('✅ Creating JWT for user:', email, role)

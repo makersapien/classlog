@@ -1,7 +1,7 @@
 // src/app/api/booking/session/match/route.ts
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { verifyJWT } from '@/lib/jwt'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     
     // Get teacher info from Bearer token
     let teacher_id: string | null = null
-    let teacherInfo: { userId: string; email: string; name: string; role: string } | null = null
 
     const authHeader = request.headers.get('authorization')
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
 
       if (decoded && (decoded.type === 'extension' || decoded.type === 'web')) {
         teacher_id = decoded.userId
-        teacherInfo = decoded
+        // teacherInfo = decoded // Unused variable
         console.log('✅ Authenticated teacher:', decoded.email)
       } else {
         console.error('❌ Invalid authentication token')
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient()
     
     // Verify the booking belongs to this teacher
-    const { data: booking, error: bookingError } = await supabase
+    const {  error: bookingError  } = await supabase
       .from('bookings')
       .select('*')
       .eq('id', booking_id)
@@ -81,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Use the database function to check for class match
-    const { data: matchResult, error: matchError } = await supabase
+    const { data: matchResult, error: matchError  } = await supabase
       .rpc('check_booking_class_match', {
         p_booking_id: booking_id
       })

@@ -1,13 +1,13 @@
 // src/components/AvailabilityModal.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useEffect, useState } from 'react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+// import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { 
@@ -25,6 +25,12 @@ interface AvailabilityModalProps {
   onOpenChange: (open: boolean) => void
   teacherId: string
   onAvailabilityUpdated: () => void
+  prefilledData?: {
+    selectedDays: string[]
+    startTime: string
+    endTime: string
+    dragSelection?: string[]
+  } | null
 }
 
 interface TimeSlot {
@@ -58,8 +64,9 @@ const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
 export default function AvailabilityModal({ 
   open, 
   onOpenChange, 
-  teacherId, 
-  onAvailabilityUpdated 
+   
+  onAvailabilityUpdated,
+  prefilledData 
 }: AvailabilityModalProps) {
   const [activeTab, setActiveTab] = useState<'single' | 'recurring'>('single')
   const [loading, setLoading] = useState(false)
@@ -82,6 +89,49 @@ export default function AvailabilityModal({
   const [startDate, setStartDate] = useState('')
   
   const { toast } = useToast()
+
+  // Handle prefilled data from drag selection
+  useEffect(() => {
+    if (prefilledData && open) {
+      if (prefilledData.selectedDays.length === 1) {
+        // Single day selection - use single slot tab
+        setActiveTab('single')
+        setSingleSlot(prev => ({
+          ...prev,
+          day_of_week: prefilledData.selectedDays[0],
+          start_time: prefilledData.startTime,
+          end_time: prefilledData.endTime,
+          duration_minutes: calculateDurationMinutes(prefilledData.startTime, prefilledData.endTime)
+        }))
+      } else {
+        // Multiple days - use recurring slots
+        setActiveTab('recurring')
+        const newRecurringSlots = prefilledData.selectedDays.map(day => ({
+          day_of_week: day,
+          start_time: prefilledData.startTime,
+          end_time: prefilledData.endTime,
+          subject: '',
+          duration_minutes: calculateDurationMinutes(prefilledData.startTime, prefilledData.endTime)
+        }))
+        setRecurringSlots(newRecurringSlots)
+      }
+      
+      toast({
+        title: "Drag Selection Applied",
+        description: `Pre-filled availability for ${prefilledData.selectedDays.length} day(s) from ${prefilledData.startTime} to ${prefilledData.endTime}`,
+        duration: 3000,
+      })
+    }
+  }, [prefilledData, open, toast])
+
+  // Helper function to calculate duration for prefilled data
+  const calculateDurationMinutes = (startTime: string, endTime: string) => {
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const [endHour, endMin] = endTime.split(':').map(Number)
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
+    return endMinutes - startMinutes
+  }
 
   // Load existing time slots
   useEffect(() => {
@@ -530,7 +580,7 @@ export default function AvailabilityModal({
                   <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
                     <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p>No recurring slots added yet</p>
-                    <p className="text-sm">Click "Add Slot" to create your first recurring time slot</p>
+                    <p className="text-sm">Click &quot;Add Slot&quot; to create your first recurring time slot</p>
                   </div>
                 ) : (
                   <div className="space-y-3">

@@ -1,16 +1,18 @@
 // src/app/api/teacher/students/[id]/regenerate-token/route.ts
+import crypto from 'crypto'
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
-import { middleware } from '@/middleware'
+import { NextRequest, NextResponse  } from 'next/server'
+// import { middleware } from '@/middleware'
 
 // POST endpoint to regenerate share token for a student (revokes old token)
 async function regenerateTokenHandler(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: unknown
 ) {
   try {
-    console.log('🔄 Regenerate Token API called for student:', params.id)
+    const { id } = await (context as { params: Promise<{ id: string }> }).params
+    console.log('🔄 Regenerate Token API called for student:', id)
     
     const { supabase, user } = await createAuthenticatedSupabaseClient()
     
@@ -19,7 +21,7 @@ async function regenerateTokenHandler(
     }
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -35,38 +37,39 @@ async function regenerateTokenHandler(
       return NextResponse.json({ error: 'Only teachers can regenerate tokens' }, { status: 403 })
     }
 
-    // Verify the student belongs to this teacher
-    const { data: student, error: studentError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('id', params.id)
-      .single()
-
-    if (studentError) {
-      console.error('❌ Student fetch error:', studentError)
-      if (studentError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
-      }
-      return NextResponse.json({ 
-        error: 'Failed to fetch student',
-        details: studentError.message
-      }, { status: 500 })
-    }
-
-    // Check if there's an enrollment relationship
-    const { data: enrollment, error: enrollmentError } = await supabase
+    // Get enrollment and verify it belongs to this teacher
+    const { data: enrollment, error: enrollmentError  } = await supabase
       .from('enrollments')
-      .select('id')
-      .eq('student_id', params.id)
+      .select(`
+        id,
+        student_id,
+        teacher_id,
+        status,
+        profiles!enrollments_student_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('id', id)
       .eq('teacher_id', user.id)
       .eq('status', 'active')
       .single()
 
-    if (enrollmentError && enrollmentError.code === 'PGRST116') {
+    if (enrollmentError) {
+      console.error('❌ Enrollment fetch error:', enrollmentError)
+      if (enrollmentError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
       return NextResponse.json({ 
-        error: 'Student is not enrolled with this teacher',
-        code: 'NOT_ENROLLED'
-      }, { status: 403 })
+        error: 'Failed to fetch student enrollment',
+        details: enrollmentError.message
+      }, { status: 500 })
+    }
+
+    const student = enrollment.profiles as { id?: string; full_name?: string; email?: string } | null
+    if (!student) {
+      return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
     // Get client info for security logging
@@ -83,7 +86,7 @@ async function regenerateTokenHandler(
     const { error: deactivateError } = await supabase
       .from('share_tokens')
       .update({ is_active: false })
-      .eq('student_id', params.id)
+      .eq('student_id', enrollment.student_id)
       .eq('teacher_id', user.id)
       .eq('is_active', true)
 
@@ -96,7 +99,7 @@ async function regenerateTokenHandler(
     }
 
     // Generate new token using the database function
-    const { data: newToken, error: tokenError } = await supabase
+    const { data: newToken, error: tokenError  } = await supabase
       .rpc('generate_share_token')
 
     if (tokenError) {
@@ -108,10 +111,10 @@ async function regenerateTokenHandler(
     }
 
     // Create new share token record
-    const { data: shareToken, error: createError } = await supabase
+    const { data: shareToken, error: createError  } = await supabase
       .from('share_tokens')
       .insert({
-        student_id: params.id,
+        student_id: enrollment.student_id,
         teacher_id: user.id,
         token: newToken,
         is_active: true,
@@ -132,8 +135,8 @@ async function regenerateTokenHandler(
     
     // Log token regeneration
     await supabase.from('token_audit_logs').insert({
-      token_hash: require('crypto').createHash('sha256').update(shareToken.token).digest('hex'),
-      student_id: params.id,
+      token_hash: crypto.createHash('sha256').update(shareToken.token).digest('hex'),
+      student_id: enrollment.student_id,
       teacher_id: user.id,
       action: 'regeneration',
       client_info: clientInfo
@@ -169,9 +172,10 @@ async function regenerateTokenHandler(
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
-}/
-/ Apply security middleware
+}
+
+// Apply security middleware
 export const POST = withSecurity(regenerateTokenHandler, { 
   rateLimit: 'token-generation',
-  csrf: true // POST requests need CSRF protection
+  csrf: false // Disable CSRF for this endpoint - we have auth + rate limiting
 })

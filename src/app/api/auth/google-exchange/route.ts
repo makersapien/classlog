@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     console.log('👤 User authenticated:', userData.email)
 
     // Check if user exists in our database and is a teacher
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('email', userData.email)

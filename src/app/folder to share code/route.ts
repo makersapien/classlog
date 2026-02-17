@@ -3,7 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { createOptionsResponse, addCorsHeaders } from '@/lib/cors'
+import { addCorsHeaders, createOptionsResponse } from '@/lib/cors'
 import { verifyJWT } from '@/lib/jwt'
 
 // Handle preflight OPTIONS requests
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     
     if (enrollment_id) {
       console.log('🔍 Looking up enrollment by ID:', enrollment_id)
-      const { data: enrollmentData, error: enrollmentError } = await supabase
+      const { data: enrollmentData, error: enrollmentError  } = await supabase
         .from('enrollments')
         .select('*')
         .eq('id', enrollment_id)
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (!enrollment) {
       console.log('🔍 Looking up enrollment by teacher and Google Meet URL')
-      const { data: enrollmentByTeacher, error: teacherError } = await supabase
+      const { data: enrollmentByTeacher, error: teacherError  } = await supabase
         .from('enrollments')
         .select('*')
         .eq('teacher_id', teacher_id)
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         console.log('⚠️ No enrollment found by teacher and URL, trying partial URL match...')
         
         // Try partial URL matching in case of URL variations
-        const { data: enrollmentsByTeacher, error: partialError } = await supabase
+        const { data: enrollmentsByTeacher, error: partialError  } = await supabase
           .from('enrollments')
           .select('*')
           .eq('teacher_id', teacher_id)
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Check for existing ACTIVE class for this enrollment
     console.log('🔍 Checking for existing active class...')
-    const { data: existingClass, error: checkError } = await supabase
+    const { data: existingClass, error: checkError  } = await supabase
       .from('class_logs')
       .select('*')
       .eq('enrollment_id', enrollment.id)
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
     
-    const { data: classLog, error: insertError } = await supabase
+    const { data: classLog, error: insertError  } = await supabase
       .from('class_logs')
       .insert({
         enrollment_id: enrollment.id,

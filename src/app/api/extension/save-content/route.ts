@@ -2,7 +2,7 @@
 // Saves class content to your class_content table (4 fields: overview, topics, files, details)
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 export async function POST(request: NextRequest) {
     // Initialize Supabase client inside function to avoid build-time env var issues
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the class exists and belongs to this teacher
-    const { data: classLog, error: classError } = await supabase
+    const { data: classLog, error: classError  } = await supabase
       .from('class_logs')
       .select('id, teacher_id, enrollment_id, status')
       .eq('id', class_log_id)

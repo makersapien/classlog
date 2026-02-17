@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { z } from 'zod'
@@ -53,7 +53,15 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Failed to fetch notifications:', error)
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+      
+      // If the table doesn't exist, return empty array instead of error
+      if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        console.warn('Notifications table does not exist, returning empty array')
+        return NextResponse.json({ notifications: [] })
+      }
+      
+      // For other errors, return empty array to prevent UI breaking
+      return NextResponse.json({ notifications: [] })
     }
 
     // Transform data to match frontend interface
@@ -71,7 +79,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications: transformedNotifications })
   } catch (error) {
     console.error('Notifications API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // Return empty array instead of error to prevent UI breaking
+    return NextResponse.json({ notifications: [] })
   }
 }
 

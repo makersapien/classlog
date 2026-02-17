@@ -1,4 +1,9 @@
-import { Booking, TimeSlot, StudentProfile, TeacherProfile } from '@/types/database'
+import { Database } from '@/types/database'
+
+type Booking = Database['public']['Tables']['bookings']['Row']
+type TimeSlot = Database['public']['Tables']['time_slots']['Row']
+type StudentProfile = Database['public']['Tables']['profiles']['Row']
+type TeacherProfile = Database['public']['Tables']['profiles']['Row']
 
 export interface EmailTemplate {
   subject: string
@@ -85,6 +90,10 @@ export function createEmailService(): EmailService {
 export class EmailTemplates {
   static bookingConfirmation(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
+    const studentSubject =
+      (student as { subject?: string | null }).subject ?? 'General'
     const bookingDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -130,13 +139,13 @@ export class EmailTemplates {
               <h1>🎉 Class Booking Confirmed!</h1>
             </div>
             <div class="content">
-              <p>Hi ${student.name},</p>
+              <p>Hi ${studentName},</p>
               <p>Your class booking has been confirmed! Here are the details:</p>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Teacher:</span>
-                  <span class="detail-value">${teacher.name}</span>
+                  <span class="detail-value">${teacherName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Date:</span>
@@ -148,7 +157,7 @@ export class EmailTemplates {
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Subject:</span>
-                  <span class="detail-value">${student.subject || 'General'}</span>
+                  <span class="detail-value">${studentSubject}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Booking ID:</span>
@@ -176,14 +185,14 @@ export class EmailTemplates {
     const text = `
 Class Booking Confirmed!
 
-Hi ${student.name},
+Hi ${studentName},
 
 Your class booking has been confirmed! Here are the details:
 
-Teacher: ${teacher.name}
+Teacher: ${teacherName}
 Date: ${bookingDate}
 Time: ${startTime} - ${endTime}
-Subject: ${student.subject || 'General'}
+Subject: ${studentSubject}
 Booking ID: ${booking.id}
 
 Important Notes:
@@ -200,6 +209,8 @@ If you have any questions, please contact your teacher directly.
 
   static bookingCancellation(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
     const bookingDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -239,13 +250,13 @@ If you have any questions, please contact your teacher directly.
               <h1>❌ Class Booking Cancelled</h1>
             </div>
             <div class="content">
-              <p>Hi ${student.name},</p>
+              <p>Hi ${studentName},</p>
               <p>Your class booking has been cancelled. Here are the details:</p>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Teacher:</span>
-                  <span class="detail-value">${teacher.name}</span>
+                  <span class="detail-value">${teacherName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Date:</span>
@@ -276,11 +287,11 @@ If you have any questions, please contact your teacher directly.
     const text = `
 Class Booking Cancelled
 
-Hi ${student.name},
+Hi ${studentName},
 
 Your class booking has been cancelled. Here are the details:
 
-Teacher: ${teacher.name}
+Teacher: ${teacherName}
 Date: ${bookingDate}
 Time: ${startTime}
 Cancelled At: ${new Date(booking.cancelled_at!).toLocaleString()}
@@ -296,6 +307,10 @@ If you have any questions, please contact your teacher directly.
 
   static classReminder24h(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
+    const studentSubject =
+      (student as { subject?: string | null }).subject ?? 'General'
     const bookingDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -308,7 +323,7 @@ If you have any questions, please contact your teacher directly.
       hour12: true
     })
 
-    const subject = `Class Reminder: Tomorrow at ${startTime} with ${teacher.name}`
+    const subject = `Class Reminder: Tomorrow at ${startTime} with ${teacherName}`
     
     const html = `
       <!DOCTYPE html>
@@ -335,13 +350,13 @@ If you have any questions, please contact your teacher directly.
               <h1>⏰ Class Reminder - 24 Hours</h1>
             </div>
             <div class="content">
-              <p>Hi ${student.name},</p>
+              <p>Hi ${studentName},</p>
               <p>This is a friendly reminder that you have a class scheduled for tomorrow:</p>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Teacher:</span>
-                  <span class="detail-value">${teacher.name}</span>
+                  <span class="detail-value">${teacherName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Date:</span>
@@ -353,7 +368,7 @@ If you have any questions, please contact your teacher directly.
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Subject:</span>
-                  <span class="detail-value">${student.subject || 'General'}</span>
+                  <span class="detail-value">${studentSubject}</span>
                 </div>
               </div>
 
@@ -378,14 +393,14 @@ If you have any questions, please contact your teacher directly.
     const text = `
 Class Reminder - 24 Hours
 
-Hi ${student.name},
+Hi ${studentName},
 
 This is a friendly reminder that you have a class scheduled for tomorrow:
 
-Teacher: ${teacher.name}
+Teacher: ${teacherName}
 Date: ${bookingDate}
 Time: ${startTime}
-Subject: ${student.subject || 'General'}
+Subject: ${studentSubject}
 
 Preparation Tips:
 - Prepare any materials or questions you want to discuss
@@ -402,13 +417,18 @@ Looking forward to seeing you in class!
 
   static classReminder1h(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
+    const studentSubject =
+      (student as { subject?: string | null }).subject ?? 'General'
+    void booking
     const startTime = new Date(`2000-01-01T${timeSlot.start_time}`).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     })
 
-    const subject = `Class Starting Soon: ${startTime} with ${teacher.name}`
+    const subject = `Class Starting Soon: ${startTime} with ${teacherName}`
     
     const html = `
       <!DOCTYPE html>
@@ -436,16 +456,16 @@ Looking forward to seeing you in class!
               <h1>🚀 Class Starting in 1 Hour!</h1>
             </div>
             <div class="content">
-              <p>Hi ${student.name},</p>
+              <p>Hi ${studentName},</p>
               
               <div class="urgent">
-                <strong>Your class with ${teacher.name} starts in 1 hour at ${startTime}!</strong>
+                <strong>Your class with ${teacherName} starts in 1 hour at ${startTime}!</strong>
               </div>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Teacher:</span>
-                  <span class="detail-value">${teacher.name}</span>
+                  <span class="detail-value">${teacherName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Time:</span>
@@ -453,7 +473,7 @@ Looking forward to seeing you in class!
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Subject:</span>
-                  <span class="detail-value">${student.subject || 'General'}</span>
+                  <span class="detail-value">${studentSubject}</span>
                 </div>
               </div>
 
@@ -478,13 +498,13 @@ Looking forward to seeing you in class!
     const text = `
 Class Starting in 1 Hour!
 
-Hi ${student.name},
+Hi ${studentName},
 
-Your class with ${teacher.name} starts in 1 hour at ${startTime}!
+Your class with ${teacherName} starts in 1 hour at ${startTime}!
 
-Teacher: ${teacher.name}
+Teacher: ${teacherName}
 Time: ${startTime}
-Subject: ${student.subject || 'General'}
+Subject: ${studentSubject}
 
 Final Checklist:
 ✅ Materials ready
@@ -501,6 +521,10 @@ This is an automated reminder from ClassLogger.
 
   static teacherBookingNotification(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
+    const studentSubject =
+      (student as { subject?: string | null }).subject ?? 'General'
     const bookingDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -518,7 +542,7 @@ This is an automated reminder from ClassLogger.
       hour12: true
     })
 
-    const subject = `New Booking: ${student.name} - ${bookingDate} at ${startTime}`
+    const subject = `New Booking: ${studentName} - ${bookingDate} at ${startTime}`
     
     const html = `
       <!DOCTYPE html>
@@ -546,13 +570,13 @@ This is an automated reminder from ClassLogger.
               <h1>📅 New Class Booking</h1>
             </div>
             <div class="content">
-              <p>Hi ${teacher.name},</p>
-              <p>You have a new class booking from ${student.name}:</p>
+              <p>Hi ${teacherName},</p>
+              <p>You have a new class booking from ${studentName}:</p>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Student:</span>
-                  <span class="detail-value">${student.name}</span>
+                  <span class="detail-value">${studentName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Grade:</span>
@@ -560,7 +584,7 @@ This is an automated reminder from ClassLogger.
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Subject:</span>
-                  <span class="detail-value">${student.subject || 'General'}</span>
+                  <span class="detail-value">${studentSubject}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Date:</span>
@@ -591,13 +615,13 @@ This is an automated reminder from ClassLogger.
     const text = `
 New Class Booking
 
-Hi ${teacher.name},
+Hi ${teacherName},
 
-You have a new class booking from ${student.name}:
+You have a new class booking from ${studentName}:
 
-Student: ${student.name}
+Student: ${studentName}
 Grade: ${student.grade || 'Not specified'}
-Subject: ${student.subject || 'General'}
+Subject: ${studentSubject}
 Date: ${bookingDate}
 Time: ${startTime} - ${endTime}
 Booked At: ${new Date(booking.booked_at).toLocaleString()}
@@ -613,6 +637,8 @@ Manage your bookings at classlogger.com
 
   static teacherCancellationNotification(data: EmailNotificationData): EmailTemplate {
     const { booking, student, teacher, timeSlot } = data
+    const studentName = student.full_name ?? student.email
+    const teacherName = teacher.full_name ?? teacher.email
     const bookingDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -625,7 +651,7 @@ Manage your bookings at classlogger.com
       hour12: true
     })
 
-    const subject = `Booking Cancelled: ${student.name} - ${bookingDate} at ${startTime}`
+    const subject = `Booking Cancelled: ${studentName} - ${bookingDate} at ${startTime}`
     
     const html = `
       <!DOCTYPE html>
@@ -652,13 +678,13 @@ Manage your bookings at classlogger.com
               <h1>❌ Booking Cancelled</h1>
             </div>
             <div class="content">
-              <p>Hi ${teacher.name},</p>
-              <p>${student.name} has cancelled their class booking:</p>
+              <p>Hi ${teacherName},</p>
+              <p>${studentName} has cancelled their class booking:</p>
               
               <div class="booking-details">
                 <div class="detail-row">
                   <span class="detail-label">Student:</span>
-                  <span class="detail-value">${student.name}</span>
+                  <span class="detail-value">${studentName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Date:</span>
@@ -689,11 +715,11 @@ Manage your bookings at classlogger.com
     const text = `
 Booking Cancelled
 
-Hi ${teacher.name},
+Hi ${teacherName},
 
-${student.name} has cancelled their class booking:
+${studentName} has cancelled their class booking:
 
-Student: ${student.name}
+Student: ${studentName}
 Date: ${bookingDate}
 Time: ${startTime}
 Cancelled At: ${new Date(booking.cancelled_at!).toLocaleString()}

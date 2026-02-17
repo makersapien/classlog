@@ -1,8 +1,8 @@
 // src/components/ConflictResolutionModal.tsx
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import React, { useState } from 'react'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertTriangle, CheckCircle, Clock, Calendar, Lightbulb } from 'lucide-react'
+import { AlertTriangle, Calendar,  Clock, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConflictInfo {
@@ -20,9 +20,29 @@ interface ConflictInfo {
     end_time: string
     date?: string
   }
-  time_slot_conflicts: any[]
-  schedule_slot_conflicts: any[]
-  blocked_slot_conflicts: any[]
+  time_slot_conflicts: Array<{
+    id: string
+    day_of_week?: string
+    start_time?: string
+    end_time?: string
+    subject?: string
+  }>
+  schedule_slot_conflicts: Array<{
+    id?: string
+    date?: string
+    start_time?: string
+    end_time?: string
+    status?: string
+    subject?: string
+  }>
+  blocked_slot_conflicts: Array<{
+    id?: string
+    date?: string
+    day_of_week?: string
+    start_time?: string
+    end_time?: string
+    reason?: string
+  }>
 }
 
 interface ResolutionSuggestion {
@@ -36,7 +56,7 @@ interface ConflictResolutionModalProps {
   onClose: () => void
   onResolved: () => void
   conflicts: ConflictInfo[]
-  proposedSlots: any[]
+  proposedSlots: unknown[]
 }
 
 const RESOLUTION_STRATEGIES = [
@@ -66,6 +86,7 @@ export default function ConflictResolutionModal({
   conflicts,
   proposedSlots
 }: ConflictResolutionModalProps) {
+  void proposedSlots
   const [activeTab, setActiveTab] = useState('conflicts')
   const [resolutionStrategy, setResolutionStrategy] = useState('suggest_alternatives')
   const [adjustmentPreferences, setAdjustmentPreferences] = useState({
@@ -88,14 +109,14 @@ export default function ConflictResolutionModal({
     return 'low'
   }
 
-  const getConflictTypeLabel = (type: string) => {
-    switch (type) {
-      case 'time_slot_conflicts': return 'Time Slot Template'
-      case 'schedule_slot_conflicts': return 'Scheduled Class'
-      case 'blocked_slot_conflicts': return 'Blocked Period'
-      default: return type
-    }
-  }
+  // const getConflictTypeLabel = (type: string) => {
+  //   switch (type) {
+  //     case 'time_slot_conflicts': return 'Time Slot Template'
+  //     case 'schedule_slot_conflicts': return 'Scheduled Class'
+  //     case 'blocked_slot_conflicts': return 'Blocked Period'
+  //     default: return type
+  //   }
+  // }
 
   const getSuggestions = async () => {
     if (resolutionStrategy !== 'suggest_alternatives') return
@@ -129,9 +150,13 @@ export default function ConflictResolutionModal({
 
       // Process suggestions
       const newSuggestions: Record<string, ResolutionSuggestion[]> = {}
-      data.resolutions.forEach((resolution: any, index: number) => {
-        const conflictKey = `${conflicts[index]?.slot.day_of_week}-${conflicts[index]?.slot.start_time}`
-        newSuggestions[conflictKey] = resolution.suggestions.map((suggestion: string) => ({
+      data.resolutions.forEach((resolution: unknown, index: number) => {
+        void index
+        const conflictKey = conflicts[index]
+          ? `${conflicts[index].slot.day_of_week}-${conflicts[index].slot.start_time}`
+          : `conflict-${index}`
+        const resolutionData = resolution as { suggestions: string[] }
+        newSuggestions[conflictKey] = resolutionData.suggestions.map((suggestion: string) => ({
           time_range: suggestion,
           reason: 'Available time slot found',
           confidence: 'high' as const
@@ -219,7 +244,7 @@ export default function ConflictResolutionModal({
             <div className="space-y-4">
               {conflicts.map((conflict, index) => {
                 const severity = getConflictSeverity(conflict)
-                const conflictKey = `${conflict.slot.day_of_week}-${conflict.slot.start_time}`
+                // const conflictKey = `${conflict.slot.day_of_week}-${conflict.slot.start_time}`
                 
                 return (
                   <Card key={index} className={`border-l-4 ${
@@ -445,7 +470,7 @@ export default function ConflictResolutionModal({
               <div className="text-center py-8">
                 <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  Click "Get Suggestions" in the Resolution Strategy tab to see alternative times.
+                  Click &quot;Get Suggestions&quot; in the Resolution Strategy tab to see alternative times.
                 </p>
               </div>
             )}

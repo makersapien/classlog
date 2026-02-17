@@ -2,15 +2,16 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
 import { filterCalendarDataForStudent } from '@/lib/privacy-protection'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // GET endpoint to fetch privacy-filtered calendar for student
 async function calendarHandler(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  context: unknown
 ) {
   try {
-    console.log('🔄 Student Calendar API called for token:', params.token.substring(0, 8) + '...')
+    const { token } = await (context as { params: Promise<{ token: string }> }).params
+    console.log('🔄 Student Calendar API called for token:', token.substring(0, 8) + '...')
     
     // Use service client for token validation (bypasses RLS)
     const supabase = await createServerSupabaseClient()
@@ -45,9 +46,9 @@ async function calendarHandler(
     }
     
     // Use enhanced token validation with security logging
-    const { data: calendarData, error: calendarError } = await supabase
+    const { data: calendarData, error: calendarError  } = await supabase
       .rpc('validate_share_token_secure', {
-        p_token: params.token,
+        p_token: token,
         p_client_info: clientInfo
       })
     
@@ -67,9 +68,9 @@ async function calendarHandler(
     }
     
     // Get calendar data using the original function
-    const { data: studentCalendar, error: studentCalendarError } = await supabase
+    const { data: studentCalendar, error: studentCalendarError  } = await supabase
       .rpc('get_student_calendar', {
-        p_share_token: params.token,
+        p_share_token: token,
         p_week_start: startDate.toISOString().split('T')[0]
       })
     

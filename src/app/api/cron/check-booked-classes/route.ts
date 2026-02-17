@@ -1,6 +1,6 @@
 // src/app/api/cron/match-bookings/route.ts
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // This endpoint should be called by a cron job every hour
 // to match completed bookings with actual class sessions
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     )
     
     // Call the database function to match bookings with classes
-    const { data: matchResult, error: matchError } = await supabase
+    const { data: matchResult, error: matchError  } = await supabase
       .rpc('match_bookings_with_classes')
     
     if (matchError) {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Matched bookings with classes:', matchResult)
     
     // Call the function to process no-shows
-    const { data: noShowResult, error: noShowError } = await supabase
+    const { data: noShowResult, error: noShowError  } = await supabase
       .rpc('process_booking_no_shows')
     
     if (noShowError) {

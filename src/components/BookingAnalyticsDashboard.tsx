@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, Users, TrendingUp, CheckCircle, XCircle, AlertCircle, BarChart3 } from 'lucide-react'
+import { AlertCircle, BarChart3, Calendar, CheckCircle, Clock, TrendingUp, Users, XCircle } from 'lucide-react'
 
 interface BookingAnalytics {
   period: {
@@ -380,7 +380,7 @@ export default function BookingAnalyticsDashboard({ teacherId }: BookingAnalytic
               {analytics.time_slot_popularity.length === 0 ? (
                 <p className="text-center text-gray-500 py-4">No time slot data available</p>
               ) : (
-                analytics.time_slot_popularity.map((slot, index) => (
+                analytics.time_slot_popularity.map((slot) => (
                   <div key={`${slot.time_slot}-${slot.day_of_week}`} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <div className="font-medium">{formatTime(slot.time_slot)}</div>

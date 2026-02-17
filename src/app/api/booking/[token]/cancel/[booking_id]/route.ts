@@ -1,6 +1,6 @@
 // src/app/api/booking/[token]/cancel/[booking_id]/route.ts
-import { createSupabaseServiceClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -11,13 +11,14 @@ const CancellationRequestSchema = z.object({
 // DELETE endpoint to cancel a booking via share token
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { token: string; booking_id: string } }
+  context: { params: Promise<{ token: string; booking_id: string }> }
 ) {
   try {
-    console.log('🔄 Student Cancellation API called for token:', params.token.substring(0, 8) + '...', 'booking:', params.booking_id)
+    const { token, booking_id } = await context.params
+    console.log('🔄 Student Cancellation API called for token:', token.substring(0, 8) + '...', 'booking:', booking_id)
     
     // Use service client for token validation and cancellation
-    const supabase = createSupabaseServiceClient()
+    const supabase = await createServerSupabaseClient()
     
     const body = await request.json().catch(() => ({}))
     console.log('📝 Cancellation request:', JSON.stringify(body))
@@ -34,8 +35,8 @@ export async function DELETE(
     const { reason } = validationResult.data
 
     // Validate share token and get student/teacher info
-    const { data: tokenValidation, error: tokenError } = await supabase
-      .rpc('validate_share_token', { p_token: params.token })
+    const { data: tokenValidation, error: tokenError  } = await supabase
+      .rpc('validate_share_token', { p_token: token })
     
     if (tokenError) {
       console.error('❌ Token validation error:', tokenError)
@@ -55,10 +56,10 @@ export async function DELETE(
     const { student_id, teacher_id } = tokenValidation[0]
     
     // Verify the booking belongs to this student and teacher
-    const { data: booking, error: bookingError } = await supabase
+    const {  error: bookingError  } = await supabase
       .from('bookings')
       .select('*')
-      .eq('id', params.booking_id)
+      .eq('id', booking_id)
       .eq('student_id', student_id)
       .eq('teacher_id', teacher_id)
       .single()
@@ -78,9 +79,9 @@ export async function DELETE(
     }
     
     // Use the database function to cancel the booking
-    const { data: cancellationResult, error: cancellationError } = await supabase
+    const { data: cancellationResult, error: cancellationError  } = await supabase
       .rpc('cancel_booking', {
-        p_booking_id: params.booking_id,
+        p_booking_id: booking_id,
         p_student_id: student_id,
         p_reason: reason,
         p_refund_credits: true
@@ -106,12 +107,12 @@ export async function DELETE(
       }, { status: statusCode })
     }
     
-    console.log('✅ Cancellation successful:', params.booking_id)
+    console.log('✅ Cancellation successful:', booking_id)
     
     // Send email notifications
     try {
       const { sendBookingCancellationEmail } = await import('@/lib/notification-service')
-      await sendBookingCancellationEmail(params.booking_id)
+      await sendBookingCancellationEmail(booking_id)
       console.log('📧 Booking cancellation emails sent')
     } catch (emailError) {
       console.error('⚠️ Failed to send booking cancellation emails:', emailError)
@@ -122,7 +123,7 @@ export async function DELETE(
       success: true,
       message: 'Class booking cancelled successfully',
       cancellation: {
-        booking_id: params.booking_id,
+        booking_id,
         cancelled_at: cancellationResult.cancelled_at,
         credits_refunded: cancellationResult.credits_refunded,
         reason: reason

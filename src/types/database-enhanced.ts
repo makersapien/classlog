@@ -163,6 +163,10 @@ export interface ClassLog {
   detected_automatically: boolean | null
   student_name: string | null
   student_email: string | null
+  student_id: string | null
+  credits_deducted?: number | null
+  is_paid?: boolean | null
+  payment_status?: 'paid' | 'partial' | 'unpaid' | null
   created_at: string
   updated_at: string
 }

@@ -1,8 +1,7 @@
 // app/dashboard/teacher/students/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
 import StudentDetailsModal from '@/components/StudentDetailsModal'
 
 interface Student {
@@ -230,130 +229,88 @@ export default function StudentsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-emerald-50 to-teal-50 flex items-center justify-center pt-20">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500 border-t-transparent mx-auto mb-6"></div>
-          <p className="text-lg text-gray-700 font-medium">Loading students...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading students...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-emerald-50 to-teal-50 pt-20">
-      {/* Breadcrumb Navigation */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-emerald-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav className="flex" aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-4">
-              <li>
-                <Link href="/dashboard" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <div className="flex items-center">
-                  <svg className="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <Link href="/dashboard/teacher" className="ml-4 text-gray-600 hover:text-emerald-600 font-medium transition-colors">
-                    Teacher
-                  </Link>
-                </div>
-              </li>
-              <li>
-                <div className="flex items-center">
-                  <svg className="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span className="ml-4 text-gray-900 font-semibold">Students</span>
-                </div>
-              </li>
-            </ol>
-          </nav>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            👥 My Students
+          </h1>
+          <p className="mt-1 text-gray-600">Manage your students and track their setup progress</p>
+        </div>
+        <div className="mt-4 sm:mt-0">
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            ➕ Add Student
+          </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-lg shadow text-white">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-3">
-                👥 My Students
-              </h1>
-              <p className="mt-3 text-gray-600 text-lg">Manage your students and track their setup progress</p>
+              <p className="text-blue-100 font-medium text-sm">Total Students</p>
+              <p className="text-2xl font-bold">{stats.totalStudents}</p>
             </div>
-            <div className="mt-6 sm:mt-0 flex gap-3">
-              <Link
-                href="/dashboard/teacher"
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-2xl hover:bg-white hover:border-emerald-300 transition-all duration-200 flex items-center gap-2 font-medium shadow-sm"
-              >
-                ← Back to Dashboard
-              </Link>
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-3 rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 flex items-center gap-2 font-semibold shadow-lg transform hover:scale-105"
-              >
-                ➕ Add Student
-              </button>
-            </div>
+            <div className="text-2xl opacity-80">👤</div>
           </div>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-all duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 font-medium mb-1">Total Students</p>
-                  <p className="text-4xl font-bold">{stats.totalStudents}</p>
-                </div>
-                <div className="text-4xl opacity-80">👤</div>
-              </div>
+        <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-4 rounded-lg shadow text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-100 font-medium text-sm">Complete Setup</p>
+              <p className="text-2xl font-bold">{stats.completeSetup}</p>
             </div>
-
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-all duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-emerald-100 font-medium mb-1">Complete Setup</p>
-                  <p className="text-4xl font-bold">{stats.completeSetup}</p>
-                </div>
-                <div className="text-4xl opacity-80">✅</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-all duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-amber-100 font-medium mb-1">Needs Setup</p>
-                  <p className="text-4xl font-bold">{stats.incompleteSetup}</p>
-                </div>
-                <div className="text-4xl opacity-80">⚠️</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-all duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 font-medium mb-1">Pending Invites</p>
-                  <p className="text-4xl font-bold">{stats.pendingInvitations}</p>
-                </div>
-                <div className="text-4xl opacity-80">📧</div>
-              </div>
-            </div>
+            <div className="text-2xl opacity-80">✅</div>
           </div>
+        </div>
 
-          {/* Pending Invitations Section */}
-          {invitations.length > 0 && (
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 mb-8">
-              <div className="p-6 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-t-2xl">
-                <h2 className="text-2xl font-bold text-amber-800 flex items-center gap-3">
-                  📧 Pending Invitations
-                </h2>
-                <p className="text-amber-700 mt-2">Students who haven&apos;t completed their enrollment yet</p>
-              </div>
-              <div className="p-6">
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-4 rounded-lg shadow text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-100 font-medium text-sm">Needs Setup</p>
+              <p className="text-2xl font-bold">{stats.incompleteSetup}</p>
+            </div>
+            <div className="text-2xl opacity-80">⚠️</div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-lg shadow text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 font-medium text-sm">Pending Invites</p>
+              <p className="text-2xl font-bold">{stats.pendingInvitations}</p>
+            </div>
+            <div className="text-2xl opacity-80">📧</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Invitations Section */}
+      {invitations.length > 0 && (
+        <div className="bg-white rounded-lg shadow border mb-6">
+          <div className="p-4 border-b border-gray-200 bg-amber-50">
+            <h2 className="text-lg font-semibold text-amber-800 flex items-center gap-2">
+              📧 Pending Invitations
+            </h2>
+            <p className="text-sm text-amber-700 mt-1">Students who haven&apos;t completed their enrollment yet</p>
+          </div>
+          <div className="p-4">
                 <div className="space-y-4">
                   {invitations.map((invitation) => (
                     <div key={invitation.id} className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
@@ -392,28 +349,28 @@ export default function StudentsPage() {
             </div>
           )}
 
-          {/* Students List */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-200">
-            <div className="p-6 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-2xl">
-              <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-3">
-                👥 Enrolled Students
-              </h2>
-              <p className="text-emerald-700 mt-2">Students who have completed their enrollment</p>
-            </div>
+      {/* Students List */}
+      <div className="bg-white rounded-lg shadow border">
+        <div className="p-4 border-b border-gray-200 bg-emerald-50">
+          <h2 className="text-lg font-semibold text-emerald-800 flex items-center gap-2">
+            👥 Enrolled Students
+          </h2>
+          <p className="text-sm text-emerald-700 mt-1">Students who have completed their enrollment</p>
+        </div>
 
-            <div className="p-6">
-              {students.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-8xl text-gray-300 mb-6">👥</div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No enrolled students yet</h3>
-                  <p className="text-gray-600 mb-8 text-lg">Start by sending invitation links to parents</p>
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-4 rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 inline-flex items-center gap-3 font-semibold shadow-lg transform hover:scale-105"
-                  >
-                    ➕ Send First Invitation
-                  </button>
-                </div>
+        <div className="p-4">
+          {students.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl text-gray-300 mb-4">👥</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No enrolled students yet</h3>
+              <p className="text-gray-600 mb-6">Start by sending invitation links to parents</p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 font-medium"
+              >
+                ➕ Send First Invitation
+              </button>
+            </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -473,10 +430,8 @@ export default function StudentsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Database, TentativeScheduleData } from '@/types/database'
 
 // Use proper database types from schema
-type ClassRow = Database['public']['Tables']['classes']['Row']
+// type ClassRow = Database['public']['Tables']['classes']['Row']
 type StudentInvitationRow = Database['public']['Tables']['student_invitations']['Row']
 
 // Extended types for joined queries - match actual Supabase query results
@@ -18,6 +18,8 @@ interface EnrollmentQueryResult {
   enrollment_date: string | null
   classes_per_week: number | null
   classes_per_recharge: number | null
+  subject?: string | null
+  year_group?: string | null
   tentative_schedule: TentativeScheduleData | null
   whatsapp_group_url: string | null
   google_meet_url: string | null
@@ -94,35 +96,40 @@ interface InvitationData {
 
 export async function GET() {
   try {
+    console.log('🔧 API Route: Starting GET request')
+    console.log('🔧 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('🔧 Service Role Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+    
     const { supabase, user } = await createAuthenticatedSupabaseClient()
+    
+    console.log('🔧 Supabase client created successfully')
+    console.log('🔧 User:', user ? user.id : 'No user')
     
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-    
-    if (!user) {
-      console.error('❌ Auth error: No user found')
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
-    }
-
-    if (!user) {
-      console.error('❌ No user found')
-      return NextResponse.json({ error: 'No authenticated user' }, { status: 401 })
     }
 
     // Fetch data
     const studentsData = await fetchTeacherStudents(supabase, user.id)
     const invitationsData = await fetchPendingInvitations(supabase, user.id)
     
+    console.log('📦 About to send response with students:', studentsData.length)
+    console.log('📦 First student in response:', studentsData[0] ? JSON.stringify(studentsData[0]) : 'No students')
+    
     // Calculate stats
     const stats = calculateStudentStats(studentsData, invitationsData)
     
-    return NextResponse.json({
+    const responseData = {
       students: studentsData,
       invitations: invitationsData,
       stats: stats,
       success: true
-    })
+    }
+    
+    console.log('📤 Final response object keys:', Object.keys(responseData))
+    console.log('📤 Response students array length:', responseData.students.length)
+    
+    return NextResponse.json(responseData)
 
   } catch (error) {
     console.error('💥 Students API error:', error)
@@ -135,32 +142,18 @@ export async function GET() {
 
 async function fetchTeacherStudents(supabase: ReturnType<typeof createClient<Database>>, teacherId: string): Promise<StudentData[]> {
   try {
-    // Get all classes for this teacher
-    const { data: classes, error: classesError } = await supabase
-      .from('classes')
-      .select('id, name, subject, grade')
-      .eq('teacher_id', teacherId)
-      .eq('status', 'active')
-
-    if (classesError) {
-      console.error('❌ Classes error:', classesError)
-      return []
-    }
-
-    if (!classes || classes.length === 0) {
-      return []
-    }
-
-    const classIds = (classes as ClassRow[]).map((c) => c.id)
-
-    // Get enrollments with student details
-    // Use a more direct approach to ensure we only get enrollments for this teacher's classes
+    console.log('🔍 Fetching students for teacher:', teacherId)
+    
+    // Query enrollments directly by teacher_id (since enrollments table has teacher_id column)
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
       .select(`
         id,
         class_id,
         student_id,
+        teacher_id,
+        subject,
+        year_group,
         status,
         enrollment_date,
         classes_per_week,
@@ -174,15 +167,16 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createClient<Dat
           id,
           full_name,
           email
-        ),
-        classes!inner(
-          id,
-          teacher_id
         )
       `)
-      .in('class_id', classIds)
-      .eq('classes.teacher_id', teacherId) // Ensure we only get enrollments for this teacher
+      .eq('teacher_id', teacherId)
       .eq('status', 'active')
+
+    console.log('📊 Enrollments query result:', { 
+      count: enrollments?.length || 0, 
+      error: enrollmentsError,
+      teacherId 
+    })
 
     if (enrollmentsError) {
       console.error('❌ Enrollments error:', enrollmentsError)
@@ -238,11 +232,9 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createClient<Dat
         email: ''
       }
       
-      // Validate class information
-      const classInfo = (classes as ClassRow[]).find((c) => c.id === enrollment.class_id)
-      if (!classInfo) {
-        console.error('❌ Missing class information for enrollment:', enrollment.id, 'class_id:', enrollment.class_id)
-      }
+      // Use subject and year_group directly from enrollment (they're stored there)
+      const subject = (enrollment as EnrollmentQueryResult).subject || 'General'
+      const yearGroup = (enrollment as EnrollmentQueryResult).year_group || 'Not Specified'
 
       return {
         id: enrollment.id,
@@ -250,17 +242,17 @@ async function fetchTeacherStudents(supabase: ReturnType<typeof createClient<Dat
         student_name: student?.full_name || 'Unknown Student',
         parent_name: parentInfo.full_name || 'Parent Info Missing',
         parent_email: parentInfo.email || '',
-        subject: classInfo?.subject || 'Unknown Subject',
-        year_group: classInfo?.grade || 'Unknown Year',
+        subject: subject,
+        year_group: yearGroup,
         classes_per_week: enrollment.classes_per_week || 1,
         classes_per_recharge: enrollment.classes_per_recharge || 4,
         tentative_schedule: enrollment.tentative_schedule || null,
         whatsapp_group_url: enrollment.whatsapp_group_url || null,
         google_meet_url: enrollment.google_meet_url || null,
-        setup_completed: enrollment.setup_completed === true, // Ensure boolean value
+        setup_completed: enrollment.setup_completed === true,
         enrollment_date: enrollment.created_at || enrollment.enrollment_date || '',
         status: enrollment.status || 'active',
-        class_name: classInfo?.name || 'Unknown Class'
+        class_name: `${subject} - ${yearGroup}`
       }
     })
 

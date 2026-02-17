@@ -2,7 +2,7 @@
 // Simple email-based login for Chrome extension
 
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // Move Supabase client creation inside the function to avoid build-time errors
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.toLowerCase().trim()
 
     // Check if teacher exists in database
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .eq('email', normalizedEmail)

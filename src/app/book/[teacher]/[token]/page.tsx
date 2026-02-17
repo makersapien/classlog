@@ -2,18 +2,19 @@
 import StudentBookingPortal from '@/components/StudentBookingPortal'
 
 interface BookingPageProps {
-  params: {
+  params: Promise<{
     teacher: string
     token: string
-  }
+  }>
 }
 
-export default function BookingPage({ params }: BookingPageProps) {
-  return <StudentBookingPortal shareToken={params.token} />
+export default async function BookingPage({ params }: BookingPageProps) {
+  const { token } = await params
+  return <StudentBookingPortal shareToken={token} />
 }
 
 // Generate metadata for the booking page
-export async function generateMetadata({ params }: BookingPageProps) {
+export async function generateMetadata() {
   return {
     title: 'Book Your Classes - ClassLogger',
     description: 'Book your classes with your teacher using ClassLogger',

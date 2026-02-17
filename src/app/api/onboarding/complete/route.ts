@@ -1,5 +1,5 @@
 // src/app/api/onboarding/complete/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse  } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Use admin client for user creation - moved inside function
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     console.log('Looking up invitation with token:', invitation_token);
 
     // Get invitation details using the token (not the ID)
-    const { data: invitation, error: invitationError } = await supabaseAdmin
+    const { data: invitation, error: invitationError  } = await supabaseAdmin
       .from('student_invitations')
       .select('*')
       .eq('invitation_token', invitation_token)
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       parentAuthData = { user: parentExists };
     } else {
       // Create parent user account
-      const { data: newParentAuthData, error: parentAuthError } = await supabaseAdmin.auth.admin.createUser({
+      const { data: newParentAuthData, error: parentAuthError  } = await supabaseAdmin.auth.admin.createUser({
         email: parentEmail,
         password: parentPassword,
         email_confirm: true,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       studentAuthData = { user: studentExists };
     } else {
       // Create student user account
-      const { data: newStudentAuthData, error: studentAuthError } = await supabaseAdmin.auth.admin.createUser({
+      const { data: newStudentAuthData, error: studentAuthError  } = await supabaseAdmin.auth.admin.createUser({
         email: studentEmail,
         password: studentPassword,
         email_confirm: true,
@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
       console.log('Using existing class:', classId);
     } else {
       console.log('Creating new class...');
-      const { data: newClass, error: classError } = await supabaseAdmin
+      const { data: newClass, error: classError  } = await supabaseAdmin
         .from('classes')
         .insert({
           teacher_id: invitation.teacher_id,

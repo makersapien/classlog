@@ -1,7 +1,7 @@
 // src/hooks/useClassLogs.ts
 // Custom hook for managing class logs data with proper error handling
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useToast } from '@/components/ui/use-toast'
 import { 
@@ -90,7 +90,7 @@ export function useClassLogs({
       if (error) {
         console.warn('Files join query failed, falling back to basic query:', error)
         
-        const { data: basicData, error: basicError } = await supabase
+        const { data: basicData, error: basicError  } = await supabase
           .from('class_files')
           .select('*')
           .eq('class_log_id', classLogId)

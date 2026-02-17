@@ -1,7 +1,7 @@
 // src/app/api/privacy/export-data/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -37,7 +37,7 @@ async function exportDataHandler(
     const { student_id, teacher_id } = validationResult.data
     
     // Use the database function to export data
-    const { data: exportResult, error: exportError } = await supabase
+    const { data: exportResult, error: exportError  } = await supabase
       .rpc('export_student_data', {
         p_student_id: student_id,
         p_teacher_id: teacher_id,

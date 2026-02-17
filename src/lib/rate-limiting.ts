@@ -1,4 +1,5 @@
 // src/lib/rate-limiting.ts
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from './supabase-server'
 
@@ -112,10 +113,10 @@ export async function applyRateLimit(
 
 // Rate limiting decorator for API routes
 export function withRateLimit(
-  handler: (request: NextRequest, context: any) => Promise<NextResponse>,
+  handler: (request: NextRequest, context: unknown) => Promise<NextResponse>,
   category?: string
 ) {
-  return async (request: NextRequest, context: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context: unknown): Promise<NextResponse> => {
     const rateLimitResult = await applyRateLimit(request, category)
     
     if (!rateLimitResult.allowed && rateLimitResult.response) {
@@ -128,7 +129,6 @@ export function withRateLimit(
 
 // CSRF protection middleware
 export function generateCSRFToken(): string {
-  const crypto = require('crypto')
   return crypto.randomBytes(32).toString('base64url')
 }
 
@@ -145,9 +145,9 @@ export function validateCSRFToken(request: NextRequest): boolean {
 
 // CSRF protection decorator
 export function withCSRFProtection(
-  handler: (request: NextRequest, context: any) => Promise<NextResponse>
+  handler: (request: NextRequest, context: unknown) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest, context: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context: unknown): Promise<NextResponse> => {
     // Skip CSRF check for GET requests
     if (request.method === 'GET') {
       return handler(request, context)
@@ -169,13 +169,13 @@ export function withCSRFProtection(
 
 // Combined security middleware
 export function withSecurity(
-  handler: (request: NextRequest, context: any) => Promise<NextResponse>,
+  handler: (request: NextRequest, context: unknown) => Promise<NextResponse>,
   options: {
     rateLimit?: string
     csrf?: boolean
   } = {}
 ) {
-  return async (request: NextRequest, context: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context: unknown): Promise<NextResponse> => {
     // Apply rate limiting
     if (options.rateLimit !== undefined) {
       const rateLimitResult = await applyRateLimit(request, options.rateLimit)

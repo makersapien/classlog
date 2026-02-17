@@ -1,7 +1,7 @@
 // src/app/api/privacy/delete-data/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
 import { withSecurity } from '@/lib/rate-limiting'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -40,7 +40,7 @@ async function deleteDataHandler(
     const { student_id, teacher_id, delete_bookings, anonymize_only } = validationResult.data
     
     // Use the database function to delete/anonymize data
-    const { data: deleteResult, error: deleteError } = await supabase
+    const { data: deleteResult, error: deleteError  } = await supabase
       .rpc('delete_student_data', {
         p_student_id: student_id,
         p_teacher_id: teacher_id,

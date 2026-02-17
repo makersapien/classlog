@@ -260,6 +260,10 @@ export interface Database {
           student_name: string | null
           student_email: string | null
           enrollment_id: string | null
+          student_id: string | null
+          credits_deducted: number
+          is_paid: boolean
+          payment_status: 'paid' | 'partial' | 'unpaid'
         }
         Insert: {
           id?: string
@@ -283,6 +287,10 @@ export interface Database {
           student_name?: string | null
           student_email?: string | null
           enrollment_id?: string | null
+          student_id?: string | null
+          credits_deducted?: number
+          is_paid?: boolean
+          payment_status?: 'paid' | 'partial' | 'unpaid'
         }
         Update: {
           id?: string
@@ -306,6 +314,10 @@ export interface Database {
           student_name?: string | null
           student_email?: string | null
           enrollment_id?: string | null
+          student_id?: string | null
+          credits_deducted?: number
+          is_paid?: boolean
+          payment_status?: 'paid' | 'partial' | 'unpaid'
         }
       }
       extension_tokens: {
@@ -689,7 +701,7 @@ export interface Database {
           description: string | null
           subject: string | null
           max_students: number
-          status: 'available' | 'booked' | 'cancelled' | 'completed'
+          status: 'unavailable' | 'available' | 'assigned' | 'booked' | 'cancelled' | 'completed'
           booked_by: string | null
           booked_at: string | null
           google_meet_url: string | null
@@ -698,6 +710,10 @@ export interface Database {
           recurrence_type: 'daily' | 'weekly' | 'monthly' | null
           recurrence_end_date: string | null
           parent_slot_id: string | null
+          assigned_student_id: string | null
+          assigned_student_name: string | null
+          assignment_expiry: string | null
+          assignment_status: 'pending' | 'confirmed' | 'declined' | 'expired' | null
           created_at: string
           updated_at: string
         }
@@ -712,7 +728,7 @@ export interface Database {
           description?: string | null
           subject?: string | null
           max_students?: number
-          status?: 'available' | 'booked' | 'cancelled' | 'completed'
+          status?: 'unavailable' | 'available' | 'assigned' | 'booked' | 'cancelled' | 'completed'
           booked_by?: string | null
           booked_at?: string | null
           google_meet_url?: string | null
@@ -721,6 +737,10 @@ export interface Database {
           recurrence_type?: 'daily' | 'weekly' | 'monthly' | null
           recurrence_end_date?: string | null
           parent_slot_id?: string | null
+          assigned_student_id?: string | null
+          assigned_student_name?: string | null
+          assignment_expiry?: string | null
+          assignment_status?: 'pending' | 'confirmed' | 'declined' | 'expired' | null
           created_at?: string
           updated_at?: string
         }
@@ -735,7 +755,7 @@ export interface Database {
           description?: string | null
           subject?: string | null
           max_students?: number
-          status?: 'available' | 'booked' | 'cancelled' | 'completed'
+          status?: 'unavailable' | 'available' | 'assigned' | 'booked' | 'cancelled' | 'completed'
           booked_by?: string | null
           booked_at?: string | null
           google_meet_url?: string | null
@@ -744,6 +764,10 @@ export interface Database {
           recurrence_type?: 'daily' | 'weekly' | 'monthly' | null
           recurrence_end_date?: string | null
           parent_slot_id?: string | null
+          assigned_student_id?: string | null
+          assigned_student_name?: string | null
+          assignment_expiry?: string | null
+          assignment_status?: 'pending' | 'confirmed' | 'declined' | 'expired' | null
           created_at?: string
           updated_at?: string
         }
@@ -1041,7 +1065,7 @@ export interface Database {
           title: string
           message: string
           priority: 'low' | 'medium' | 'high'
-          data: any | null
+          data: unknown | null
           read: boolean
           read_at: string | null
           created_at: string
@@ -1055,7 +1079,7 @@ export interface Database {
           title: string
           message: string
           priority?: 'low' | 'medium' | 'high'
-          data?: any | null
+          data?: unknown | null
           read?: boolean
           read_at?: string | null
           created_at?: string
@@ -1069,9 +1093,59 @@ export interface Database {
           title?: string
           message?: string
           priority?: 'low' | 'medium' | 'high'
-          data?: any | null
+          data?: unknown | null
           read?: boolean
           read_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      slot_assignments: {
+        Row: {
+          id: string
+          slot_ids: string[]
+          teacher_id: string
+          student_id: string
+          student_name: string
+          status: 'pending' | 'confirmed' | 'declined' | 'expired'
+          assigned_at: string
+          expires_at: string
+          confirmed_at: string | null
+          declined_at: string | null
+          expired_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slot_ids: string[]
+          teacher_id: string
+          student_id: string
+          student_name: string
+          status?: 'pending' | 'confirmed' | 'declined' | 'expired'
+          assigned_at?: string
+          expires_at: string
+          confirmed_at?: string | null
+          declined_at?: string | null
+          expired_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slot_ids?: string[]
+          teacher_id?: string
+          student_id?: string
+          student_name?: string
+          status?: 'pending' | 'confirmed' | 'declined' | 'expired'
+          assigned_at?: string
+          expires_at?: string
+          confirmed_at?: string | null
+          declined_at?: string | null
+          expired_at?: string | null
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1150,6 +1224,17 @@ export interface Database {
           status: string
           class_name: string
         }[]
+      }
+      confirm_slot_assignment: {
+        Args: {
+          assignment_id: string
+          action: string
+        }
+        Returns: unknown
+      }
+      expire_slot_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: void
       }
     }
     Enums: {

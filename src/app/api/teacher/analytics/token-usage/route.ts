@@ -1,6 +1,6 @@
 // src/app/api/teacher/analytics/token-usage/route.ts
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 
 // GET endpoint to fetch token usage analytics for teacher
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get user role
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError  } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('student_id', studentId)
     }
 
-    const { data: tokens, error: tokensError } = await query.order('created_at', { ascending: false })
+    const { data: tokens, error: tokensError  } = await query.order('created_at', { ascending: false })
 
     if (tokensError) {
       console.error('❌ Tokens fetch error:', tokensError)
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get booking statistics for tokens
-    const { data: bookingStats, error: bookingError } = await supabase
+    const { data: bookingStats, error: bookingError  } = await supabase
       .from('bookings')
       .select('student_id, status, booked_at')
       .eq('teacher_id', user.id)
@@ -105,7 +105,8 @@ export async function GET(request: NextRequest) {
         ).length || 0
       },
       tokens: tokens?.map(token => {
-        const studentBookings = bookingStats?.filter(b => b.student_id === token.profiles?.id) || []
+        const profile = token.profiles as { id?: string; full_name?: string; email?: string } | undefined
+        const studentBookings = bookingStats?.filter(b => b.student_id === profile?.id) || []
         const isExpired = new Date(token.expires_at) <= new Date()
         const hasRecentAccess = token.last_accessed && new Date(token.last_accessed) >= startDate
         
@@ -113,9 +114,9 @@ export async function GET(request: NextRequest) {
           id: token.id,
           token: token.token.substring(0, 8) + '...', // Partial token for security
           student: {
-            id: token.profiles?.id,
-            name: token.profiles?.full_name,
-            email: token.profiles?.email
+            id: profile?.id,
+            name: profile?.full_name,
+            email: profile?.email
           },
           access_count: token.access_count,
           last_accessed: token.last_accessed,
@@ -136,7 +137,8 @@ export async function GET(request: NextRequest) {
         start_date: startDate.toISOString().split('T')[0],
         end_date: new Date().toISOString().split('T')[0],
         days: days
-      }
+      },
+      usage_trends: [] as Array<{ date: string; bookings: number }>
     }
 
     // Calculate usage trends (group by day)

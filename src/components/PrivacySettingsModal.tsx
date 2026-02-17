@@ -1,16 +1,15 @@
 // src/components/PrivacySettingsModal.tsx
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, {  useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Shield, Download, Trash2, Eye, Clock, AlertTriangle } from 'lucide-react'
+import { Shield, Download, Trash2, Clock, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface PrivacySettings {

@@ -1,7 +1,7 @@
 // src/app/api/teacher/check-meet-url/route.ts
 // Complete fixed version with proper TypeScript CORS handling
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse  } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Fixed CORS helper with proper TypeScript compatibility
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     // Query enrollments with the specific Google Meet URL for this teacher
     // Get data from enrollments table and student profiles
-    const { data: enrollments, error: enrollmentError } = await supabase
+    const { data: enrollments, error: enrollmentError  } = await supabase
       .from('enrollments')
       .select(`
         id,

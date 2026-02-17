@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Copy, RefreshCw, Shield, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Clock, Copy, RefreshCw, Shield } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 interface TokenInfo {
